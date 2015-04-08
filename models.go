@@ -16,6 +16,7 @@ func renderMarkdown(md string) string {
 }
 
 type BaseData struct {
+	error
 	Board    Board
 	Lists    []List
 	List     List
@@ -150,13 +151,13 @@ func (card Card) GetChecklists() []Checklist {
 	err := card.Checklists.Unmarshal(&dat)
 	if err != nil {
 		log.Print("Problem unmarshaling checklists JSON")
-		log.Fatal(err)
+		log.Print(err)
 	}
 	var checklists []Checklist
 	err = mapstructure.Decode(dat["checklists"], &checklists)
 	if err != nil {
 		log.Print("Problem converting checklists map to struct")
-		log.Fatal(err)
+		log.Print(err)
 	}
 	return checklists
 }
@@ -166,13 +167,13 @@ func (card Card) GetAttachments() []Attachment {
 	err := card.Attachments.Unmarshal(&dat)
 	if err != nil {
 		log.Print("Problem unmarshaling attachments JSON")
-		log.Fatal(err)
+		log.Print(err)
 	}
 	var attachments []Attachment
 	err = mapstructure.Decode(dat["attachments"], &attachments)
 	if err != nil {
 		log.Print("Problem converting attachments map to struct")
-		log.Fatal(err)
+		log.Print(err)
 	}
 	return attachments
 }

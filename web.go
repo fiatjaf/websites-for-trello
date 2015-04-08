@@ -18,7 +18,7 @@ import (
 var db *sqlx.DB
 var settings Settings
 
-func getBaseData(r *http.Request) BaseData {
+func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
 	var err error
 	var identifier string
 
@@ -47,7 +47,9 @@ WHERE custom_domains.domain = $1`,
 			identifier)
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return BaseData{error: err}
 	}
 
 	// lists for <nav>
@@ -59,19 +61,25 @@ WHERE visible = true AND board_id = $1
 ORDER BY pos
     `, board.Id)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return BaseData{error: err}
 	}
 
 	// prefs
 	var jsonPrefs types.JsonText
 	err = db.Get(&jsonPrefs, "SELECT preferences($1)", identifier)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return BaseData{error: err}
 	}
 	var prefs Preferences
 	err = jsonPrefs.Unmarshal(&prefs)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return BaseData{error: err}
 	}
 
 	// pagination
@@ -79,7 +87,9 @@ ORDER BY pos
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err = strconv.Atoi(val)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			http.Error(w, err.Error(), 400)
+			return BaseData{error: err}
 		}
 	}
 	hasPrev := false
@@ -99,13 +109,18 @@ ORDER BY pos
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	context := getBaseData(r)
+	context := getBaseData(w, r)
+	if context.error != nil {
+		return
+	}
 
 	context.Page = 1
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			http.Error(w, err.Error(), 400)
+			return
 		}
 		context.Page = page
 	}
@@ -136,7 +151,9 @@ OFFSET $2
 LIMIT $3
     `, context.Board.Id, ppp*(context.Page-1), ppp+1)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return
 	}
 
 	if len(cards) > ppp {
@@ -156,7 +173,10 @@ LIMIT $3
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
-	context := getBaseData(r)
+	context := getBaseData(w, r)
+	if context.error != nil {
+		return
+	}
 
 	ppp := context.Prefs.PostsPerPage()
 	listSlug := mux.Vars(r)["list-slug"]
@@ -193,7 +213,9 @@ func list(w http.ResponseWriter, r *http.Request) {
 ORDER BY pos
     `, context.Board.Id, listSlug, ppp*(context.Page-1), ppp+1)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return
 	}
 
 	// the first row is a List dressed as a Card
@@ -230,14 +252,19 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 	var listSlug string
 	err := db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return
 	}
 
 	http.Redirect(w, r, "/"+listSlug+"/"+cardSlug+"/", 301)
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
-	context := getBaseData(r)
+	context := getBaseData(w, r)
+	if context.error != nil {
+		return
+	}
 
 	vars := mux.Vars(r)
 	listSlug := vars["list-slug"]
@@ -283,7 +310,9 @@ FROM (
 ORDER BY sort
 	`, context.Board.Id, listSlug, cardSlug)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		http.Error(w, err.Error(), 500)
+		return
 	}
 
 	// the first row is a List dressed as a Card
