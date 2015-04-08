@@ -220,6 +220,22 @@ ORDER BY pos
 	)
 }
 
+func cardRedirect(w http.ResponseWriter, r *http.Request) {
+	// from_list/list-id/card-id/
+	vars := mux.Vars(r)
+	listId := vars["list-id"]
+	cardSlug := vars["card-slug"]
+
+	// get list slug
+	var listSlug string
+	err := db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.Redirect(w, r, "/"+listSlug+"/"+cardSlug+"/", 301)
+}
+
 func card(w http.ResponseWriter, r *http.Request) {
 	context := getBaseData(r)
 
@@ -294,6 +310,7 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true) // redirects '/path' to '/path/'
 
+	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/{list-slug}/", list)
