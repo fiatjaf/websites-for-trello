@@ -31,12 +31,12 @@ func (b BaseData) PrevPage() int {
 type Preferences struct {
 	Favicon      string
 	Domain       string
-	includes     string
+	Includes     string
 	postsPerPage string `json:"posts-per-page"`
 }
 
 func (prefs Preferences) JS() []string {
-	includes := strings.Split(strings.ToLower(prefs.includes), ",")
+	includes := strings.Split(strings.ToLower(prefs.Includes), ",")
 	js := make([]string, 0)
 	for _, incl := range includes {
 		if strings.HasSuffix(incl, ".js") {
@@ -47,7 +47,7 @@ func (prefs Preferences) JS() []string {
 }
 
 func (prefs Preferences) CSS() []string {
-	includes := strings.Split(strings.ToLower(prefs.includes), ",")
+	includes := strings.Split(strings.ToLower(prefs.Includes), ",")
 	css := make([]string, 0)
 	for _, incl := range includes {
 		if strings.HasSuffix(incl, ".css") {

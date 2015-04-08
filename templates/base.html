@@ -11,7 +11,7 @@
   <title>{{#card}}{{ name }} | {{/card}}{{#list}}{{ name }} | {{/list}}{{ Board.Name }}</title>
   {{#Board.Desc}}<meta name="description" content="{{ Board.Description }}">{{/Board.Desc}}
   <link href="/webmention" rel="webmention">
-  {{#CSS}}<link rel="stylesheet" href="{{ . }}">{{/CSS}}
+  {{#Prefs.CSS}}<link rel="stylesheet" href="{{ . }}">{{/Prefs.CSS}}
 </head>
 
 <body>
@@ -20,7 +20,7 @@
     <h1>
       <a href="/" title="{{ Board.Name }}">{{ Board.Name }}</a>
     </h1>
-    {{{ Board.Desc }}}
+    <aside>{{{ Board.Desc }}}</aside>
   </header>
 
   <nav>
@@ -50,7 +50,7 @@
 
 </body>
 
-{{#JS}}<script src="{{ . }}"></script>{{/JS}}
+{{#Prefs.JS}}<script src="{{ . }}"></script>{{/Prefs.JS}}
 </html>
 
 <!-- unitemplate: https://github.com/fiatjaf/unitemplate/ -->
