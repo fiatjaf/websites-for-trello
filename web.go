@@ -74,12 +74,27 @@ ORDER BY pos
 		log.Fatal(err)
 	}
 
+	// pagination
+	page := 1
+	if val, ok := mux.Vars(r)["page"]; ok {
+		page, err = strconv.Atoi(val)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	hasPrev := false
+	if page > 1 {
+		hasPrev = true
+	}
+
 	return BaseData{
 		Settings: settings,
 		Board:    board,
 		Author:   author,
 		Lists:    lists,
 		Prefs:    prefs,
+		Page:     page,
+		HasPrev:  hasPrev,
 	}
 }
 
@@ -135,6 +150,61 @@ LIMIT $3
 	)
 }
 
+func list(w http.ResponseWriter, r *http.Request) {
+	context := getBaseData(r)
+
+	ppp := context.Prefs.PostsPerPage()
+	listSlug := mux.Vars(r)["list-slug"]
+
+	// fetch home cards for this list
+	var cards []Card
+	err := db.Select(&cards, `
+(
+  SELECT slug, name, null AS due, created_on, 0 AS pos, '' AS cover
+  FROM lists
+  WHERE board_id = $1
+    AND slug = $2
+    AND visible
+) UNION ALL (
+  SELECT cards.slug, cards.name, cards.due, cards.created_on, cards.pos, coalesce(cards.cover, '') AS cover
+  FROM cards
+  INNER JOIN lists
+  ON lists.id = cards.list_id
+  WHERE lists.slug = $2
+    AND cards.visible
+  OFFSET $3
+  LIMIT $4
+)
+ORDER BY pos
+    `, context.Board.Id, listSlug, ppp*(context.Page-1), ppp+1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// the first row is a List dressed as a Card
+	list := List{
+		Name: cards[0].Name,
+		Slug: cards[0].Slug,
+	}
+	cards = cards[1:]
+
+	if len(cards) > ppp {
+		context.HasNext = true
+		cards = cards[:ppp]
+	} else {
+		context.HasNext = false
+	}
+
+	context.List = list
+	context.Cards = cards
+
+	fmt.Fprint(w,
+		mustache.RenderFileInLayout("templates/list.html",
+			"templates/base.html",
+			context),
+	)
+}
+
 func main() {
 	settings = LoadSettings()
 
@@ -142,8 +212,13 @@ func main() {
 	db = db.Unsafe()
 
 	router := mux.NewRouter()
+	router.StrictSlash(true) // redirects '/path' to '/path/'
+
 	router.HandleFunc("/{page:[0-9]+}/", index)
 	router.HandleFunc("/", index)
+	router.HandleFunc("/{list-slug}/{page:[0-9]+}/", list)
+	router.HandleFunc("/{list-slug}/", list)
+	router.HandleFunc("/{list-slug}/{card-slug}/", list)
 
 	http.Handle("/", router)
 
