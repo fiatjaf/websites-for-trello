@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"time"
 )
@@ -12,10 +13,19 @@ type BaseData struct {
 	Author   Author
 	Cards    []Card
 	Card     Card
+	Page     int
 	HasNext  bool
 	HasPrev  bool
 	Prefs    Preferences
 	Settings Settings
+}
+
+func (b BaseData) NextPage() int {
+	return b.Page + 1
+}
+
+func (b BaseData) PrevPage() int {
+	return b.Page - 1
 }
 
 type Preferences struct {
@@ -47,6 +57,14 @@ func (prefs Preferences) CSS() []string {
 	return css
 }
 
+func (prefs Preferences) PostsPerPage() int {
+	ppp, err := strconv.Atoi(prefs.postsPerPage)
+	if err != nil {
+		return 7
+	}
+	return ppp
+}
+
 type Board struct {
 	Id   interface{}
 	Name string
@@ -71,12 +89,11 @@ type Card struct {
 	Id         interface{}
 	Name       string
 	Slug       string
+	Cover      string
 	Desc       string
 	Due        interface{}
 	Created_on time.Time
 	List_id    string
-	/* temporary */
-	URL string
 }
 
 func (card Card) Url(list List) string {
@@ -84,6 +101,13 @@ func (card Card) Url(list List) string {
 		return "/from_list/" + card.List_id + "/" + card.Slug
 	}
 	return "/" + list.Slug + "/" + card.Slug
+}
+
+func (card Card) HasCover() bool {
+	if card.Cover == "" {
+		return false
+	}
+	return true
 }
 
 func (card Card) Date() time.Time {

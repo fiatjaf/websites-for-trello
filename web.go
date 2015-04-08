@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	_ "github.com/lib/pq"
@@ -84,10 +85,54 @@ ORDER BY pos
 
 func index(w http.ResponseWriter, r *http.Request) {
 	context := getBaseData(r)
-	response := mustache.RenderFileInLayout("templates/list.html",
-		"templates/base.html",
-		context)
-	fmt.Fprint(w, response)
+
+	context.Page = 1
+	if val, ok := mux.Vars(r)["page"]; ok {
+		page, err := strconv.Atoi(val)
+		if err != nil {
+			log.Fatal(err)
+		}
+		context.Page = page
+	}
+	if context.Page > 1 {
+		context.HasPrev = true
+	} else {
+		context.HasPrev = false
+	}
+
+	ppp := context.Prefs.PostsPerPage()
+
+	// fetch home cards for home
+	var cards []Card
+	err := db.Select(&cards, `
+SELECT cards.slug, cards.name, coalesce(cards.cover, '') as cover, cards.created_on, due, list_id
+FROM cards
+INNER JOIN lists ON lists.id = cards.list_id
+WHERE lists.board_id = $1
+  AND lists.visible = true
+  AND cards.visible = true
+ORDER BY cards.due DESC, cards.created_on DESC
+OFFSET $2
+LIMIT $3
+    `, context.Board.Id, ppp*(context.Page-1), ppp+1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(cards) > ppp {
+		context.HasNext = true
+		cards = cards[:ppp]
+	} else {
+		context.HasNext = false
+	}
+
+	context.Cards = cards
+
+	fmt.Fprint(w,
+		mustache.RenderFileInLayout("templates/list.html",
+			"templates/base.html",
+			context),
+	)
 }
 
 func main() {
@@ -97,6 +142,7 @@ func main() {
 	db = db.Unsafe()
 
 	router := mux.NewRouter()
+	router.HandleFunc("/{page:[0-9]+}/", index)
 	router.HandleFunc("/", index)
 
 	http.Handle("/", router)

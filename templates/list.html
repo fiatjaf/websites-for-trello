@@ -12,8 +12,8 @@
       <li>
         <article class="h-entry">
           <header>
-            {{#Cover}}<a href="{{ URL }}"><img src="{{ Cover }}"></a>{{/Cover}}
-            <h1><a class="u-url p-name" href="{{ URL }}">{{ Name }}</a></h1>
+            {{#HasCover}}<a href="/{{^List.Id}}from_list/{{ List_id }}{{/List.Id}}{{#List.id}}List.Slug{{/List.id}}/{{ Slug }}"><img src="{{ Cover }}"></a>{{/HasCover}}
+            <h1><a class="u-url p-name" href="/{{^List.Id}}from_list/{{ List_id }}{{/List.Id}}{{#List.id}}List.Slug{{/List.id}}/{{ Slug }}">{{ Name }}</a></h1>
           </header>
 
           <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
@@ -24,8 +24,8 @@
   <footer>
     <nav>
       <ul>
-        <li><a {{^HasPrev}}href="{{#List}}/{{ List.slug }}{{/List}}/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
-        <li><a {{^HasNext}}href="{{#List}}/{{ slug }}{{/List}}/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
+        <li><a {{#HasPrev}}href="{{#List.Test}}/{{ List.slug }}{{/List.Test}}/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
+        <li><a {{#HasNext}}href="{{#List.Test}}/{{ slug }}{{/List.Test}}/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
       </ul>
     </nav>
   </footer>
