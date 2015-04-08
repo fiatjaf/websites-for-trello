@@ -1,7 +1,10 @@
 package main
 
 import (
+	"github.com/jmoiron/sqlx/types"
+	"github.com/mitchellh/mapstructure"
 	"github.com/shurcooL/go/github_flavored_markdown"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -93,21 +96,24 @@ func (o Author) BioRender() string {
 }
 
 type List struct {
-	Id   interface{}
+	Id   string
 	Name string
 	Slug string
 	Pos  int
 }
 
 type Card struct {
-	Id         interface{}
-	Name       string
-	Slug       string
-	Cover      string
-	Desc       string
-	Due        interface{}
-	Created_on time.Time
-	List_id    string
+	Id          string
+	Name        string
+	Slug        string
+	Cover       string
+	Desc        string
+	Due         interface{}
+	Created_on  time.Time
+	List_id     string
+	Labels      []interface{}
+	Checklists  types.JsonText
+	Attachments types.JsonText
 }
 
 func (o Card) DescRender() string {
@@ -139,6 +145,87 @@ func (card Card) IsoDate() string {
 	return date.Format("2006-01-02T15:04:05.999")
 }
 
+func (card Card) GetChecklists() []Checklist {
+	var dat map[string]interface{}
+	err := card.Checklists.Unmarshal(&dat)
+	if err != nil {
+		log.Print("Problem unmarshaling checklists JSON")
+		log.Fatal(err)
+	}
+	var checklists []Checklist
+	err = mapstructure.Decode(dat["checklists"], &checklists)
+	if err != nil {
+		log.Print("Problem converting checklists map to struct")
+		log.Fatal(err)
+	}
+	return checklists
+}
+
+func (card Card) GetAttachments() []Attachment {
+	var dat map[string]interface{}
+	err := card.Attachments.Unmarshal(&dat)
+	if err != nil {
+		log.Print("Problem unmarshaling attachments JSON")
+		log.Fatal(err)
+	}
+	var attachments []Attachment
+	err = mapstructure.Decode(dat["attachments"], &attachments)
+	if err != nil {
+		log.Print("Problem converting attachments map to struct")
+		log.Fatal(err)
+	}
+	return attachments
+}
+
+func (card Card) HasAttachments() bool {
+	attachments := card.GetAttachments()
+	if len(attachments) > 0 {
+		return true
+	}
+	return false
+}
+
+type Checklist struct {
+	Name       string
+	CheckItems []CheckItem
+}
+
+type CheckItem struct {
+	State string
+	Name  string
+}
+
+func (c CheckItem) Complete() bool {
+	return c.State == "complete"
+}
+func (o CheckItem) NameRender() string {
+	return renderMarkdown(o.Name)
+}
+
+type Attachment struct {
+	Name      string
+	Url       string
+	EdgeColor string
+}
+
+func (a Attachment) IsImage() bool {
+	parts := strings.Split(a.Url, ".")
+	ext := strings.ToLower(parts[len(parts)-1])
+	if ext == "png" {
+		return true
+	}
+	if ext == "jpeg" {
+		return true
+	}
+	if ext == "jpg" {
+		return true
+	}
+	if ext == "gif" {
+		return true
+	}
+	return false
+}
+
 // mustache helpers
 func (o Board) Test() interface{} {
 	if o.Id != nil {
@@ -155,14 +242,14 @@ func (o Author) Test() interface{} {
 }
 
 func (o List) Test() interface{} {
-	if o.Id != nil {
+	if o.Slug != "" {
 		return o
 	}
 	return false
 }
 
 func (o Card) Test() interface{} {
-	if o.Id != nil {
+	if o.Slug != "" {
 		return o
 	}
 	return false

@@ -1,69 +1,69 @@
-{% extends 'site/base.html' %}
+{{#List.Test}}
+  <header>
+    <h1>
+      <a href="/{{ Slug }}/">{{ Name }}</a>
+    </h1>
+  </header>
+{{/List.Test}}
 
-{% block main %}
-
-<header>
-  <h1>
-    <a href="/{{ list.slug }}/">{{ list.name }}</a>
-  </h1>
-</header>
-
+{{#Card}}
 <article class="h-entry">
 
   <header>
-    {% if card.cover %}<img src="{{ card.cover }}">{% endif %}
+    {{#HasCover}}<img src="{{ Cover }}">{{/HasCover}}
     <h1 class="p-name">
-      <a class="u-url" href="/{{ list.slug }}/{{ card.slug }}/">{{ card.name }}</a>
+      <a class="u-url" href="/{{ List.Slug }}/{{ Slug }}/">{{ Name }}</a>
     </h1>
 
     <div>
       <style scoped>.tag { padding: 10px; color: black; text-shadow: white 1px 1px 1px; margin: 2px; }</style>
-      {% for label in card.labels %}
-        <a class="tag" style="background-color: {{ label.color }}">{{ label.name or ' ' }}</a>
-      {% endfor %}
+      {{#Labels}}
+        <a class="tag" style="background-color: {{ Color }}">{{ NameOrSpace }}</a>
+      {{/Labels}}
     </div>
 
-    {% set date = card.due or card.created_on %}
-    <time datetime="{{ date.isoformat() }}">{{ date.strftime('%d %b %Y') }}</time>
+    <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
   </header>
   
   <div class="e-content">
-    {{ card.desc | markdown | safe }}
+    {{{ DescRender }}}
   </div>
 
 </article>
 
-{% for checklist in card.checklists.checklists %}
+{{#GetChecklists}}
   <section class="checklist">
     <header>
-      <h1>{{ checklist.name }}</h1>
+      <h1>{{ Name }}</h1>
     </header>
     <ul>
-      {% for item in checklist.checkItems %}
+      {{#CheckItems}}
         <li>
-          <input type="checkbox" disabled {% if item.state == 'complete' %}checked{% endif %}>
-          {{ item.name | markdown | safe }}
+          <input type="checkbox" disabled {{#Complete}}checked{{/Complete}}>
+          {{{ NameRender }}}
         </li>
-      {% endfor %}
+      {{/CheckItems}}
     <ul>
   </section>
-{% endfor %}
+{{/GetChecklists}}
 
-{% if card.attachments.attachments %}
+{{#HasAttachments}}
   <section class="attachments">
     <ul>
-      {% for attachment in card.attachments.attachments %}
+      {{#GetAttachments}}
         <li>
-          {% if attachment.name.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'gif'] %}
-            <img class="u-photo" src="{{ attachment.url }}" height="200">
-          {% endif %}
-          <a target="_blank" href="{{ attachment.url }}">{{ attachment.name }}</a></li>
-      {% endfor %}
+          {{#IsImage}}
+            <img class="u-photo" src="{{ Url }}" height="200">
+          {{/IsImage}}
+          <a target="_blank" href="{{ Url }}">{{ Name }}</a></li>
+      {{/GetAttachments}}
     </ul>
   </section>
-{% endif %}
+{{/HasAttachments}}
 
-{% if config.WEBMENTIONS_IMPLEMENTED %}
+{{/Card}}
+
+{{#Prefs.Comments}}
 <section class="comments h-feed">
   <h1>Comments</h1>
   {% for comment in card.comments %}
@@ -74,6 +74,4 @@
   {% endfor %}
   <p>To comment, send a webmention to this page, or an email to <a href="mailto:webmention@questo.email">webmention@questo.email.com</a> with the URL of this page as the subject.</p>
 </section>
-{% endif %}
-
-{% endblock %}
+{{/Prefs.Comments}}

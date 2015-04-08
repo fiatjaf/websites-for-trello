@@ -120,7 +120,12 @@ func index(w http.ResponseWriter, r *http.Request) {
 	// fetch home cards for home
 	var cards []Card
 	err := db.Select(&cards, `
-SELECT cards.slug, cards.name, coalesce(cards.cover, '') as cover, cards.created_on, due, list_id
+SELECT cards.slug,
+       cards.name,
+       coalesce(cards.cover, '') as cover,
+       cards.created_on,
+       due,
+       list_id
 FROM cards
 INNER JOIN lists ON lists.id = cards.list_id
 WHERE lists.board_id = $1
@@ -160,13 +165,23 @@ func list(w http.ResponseWriter, r *http.Request) {
 	var cards []Card
 	err := db.Select(&cards, `
 (
-  SELECT slug, name, null AS due, created_on, 0 AS pos, '' AS cover
+  SELECT slug,
+         name,
+         null AS due,
+         created_on,
+         0 AS pos,
+         '' AS cover
   FROM lists
   WHERE board_id = $1
     AND slug = $2
     AND visible
 ) UNION ALL (
-  SELECT cards.slug, cards.name, cards.due, cards.created_on, cards.pos, coalesce(cards.cover, '') AS cover
+  SELECT cards.slug,
+         cards.name,
+         cards.due,
+         cards.created_on,
+         cards.pos,
+         coalesce(cards.cover, '') AS cover
   FROM cards
   INNER JOIN lists
   ON lists.id = cards.list_id
@@ -205,6 +220,71 @@ ORDER BY pos
 	)
 }
 
+func card(w http.ResponseWriter, r *http.Request) {
+	context := getBaseData(r)
+
+	vars := mux.Vars(r)
+	listSlug := vars["list-slug"]
+	cardSlug := vars["card-slug"]
+
+	// fetch home cards for this list
+	var cards []Card
+	err := db.Select(&cards, `
+SELECT slug, name, due, created_on, "desc", attachments, checklists, cover
+FROM (
+  (
+    SELECT slug,
+           name,
+           null AS due,
+           created_on,
+           '' AS "desc",
+           '""'::jsonb AS attachments,
+           '""'::jsonb AS checklists,
+           0 AS sort,
+           '' AS cover
+    FROM lists
+    WHERE board_id = $1
+      AND slug = $2
+      AND visible
+  ) UNION ALL (
+    SELECT cards.slug,
+           cards.name,
+           cards.due,
+           cards.created_on,
+           cards.desc,
+           cards.attachments,
+           cards.checklists,
+           1 AS sort,
+           coalesce(cards.cover, '') AS cover
+    FROM cards
+    INNER JOIN lists
+    ON lists.id = cards.list_id
+    WHERE cards.slug = $3
+      AND lists.slug = $2
+      AND cards.visible
+  )
+) AS u
+ORDER BY sort
+	`, context.Board.Id, listSlug, cardSlug)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// the first row is a List dressed as a Card
+	list := List{
+		Name: cards[0].Name,
+		Slug: cards[0].Slug,
+	}
+	context.List = list
+	context.Card = cards[1]
+
+	fmt.Fprint(w,
+		mustache.RenderFileInLayout("templates/card.html",
+			"templates/base.html",
+			context),
+	)
+}
+
 func main() {
 	settings = LoadSettings()
 
@@ -214,11 +294,11 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true) // redirects '/path' to '/path/'
 
-	router.HandleFunc("/{page:[0-9]+}/", index)
-	router.HandleFunc("/", index)
-	router.HandleFunc("/{list-slug}/{page:[0-9]+}/", list)
+	router.HandleFunc("/{list-slug}/{card-slug}/", card)
+	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/{list-slug}/", list)
-	router.HandleFunc("/{list-slug}/{card-slug}/", list)
+	router.HandleFunc("/p/{page:[0-9]+}/", index)
+	router.HandleFunc("/", index)
 
 	http.Handle("/", router)
 

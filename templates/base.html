@@ -6,9 +6,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {{#Prefs.Favicon}}
-    <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
+  <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
   {{/Prefs.Favicon}}
-  <title>{{#card}}{{ name }} | {{/card}}{{#list}}{{ name }} | {{/list}}{{ Board.Name }}</title>
+  <title>{{#Card.Test}}{{ Name }} | {{/Card.Test}}{{^Card.Test}}{{#List.Test}}{{ Name }} | {{/List.Test}}{{/Card.Test}}{{ Board.Name }}</title>
   {{#Board.Desc}}<meta name="description" content="{{ Board.Desc }}">{{/Board.Desc}}
   <link href="/webmention" rel="webmention">
   {{#Prefs.CSS}}<link rel="stylesheet" href="{{ . }}">{{/Prefs.CSS}}
