@@ -1,0 +1,79 @@
+{% extends 'site/base.html' %}
+
+{% block main %}
+
+<header>
+  <h1>
+    <a href="/{{ list.slug }}/">{{ list.name }}</a>
+  </h1>
+</header>
+
+<article class="h-entry">
+
+  <header>
+    {% if card.cover %}<img src="{{ card.cover }}">{% endif %}
+    <h1 class="p-name">
+      <a class="u-url" href="/{{ list.slug }}/{{ card.slug }}/">{{ card.name }}</a>
+    </h1>
+
+    <div>
+      <style scoped>.tag { padding: 10px; color: black; text-shadow: white 1px 1px 1px; margin: 2px; }</style>
+      {% for label in card.labels %}
+        <a class="tag" style="background-color: {{ label.color }}">{{ label.name or ' ' }}</a>
+      {% endfor %}
+    </div>
+
+    {% set date = card.due or card.created_on %}
+    <time datetime="{{ date.isoformat() }}">{{ date.strftime('%d %b %Y') }}</time>
+  </header>
+  
+  <div class="e-content">
+    {{ card.desc | markdown | safe }}
+  </div>
+
+</article>
+
+{% for checklist in card.checklists.checklists %}
+  <section class="checklist">
+    <header>
+      <h1>{{ checklist.name }}</h1>
+    </header>
+    <ul>
+      {% for item in checklist.checkItems %}
+        <li>
+          <input type="checkbox" disabled {% if item.state == 'complete' %}checked{% endif %}>
+          {{ item.name | markdown | safe }}
+        </li>
+      {% endfor %}
+    <ul>
+  </section>
+{% endfor %}
+
+{% if card.attachments.attachments %}
+  <section class="attachments">
+    <ul>
+      {% for attachment in card.attachments.attachments %}
+        <li>
+          {% if attachment.name.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'gif'] %}
+            <img class="u-photo" src="{{ attachment.url }}" height="200">
+          {% endif %}
+          <a target="_blank" href="{{ attachment.url }}">{{ attachment.name }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+
+{% if config.WEBMENTIONS_IMPLEMENTED %}
+<section class="comments h-feed">
+  <h1>Comments</h1>
+  {% for comment in card.comments %}
+    <div>
+      <h1>{{ comment.author }} at {{ comment.date }}</h1>
+      {{ comment.text | markdown | safe }}
+    </div>
+  {% endfor %}
+  <p>To comment, send a webmention to this page, or an email to <a href="mailto:webmention@questo.email">webmention@questo.email.com</a> with the URL of this page as the subject.</p>
+</section>
+{% endif %}
+
+{% endblock %}

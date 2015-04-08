@@ -1,0 +1,74 @@
+<style>
+.container { width: 850px; margin: auto; padding-top: 20px; }
+ul { list-style: none }
+li { float: left; padding: 10px; }
+.btn-lg { font-size: 130%; }
+h1 { text-align: center; }
+footer { width: 100%; text-align: center; background-color: wheat; padding-top: 20px; overflow: auto; }
+</style>
+<div class="container">
+  <div class="jumbotron">
+    <h1>Side-by-side code snippets from Rosetta Code</h1>
+    <h3>Choose two languages to compare:</h3>
+  </div>
+  <div class="row">
+    <ul>
+    {{ range .Languages }}
+      <li class="language">
+        <button class="btn btn-success {{ . }}" href="#">{{ . }}</button>
+      </li>
+    {{ end }}
+    </ul>
+  </div>
+  <div class="jumbotron">
+    <a href="#" class="btn btn-primary btn-lg btn-block">Compare <span></span> and <span></span></a>
+  </div>
+</div>
+
+<script>
+$(function () {
+  var selected = ['___', '___']
+
+  $('.language button').on('click', function () {
+    var $this = $(this)
+    var language = $this.text()
+    var selectedPos = selected.indexOf(language)
+    if (selectedPos != -1) {
+      if (selectedPos == 0) {
+        selected.shift()
+        selected.unshift('___')
+      }
+      if (selectedPos == 1) {
+        selected.pop()
+        selected.push('___')
+      }
+
+      $this.removeClass('active')
+    } else {
+      var prev = selected.pop()
+      selected.unshift(language)
+
+      $this.addClass('active')
+      $("." + prev).removeClass('active')
+    }
+
+    update()
+  })
+
+  function update() {
+    $('.jumbotron').each(function () {
+      $button = $(this).find('.btn')
+      $button.find('span').eq(0).text(selected[1])
+      $button.find('span').eq(1).text(selected[0])
+      $button.focus()
+      $button.attr('href', '/compare/' + selected[1] + '/' + selected[0])
+    })
+  }
+
+  update()
+})
+</script>
+
+<footer>
+  <p>© <a href="https://alhur.es">alhures software</a> 2005. All the content of these comparisons comes from the <a href="http://rosettacode.org/wiki/Rosetta_Code">Rosetta Code</a> under the <a href="http://www.gnu.org/licenses/fdl-1.2.html">GNU Free Documentation License 1.2</a>.</p>
+</footer>

@@ -1,0 +1,32 @@
+{{#List.Test}}
+  <header>
+    <h1>
+      <a href="/{{ Slug }}/">{{ Name }}</a>
+    </h1>
+  </header>
+{{/List.Test}}
+
+<section>
+  <ul class="h-feed">
+    {{#Cards}}
+      <li>
+        <article class="h-entry">
+          <header>
+            {{#Cover}}<a href="{{ URL }}"><img src="{{ Cover }}"></a>{{/Cover}}
+            <h1><a class="u-url p-name" href="{{ URL }}">{{ Name }}</a></h1>
+          </header>
+
+          <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
+        </article>
+      </li>
+    {{/Cards}}
+  </ul>
+  <footer>
+    <nav>
+      <ul>
+        <li><a {{^HasPrev}}href="{{#List}}/{{ List.slug }}{{/List}}/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
+        <li><a {{^HasNext}}href="{{#List}}/{{ slug }}{{/List}}/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
+      </ul>
+    </nav>
+  </footer>
+</section>

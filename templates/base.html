@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {{#Prefs.Favicon}}
+    <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
+  {{/Prefs.Favicon}}
+  <title>{{#card}}{{ name }} | {{/card}}{{#list}}{{ name }} | {{/list}}{{ Board.Name }}</title>
+  {{#Board.Desc}}<meta name="description" content="{{ Board.Description }}">{{/Board.Desc}}
+  <link href="/webmention" rel="webmention">
+  {{#CSS}}<link rel="stylesheet" href="{{ . }}">{{/CSS}}
+</head>
+
+<body>
+
+  <header role="banner">
+    <h1>
+      <a href="/" title="{{ Board.Name }}">{{ Board.Name }}</a>
+    </h1>
+    {{{ Board.Desc }}}
+  </header>
+
+  <nav>
+    <ul>
+      {{#Lists}}
+      <li><a href="/{{ Slug }}/">{{ Name }}</a></li>
+      {{/Lists}}
+    </ul>
+  </nav>
+
+  <main>{{{ content }}}</main>
+
+  <aside>
+    {{#Author.Test}}
+    <div class="h-card">
+      <h1 class="p-name">{{ Author.Id }}</h1>
+      {{#Author.AvatarHash}}<img src="//trello-avatars.s3.amazonaws.com/{{ Author.AvatarHash }}/170.png" class="u-photo">{{/Author.AvatarHash}}
+      {{#Author.GravatarHash}}<img src="//gravatar.com/avatar/{{ Author.GravatarHash }}" class="u-photo">{{/Author.GravatarHash}}
+      {{#Author.Bio}}<p class="p-note">{{{ Author.Bio }}}</div>{{/Author.Bio}}
+    </div>
+    {{/Author.Test}}
+  </aside>
+
+  <footer role="contentinfo">
+    <p>This website is proudly hosted by <strong><a href="{{ Settings.ServiceURL }}">{{ Settings.ServiceName }}</a></strong>.</p>
+  </footer>
+
+</body>
+
+{{#JS}}<script src="{{ . }}"></script>{{/JS}}
+</html>
+
+<!-- unitemplate: https://github.com/fiatjaf/unitemplate/ -->
