@@ -1,10 +1,16 @@
 package main
 
 import (
+	"github.com/shurcooL/go/github_flavored_markdown"
 	"strconv"
 	"strings"
 	"time"
 )
+
+func renderMarkdown(md string) string {
+	html := github_flavored_markdown.Markdown([]byte(md))
+	return string(html[:])
+}
 
 type BaseData struct {
 	Board    Board
@@ -71,11 +77,19 @@ type Board struct {
 	Desc string
 }
 
+func (o Board) DescRender() string {
+	return renderMarkdown(o.Desc)
+}
+
 type Author struct {
 	Id           interface{}
 	Bio          string
 	AvatarHash   interface{}
 	GravatarHash interface{}
+}
+
+func (o Author) BioRender() string {
+	return renderMarkdown(o.Bio)
 }
 
 type List struct {
@@ -96,11 +110,8 @@ type Card struct {
 	List_id    string
 }
 
-func (card Card) Url(list List) string {
-	if list.Id == nil {
-		return "/from_list/" + card.List_id + "/" + card.Slug
-	}
-	return "/" + list.Slug + "/" + card.Slug
+func (o Card) DescRender() string {
+	return renderMarkdown(o.Desc)
 }
 
 func (card Card) HasCover() bool {

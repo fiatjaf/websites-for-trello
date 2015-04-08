@@ -9,7 +9,7 @@
     <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
   {{/Prefs.Favicon}}
   <title>{{#card}}{{ name }} | {{/card}}{{#list}}{{ name }} | {{/list}}{{ Board.Name }}</title>
-  {{#Board.Desc}}<meta name="description" content="{{ Board.Description }}">{{/Board.Desc}}
+  {{#Board.Desc}}<meta name="description" content="{{ Board.Desc }}">{{/Board.Desc}}
   <link href="/webmention" rel="webmention">
   {{#Prefs.CSS}}<link rel="stylesheet" href="{{ . }}">{{/Prefs.CSS}}
 </head>
@@ -20,7 +20,7 @@
     <h1>
       <a href="/" title="{{ Board.Name }}">{{ Board.Name }}</a>
     </h1>
-    <aside>{{{ Board.Desc }}}</aside>
+    <aside>{{{ Board.DescRender }}}</aside>
   </header>
 
   <nav>
@@ -39,7 +39,7 @@
       <h1 class="p-name">{{ Author.Id }}</h1>
       {{#Author.AvatarHash}}<img src="//trello-avatars.s3.amazonaws.com/{{ Author.AvatarHash }}/170.png" class="u-photo">{{/Author.AvatarHash}}
       {{#Author.GravatarHash}}<img src="//gravatar.com/avatar/{{ Author.GravatarHash }}" class="u-photo">{{/Author.GravatarHash}}
-      {{#Author.Bio}}<p class="p-note">{{{ Author.Bio }}}</div>{{/Author.Bio}}
+      {{#Author.Bio}}<p class="p-note">{{{ Author.BioRender }}}</div>{{/Author.Bio}}
     </div>
     {{/Author.Test}}
   </aside>
