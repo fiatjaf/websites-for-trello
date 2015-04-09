@@ -361,6 +361,30 @@ ORDER BY sort
 	)
 }
 
+func favicon(w http.ResponseWriter, r *http.Request) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
+	context := getBaseData(w, r)
+	if context.error != nil {
+		return
+	}
+
+	var fav string
+	if context.Prefs.Favicon != "" {
+		fav = context.Prefs.Favicon
+	} else {
+		fav = "http://lorempixel.com/32/32/"
+	}
+	http.Redirect(w, r, fav, 301)
+}
+
 func main() {
 	settings = LoadSettings()
 
@@ -382,6 +406,7 @@ func main() {
 	router.StrictSlash(true) // redirects '/path' to '/path/'
 	middle.UseHandler(router)
 
+	router.HandleFunc("/favicon.ico", favicon)
 	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
