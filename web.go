@@ -48,7 +48,7 @@ WHERE custom_domains.domain = $1`,
 	}
 	if err != nil {
 		log.Print(err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, "We don't have the site "+identifier+" here.", 404)
 		return BaseData{error: err}
 	}
 
@@ -62,7 +62,7 @@ ORDER BY pos
     `, board.Id)
 	if err != nil {
 		log.Print(err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, "There was an error in the process of fetching data for "+identifier+" from Trello, or this process was aborted by the Board owner. If you are the Board owner, try updating the Board somehow, maybe changing its description, or try to re-enable the same Board from our dashboard.", 500)
 		return BaseData{error: err}
 	}
 
@@ -71,7 +71,7 @@ ORDER BY pos
 	err = db.Get(&jsonPrefs, "SELECT preferences($1)", identifier)
 	if err != nil {
 		log.Print(err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, "A strange error ocurred. If you are the Board owner for this site, please report it to us. It is probably an error with the _preferences List.", 500)
 		return BaseData{error: err}
 	}
 	var prefs Preferences
@@ -88,7 +88,7 @@ ORDER BY pos
 		page, err = strconv.Atoi(val)
 		if err != nil {
 			log.Print(err)
-			http.Error(w, err.Error(), 400)
+			http.Error(w, val+" is not a page number.", 400)
 			return BaseData{error: err}
 		}
 	}
@@ -117,9 +117,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 	context.Page = 1
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
-		if err != nil {
+		if err != nil || page < 0 {
 			log.Print(err)
-			http.Error(w, err.Error(), 400)
+			http.Error(w, val+" is not a page number.", 400)
 			return
 		}
 		context.Page = page
