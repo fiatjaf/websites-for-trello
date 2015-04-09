@@ -20,7 +20,6 @@ type BaseData struct {
 	Board    Board
 	Lists    []List
 	List     List
-	Author   Author
 	Cards    []Card
 	Card     Card
 	Page     int
@@ -79,21 +78,43 @@ type Board struct {
 	Id   interface{}
 	Name string
 	Desc string
+
+	/* mix with user */
+	User_id      string
+	Bio          string
+	AvatarHash   string `db:"avatarHash"`
+	GravatarHash string `db:"gravatarHash"`
 }
 
 func (o Board) DescRender() string {
 	return renderMarkdown(o.Desc)
 }
 
-type Author struct {
-	Id           interface{}
-	Bio          string
-	AvatarHash   interface{}
-	GravatarHash interface{}
+func (o Board) BioRender() string {
+	return renderMarkdown(o.Bio)
 }
 
-func (o Author) BioRender() string {
-	return renderMarkdown(o.Bio)
+func (o Board) GetAvatar() interface{} {
+	if o.AvatarHash != "" {
+		return "//trello-avatars.s3.amazonaws.com/" + o.AvatarHash + "/170.png"
+	} else if o.GravatarHash != "" {
+		return "//gravatar.com/avatar/" + o.GravatarHash
+	}
+	return nil
+}
+
+func (o Board) HasUser() bool {
+	if o.User_id != "" {
+		return true
+	}
+	return false
+}
+
+func (o Board) UserHasBio() bool {
+	if o.Bio != "" {
+		return true
+	}
+	return false
 }
 
 type List struct {
@@ -229,13 +250,6 @@ func (a Attachment) IsImage() bool {
 
 // mustache helpers
 func (o Board) Test() interface{} {
-	if o.Id != nil {
-		return o
-	}
-	return false
-}
-
-func (o Author) Test() interface{} {
 	if o.Id != nil {
 		return o
 	}

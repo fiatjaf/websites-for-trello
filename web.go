@@ -23,14 +23,13 @@ func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
 	var identifier string
 
 	var board Board
-	var author Author
 
 	// board and author
 	if strings.HasSuffix(r.Host, settings.Domain) {
 		// subdomain
 		identifier = strings.Split(r.Host, ".")[0]
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc, users.id AS user_id, 'avatarHash', 'gravatarHash', users.bio
+SELECT boards.id, name, boards.desc, users.id AS user_id, "avatarHash", "gravatarHash", users.bio
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
 WHERE subdomain = $1`,
@@ -100,7 +99,6 @@ ORDER BY pos
 	return BaseData{
 		Settings: settings,
 		Board:    board,
-		Author:   author,
 		Lists:    lists,
 		Prefs:    prefs,
 		Page:     page,

@@ -34,14 +34,13 @@
   <main>{{{ content }}}</main>
 
   <aside>
-    {{#Author.Test}}
+    {{#Board.HasUser}}
     <div class="h-card">
-      <h1 class="p-name">{{ Author.Id }}</h1>
-      {{#Author.AvatarHash}}<img src="//trello-avatars.s3.amazonaws.com/{{ Author.AvatarHash }}/170.png" class="u-photo">{{/Author.AvatarHash}}
-      {{#Author.GravatarHash}}<img src="//gravatar.com/avatar/{{ Author.GravatarHash }}" class="u-photo">{{/Author.GravatarHash}}
-      {{#Author.Bio}}<p class="p-note">{{{ Author.BioRender }}}</div>{{/Author.Bio}}
+      <h1 class="p-name">{{ Board.User_id }}</h1>
+      {{#Board.GetAvatar}}<img src="{{ Board.GetAvatar }}" class="u-photo">{{/Board.GetAvatar}}
+      {{#Board.UserHasBio}}<p class="p-note">{{{ Board.BioRender }}}</div>{{/Board.UserHasBio}}
     </div>
-    {{/Author.Test}}
+    {{/Board.HasUser}}
   </aside>
 
   <footer role="contentinfo">
