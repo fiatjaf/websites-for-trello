@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/MindscapeHQ/raygun4go"
+	"github.com/carbocation/interpose"
 	"github.com/gorilla/mux"
 	"github.com/jabley/mustache"
 	"github.com/jmoiron/sqlx"
@@ -107,6 +109,15 @@ ORDER BY pos
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
 	context := getBaseData(w, r)
 	if context.error != nil {
 		return
@@ -132,7 +143,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	// fetch home cards for home
 	var cards []Card
-	err := db.Select(&cards, `
+	db.Select(&cards, `
 SELECT cards.slug,
        cards.name,
        coalesce(cards.cover, '') as cover,
@@ -171,6 +182,15 @@ LIMIT $3
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
 	context := getBaseData(w, r)
 	if context.error != nil {
 		return
@@ -181,7 +201,7 @@ func list(w http.ResponseWriter, r *http.Request) {
 
 	// fetch home cards for this list
 	var cards []Card
-	err := db.Select(&cards, `
+	db.Select(&cards, `
 (
   SELECT slug,
          name,
@@ -210,11 +230,6 @@ func list(w http.ResponseWriter, r *http.Request) {
 )
 ORDER BY pos
     `, context.Board.Id, listSlug, ppp*(context.Page-1), ppp+1)
-	if err != nil {
-		log.Print(err)
-		http.Error(w, err.Error(), 500)
-		return
-	}
 
 	// the first row is a List dressed as a Card
 	list := List{
@@ -241,6 +256,15 @@ ORDER BY pos
 }
 
 func cardRedirect(w http.ResponseWriter, r *http.Request) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
 	// from_list/list-id/card-id/
 	vars := mux.Vars(r)
 	listId := vars["list-id"]
@@ -248,10 +272,10 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 
 	// get list slug
 	var listSlug string
-	err := db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
+	err = db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
 	if err != nil {
 		log.Print(err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, "there is not a "+listId+" list.", 404)
 		return
 	}
 
@@ -259,6 +283,15 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
 	context := getBaseData(w, r)
 	if context.error != nil {
 		return
@@ -270,7 +303,7 @@ func card(w http.ResponseWriter, r *http.Request) {
 
 	// fetch home cards for this list
 	var cards []Card
-	err := db.Select(&cards, `
+	err = db.Select(&cards, `
 SELECT slug, name, due, created_on, "desc", attachments, checklists, cover
 FROM (
   (
@@ -309,7 +342,7 @@ ORDER BY sort
 	`, context.Board.Id, listSlug, cardSlug)
 	if err != nil {
 		log.Print(err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, "there is not a card here.", 500)
 		return
 	}
 
@@ -334,8 +367,20 @@ func main() {
 	db, _ = sqlx.Connect("postgres", settings.DatabaseURL)
 	db = db.Unsafe()
 
+	// middleware
+	middle := interpose.New()
+	// middle.Use(func(next http.Handler) http.Handler {
+
+	// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	//         // do something
+	// 		next.ServeHTTP(w, r)
+	// 	})
+	// })
+	// ~
+
 	router := mux.NewRouter()
 	router.StrictSlash(true) // redirects '/path' to '/path/'
+	middle.UseHandler(router)
 
 	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
@@ -344,12 +389,10 @@ func main() {
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
 	router.HandleFunc("/", index)
 
-	http.Handle("/", router)
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
 	}
 	log.Print("listening...")
-	http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe(":"+port, middle)
 }

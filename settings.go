@@ -10,6 +10,8 @@ type Settings struct {
 	ServiceURL  string
 	Domain      string
 	DatabaseURL string
+
+	RaygunAPIKey string
 }
 
 func LoadSettings() Settings {
@@ -22,9 +24,10 @@ func LoadSettings() Settings {
 	URL, _ := url.Parse(serviceUrl)
 
 	return Settings{
-		ServiceName: serviceName,
-		ServiceURL:  serviceUrl,
-		Domain:      URL.Host,
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		ServiceName:  serviceName,
+		ServiceURL:   serviceUrl,
+		Domain:       URL.Host,
+		DatabaseURL:  os.Getenv("DATABASE_URL"),
+		RaygunAPIKey: os.Getenv("RAYGUN_API_KEY"),
 	}
 }
