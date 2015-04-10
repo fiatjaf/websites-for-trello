@@ -21,9 +21,16 @@ var db *sqlx.DB
 var settings Settings
 
 func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
-	var err error
-	var identifier string
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
 
+	var identifier string
 	var board Board
 
 	// board and author
@@ -49,6 +56,7 @@ WHERE custom_domains.domain = $1`,
 	}
 	if err != nil {
 		log.Print(err)
+		raygun.CreateError(err.Error())
 		http.Error(w, "We don't have the site "+identifier+" here.", 404)
 		return BaseData{error: err}
 	}
@@ -72,6 +80,7 @@ ORDER BY pos
 	err = db.Get(&jsonPrefs, "SELECT preferences($1)", identifier)
 	if err != nil {
 		log.Print(err)
+		raygun.CreateError(err.Error())
 		http.Error(w, "A strange error ocurred. If you are the Board owner for this site, please report it to us. It is probably an error with the _preferences List.", 500)
 		return BaseData{error: err}
 	}
@@ -79,6 +88,7 @@ ORDER BY pos
 	err = jsonPrefs.Unmarshal(&prefs)
 	if err != nil {
 		log.Print(err)
+		raygun.CreateError(err.Error())
 		http.Error(w, err.Error(), 500)
 		return BaseData{error: err}
 	}
@@ -89,6 +99,7 @@ ORDER BY pos
 		page, err = strconv.Atoi(val)
 		if err != nil {
 			log.Print(err)
+			raygun.CreateError(err.Error())
 			http.Error(w, val+" is not a page number.", 400)
 			return BaseData{error: err}
 		}
@@ -128,6 +139,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
 			log.Print(err)
+			raygun.CreateError(err.Error())
 			http.Error(w, val+" is not a page number.", 400)
 			return
 		}
@@ -161,6 +173,7 @@ LIMIT $3
     `, context.Board.Id, ppp*(context.Page-1), ppp+1)
 	if err != nil {
 		log.Print(err)
+		raygun.CreateError(err.Error())
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -275,6 +288,7 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 	err = db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
 	if err != nil {
 		log.Print(err)
+		raygun.CreateError(err.Error())
 		http.Error(w, "there is not a "+listId+" list.", 404)
 		return
 	}
@@ -342,6 +356,7 @@ ORDER BY sort
 	`, context.Board.Id, listSlug, cardSlug)
 	if err != nil {
 		log.Print(err)
+		raygun.CreateError(err.Error())
 		http.Error(w, "there is not a card here.", 500)
 		return
 	}
