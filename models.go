@@ -82,8 +82,8 @@ type Board struct {
 	/* mix with user */
 	User_id      string
 	Bio          string
-	AvatarHash   string `db:"avatarHash"`
-	GravatarHash string `db:"gravatarHash"`
+	AvatarHash   interface{} `db:"avatarHash"`
+	GravatarHash interface{} `db:"gravatarHash"`
 }
 
 func (o Board) DescRender() string {
@@ -95,10 +95,10 @@ func (o Board) BioRender() string {
 }
 
 func (o Board) GetAvatar() interface{} {
-	if o.AvatarHash != "" {
-		return "//trello-avatars.s3.amazonaws.com/" + o.AvatarHash + "/170.png"
-	} else if o.GravatarHash != "" {
-		return "//gravatar.com/avatar/" + o.GravatarHash
+	if o.AvatarHash != nil {
+		return "//trello-avatars.s3.amazonaws.com/" + string(o.AvatarHash.([]uint8)) + "/170.png"
+	} else if o.GravatarHash != nil {
+		return "//gravatar.com/avatar/" + string(o.GravatarHash.([]uint8))
 	}
 	return nil
 }
