@@ -385,6 +385,12 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fav, 301)
 }
 
+func httpError(code int) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Not found.", 404)
+	}
+}
+
 func main() {
 	settings = LoadSettings()
 
@@ -407,6 +413,7 @@ func main() {
 	middle.UseHandler(router)
 
 	router.HandleFunc("/favicon.ico", favicon)
+	router.HandleFunc("/robots.txt", httpError(404))
 	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
