@@ -5,6 +5,7 @@ import (
 	"github.com/MindscapeHQ/raygun4go"
 	"github.com/carbocation/interpose"
 	"github.com/gorilla/mux"
+	"github.com/hoisie/redis"
 	"github.com/jabley/mustache"
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
@@ -13,12 +14,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
 var db *sqlx.DB
+var rds redis.Client
 var settings Settings
+var context BaseData
 
 func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
 	// raygun error reporting
@@ -129,11 +133,6 @@ func index(w http.ResponseWriter, r *http.Request) {
 	defer raygun.HandleError()
 	// ~
 
-	context := getBaseData(w, r)
-	if context.error != nil {
-		return
-	}
-
 	context.Page = 1
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
@@ -203,11 +202,6 @@ func list(w http.ResponseWriter, r *http.Request) {
 	raygun.Request(r)
 	defer raygun.HandleError()
 	// ~
-
-	context := getBaseData(w, r)
-	if context.error != nil {
-		return
-	}
 
 	ppp := context.Prefs.PostsPerPage()
 	listSlug := mux.Vars(r)["list-slug"]
@@ -306,11 +300,6 @@ func card(w http.ResponseWriter, r *http.Request) {
 	defer raygun.HandleError()
 	// ~
 
-	context := getBaseData(w, r)
-	if context.error != nil {
-		return
-	}
-
 	vars := mux.Vars(r)
 	listSlug := vars["list-slug"]
 	cardSlug := vars["card-slug"]
@@ -386,11 +375,6 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	defer raygun.HandleError()
 	// ~
 
-	context := getBaseData(w, r)
-	if context.error != nil {
-		return
-	}
-
 	var fav string
 	if context.Prefs.Favicon != "" {
 		fav = context.Prefs.Favicon
@@ -412,15 +396,32 @@ func main() {
 	db, _ = sqlx.Connect("postgres", settings.DatabaseURL)
 	db = db.Unsafe()
 
+	rds.Addr = settings.RedisAddr
+	rds.Password = settings.RedisPassword
+	rds.MaxPoolSize = settings.RedisPoolSize
+
 	// middleware
 	middle := interpose.New()
-	// middle.Use(func(next http.Handler) http.Handler {
-
-	// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	//         // do something
-	// 		next.ServeHTTP(w, r)
-	// 	})
-	// })
+	middle.Use(func(next http.Handler) http.Handler {
+		// fetch context
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			context = getBaseData(w, r)
+			if context.error != nil {
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	})
+	middle.Use(func(next http.Handler) http.Handler {
+		// count access on redis
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			year, month, _ := time.Now().Date()
+			key := fmt.Sprintf("views:%d-%d", year, month)
+			board := fmt.Sprintf("%s", context.Board.Id)
+			rds.Hincrby(key, board, 1)
+			next.ServeHTTP(w, r)
+		})
+	})
 	// ~
 
 	router := mux.NewRouter()
