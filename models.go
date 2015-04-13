@@ -127,6 +127,7 @@ type List struct {
 type Card struct {
 	Id          string
 	Name        string
+	PageTitle   string `db:"pageTitle"`
 	Slug        string
 	Cover       string
 	Desc        string
@@ -136,10 +137,11 @@ type Card struct {
 	Labels      []interface{}
 	Checklists  types.JsonText
 	Attachments types.JsonText
+	IsPage      bool
 }
 
-func (o Card) DescRender() string {
-	return renderMarkdown(o.Desc)
+func (card Card) DescRender() string {
+	return renderMarkdown(card.Desc)
 }
 
 func (card Card) HasCover() bool {

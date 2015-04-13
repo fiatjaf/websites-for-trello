@@ -11,18 +11,22 @@
 
   <header>
     {{#HasCover}}<img src="{{ Cover }}">{{/HasCover}}
-    <h1 class="p-name">
-      <a class="u-url" href="/{{ List.Slug }}/{{ Slug }}/">{{ Name }}</a>
-    </h1>
 
-    <div>
-      <style scoped>.tag { padding: 10px; color: black; text-shadow: white 1px 1px 1px; margin: 2px; }</style>
-      {{#Labels}}
-        <a class="tag" style="background-color: {{ Color }}">{{ NameOrSpace }}</a>
-      {{/Labels}}
-    </div>
+    {{^IsPage}}
+      <h1 class="p-name">
+        <a class="u-url" href="/{{ List.Slug }}/{{ Slug }}/">{{ Name }}</a>
+      </h1>
 
-    <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
+      <div>
+        <style scoped>.tag { padding: 10px; color: black; text-shadow: white 1px 1px 1px; margin: 2px; }</style>
+        {{#Labels}}
+          <a class="tag" style="background-color: {{ Color }}">{{ NameOrSpace }}</a>
+        {{/Labels}}
+      </div>
+
+      <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
+    {{/IsPage}}
+
   </header>
   
   <div class="e-content">

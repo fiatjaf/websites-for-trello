@@ -123,6 +123,45 @@ ORDER BY pos
 	}
 }
 
+func getPageAt(path string) (Card, error) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	defer raygun.HandleError()
+	// ~
+
+	pathAlt := strings.TrimSuffix(path, "/")
+	if path == pathAlt {
+		pathAlt = path + "/"
+	}
+
+	// fetch card from standalone pages
+	var card Card
+	err = db.Get(&card, `
+SELECT cards.slug,
+       cards.name,
+       cards."pageTitle",
+       cards.desc,
+       cards.attachments,
+       cards.checklists,
+       coalesce(cards.cover, '') AS cover
+FROM cards
+INNER JOIN lists ON lists.id = cards.list_id
+INNER JOIN boards ON boards.id = lists.board_id
+WHERE boards.id = $1
+  AND lists."pagesList"
+  AND cards.name IN ($2, $3)
+`, context.Board.Id, path, pathAlt)
+	if err != nil {
+		// this error doesn't matter, since in the majority of cases there will be nothing here anyway.
+		return card, err
+	}
+	card.IsPage = true
+	return card, nil
+}
+
 func index(w http.ResponseWriter, r *http.Request) {
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
@@ -304,7 +343,7 @@ func card(w http.ResponseWriter, r *http.Request) {
 	listSlug := vars["list-slug"]
 	cardSlug := vars["card-slug"]
 
-	// fetch home cards for this list
+	// fetch this card and its parent list
 	var cards []Card
 	err = db.Select(&cards, `
 SELECT slug, name, due, created_on, "desc", attachments, checklists, cover
@@ -346,7 +385,7 @@ ORDER BY sort
 	if err != nil {
 		log.Print(err)
 		raygun.CreateError(err.Error())
-		http.Error(w, "there is not a card here.", 500)
+		http.Error(w, "there is not a card here.", 404)
 		return
 	}
 
@@ -420,6 +459,22 @@ func main() {
 			board := fmt.Sprintf("%s", context.Board.Id)
 			rds.Hincrby(key, board, 1)
 			next.ServeHTTP(w, r)
+		})
+	})
+	middle.Use(func(next http.Handler) http.Handler {
+		// try to return a standalone page
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			card, err := getPageAt(r.URL.Path)
+			if err != nil {
+				next.ServeHTTP(w, r)
+			} else {
+				context.Card = card
+				fmt.Fprint(w,
+					mustache.RenderFileInLayout("templates/card.html",
+						"templates/base.html",
+						context),
+				)
+			}
 		})
 	})
 	// ~
