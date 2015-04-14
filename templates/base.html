@@ -38,7 +38,7 @@
     <div class="h-card">
       <h1 class="p-name">{{ Board.User_id }}</h1>
       {{#Board.GetAvatar}}<img src="{{ Board.GetAvatar }}" class="u-photo">{{/Board.GetAvatar}}
-      {{#Board.UserHasBio}}<p class="p-note">{{{ Board.BioRender }}}</div>{{/Board.UserHasBio}}
+      {{#Board.UserHasBio}}<div class="p-note">{{{ Board.BioRender }}}</div>{{/Board.UserHasBio}}
     </div>
     {{/Board.HasUser}}
   </aside>
