@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"github.com/MindscapeHQ/raygun4go"
 	"github.com/carbocation/interpose"
+	"github.com/carbocation/interpose/adaptors"
 	"github.com/gorilla/mux"
 	"github.com/hoisie/redis"
 	"github.com/jabley/mustache"
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
+	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"os"
@@ -441,6 +443,10 @@ func main() {
 
 	// middleware
 	middle := interpose.New()
+	middle.Use(adaptors.FromNegroni(cors.New(cors.Options{
+		// CORS
+		AllowedOrigins: []string{"*"},
+	})))
 	middle.Use(func(next http.Handler) http.Handler {
 		// fetch context
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
