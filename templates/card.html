@@ -56,10 +56,8 @@
     <ul>
       {{#GetAttachments}}
         <li>
-          {{#IsImage}}
-            <img class="u-photo" src="{{ Url }}" height="200">
-          {{/IsImage}}
-          <a target="_blank" href="{{ Url }}">{{ Name }}</a></li>
+          <a target="_blank" href="{{ Url }}">{{ Name }}</a>
+        </li>
       {{/GetAttachments}}
     </ul>
   </section>

@@ -232,24 +232,6 @@ type Attachment struct {
 	EdgeColor string
 }
 
-func (a Attachment) IsImage() bool {
-	parts := strings.Split(a.Url, ".")
-	ext := strings.ToLower(parts[len(parts)-1])
-	if ext == "png" {
-		return true
-	}
-	if ext == "jpeg" {
-		return true
-	}
-	if ext == "jpg" {
-		return true
-	}
-	if ext == "gif" {
-		return true
-	}
-	return false
-}
-
 // mustache helpers
 func (o Board) Test() interface{} {
 	if o.Id != nil {
