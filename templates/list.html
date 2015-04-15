@@ -21,12 +21,12 @@
       </li>
     {{/Cards}}
   </ul>
-  <footer>
-    <nav>
-      <ul>
-        <li><a {{#HasPrev}}href="{{#List.Test}}/{{ List.Slug }}{{/List.Test}}/p/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
-        <li><a {{#HasNext}}href="{{#List.Test}}/{{ List.Slug }}{{/List.Test}}/p/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
-      </ul>
-    </nav>
-  </footer>
 </section>
+<footer>
+  <nav>
+    <ul>
+      <li><a {{#HasPrev}}href="{{#List.Test}}/{{ List.Slug }}{{/List.Test}}/p/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
+      <li><a {{#HasNext}}href="{{#List.Test}}/{{ List.Slug }}{{/List.Test}}/p/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
+    </ul>
+  </nav>
+</footer>
