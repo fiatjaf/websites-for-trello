@@ -25,9 +25,9 @@
 
   <nav>
     <ul>
-      {{#Lists}}
-      <li><a href="/{{ Slug }}/">{{ Name }}</a></li>
-      {{/Lists}}
+      {{#NavItems}}
+        <li><a href="{{ Url }}">{{ Text }}</a></li>
+      {{/NavItems}}
     </ul>
   </nav>
 

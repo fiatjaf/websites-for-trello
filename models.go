@@ -29,6 +29,25 @@ type BaseData struct {
 	Settings Settings
 }
 
+func (b BaseData) NavItems() []Link {
+	var lists []Link
+	var navItems []Link
+	for _, list := range b.Lists {
+		lists = append(lists, Link{
+			Text: list.Name,
+			Url:  "/" + list.Slug + "/",
+		})
+	}
+	for _, link := range b.Prefs.Nav {
+		if link.Text == "__lists__" {
+			navItems = append(navItems, lists...)
+		} else {
+			navItems = append(navItems, link)
+		}
+	}
+	return navItems
+}
+
 func (b BaseData) NextPage() int {
 	return b.Page + 1
 }
@@ -40,14 +59,14 @@ func (b BaseData) PrevPage() int {
 type Preferences struct {
 	Favicon      string
 	Domain       string
-	Includes     string
+	Includes     []string
+	Nav          []Link
 	postsPerPage string `json:"posts-per-page"`
 }
 
 func (prefs Preferences) JS() []string {
-	includes := strings.Split(strings.ToLower(prefs.Includes), ",")
 	js := make([]string, 0)
-	for _, incl := range includes {
+	for _, incl := range prefs.Includes {
 		if strings.HasSuffix(incl, ".js") {
 			js = append(js, incl)
 		}
@@ -56,9 +75,8 @@ func (prefs Preferences) JS() []string {
 }
 
 func (prefs Preferences) CSS() []string {
-	includes := strings.Split(strings.ToLower(prefs.Includes), ",")
 	css := make([]string, 0)
-	for _, incl := range includes {
+	for _, incl := range prefs.Includes {
 		if strings.HasSuffix(incl, ".css") {
 			css = append(css, incl)
 		}
@@ -72,6 +90,11 @@ func (prefs Preferences) PostsPerPage() int {
 		return 7
 	}
 	return ppp
+}
+
+type Link struct {
+	Text string
+	Url  string
 }
 
 type Board struct {
