@@ -5,6 +5,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/shurcooL/go/github_flavored_markdown"
 	"log"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -67,7 +68,11 @@ type Preferences struct {
 func (prefs Preferences) JS() []string {
 	js := make([]string, 0)
 	for _, incl := range prefs.Includes {
-		if strings.HasSuffix(incl, ".js") {
+		u, err := url.Parse(incl)
+		if err != nil {
+			continue
+		}
+		if strings.HasSuffix(u.Path, ".js") {
 			js = append(js, incl)
 		}
 	}
@@ -77,7 +82,11 @@ func (prefs Preferences) JS() []string {
 func (prefs Preferences) CSS() []string {
 	css := make([]string, 0)
 	for _, incl := range prefs.Includes {
-		if strings.HasSuffix(incl, ".css") {
+		u, err := url.Parse(incl)
+		if err != nil {
+			continue
+		}
+		if strings.HasSuffix(u.Path, ".css") {
 			css = append(css, incl)
 		}
 	}
