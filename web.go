@@ -271,7 +271,8 @@ func list(w http.ResponseWriter, r *http.Request) {
   FROM cards
   INNER JOIN lists
   ON lists.id = cards.list_id
-  WHERE lists.slug = $2
+  WHERE board_id = $1
+    AND lists.slug = $2
     AND cards.visible
   OFFSET $3
   LIMIT $4
