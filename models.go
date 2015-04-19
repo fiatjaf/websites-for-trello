@@ -164,7 +164,6 @@ type Card struct {
 	Cover       string
 	Desc        string
 	Due         interface{}
-	Created_on  time.Time
 	List_id     string
 	Labels      []interface{}
 	Checklists  types.JsonText
@@ -187,7 +186,11 @@ func (card Card) Date() time.Time {
 	if card.Due != nil {
 		return card.Due.(time.Time)
 	} else {
-		return card.Created_on
+		unix, err := strconv.ParseInt(card.Id[:8], 16, 0)
+		if err != nil {
+			return time.Now()
+		}
+		return time.Unix(unix, 0)
 	}
 }
 

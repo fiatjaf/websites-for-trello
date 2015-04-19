@@ -199,7 +199,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 SELECT cards.slug,
        cards.name,
        coalesce(cards.cover, '') as cover,
-       cards.created_on,
+       cards.id,
        due,
        list_id
 FROM cards
@@ -207,7 +207,7 @@ INNER JOIN lists ON lists.id = cards.list_id
 WHERE lists.board_id = $1
   AND lists.visible = true
   AND cards.visible = true
-ORDER BY cards.due DESC, cards.created_on DESC
+ORDER BY cards.due DESC, cards.id DESC
 OFFSET $2
 LIMIT $3
     `, context.Board.Id, ppp*(context.Page-1), ppp+1)
@@ -254,7 +254,7 @@ func list(w http.ResponseWriter, r *http.Request) {
   SELECT slug,
          name,
          null AS due,
-         created_on,
+         id,
          0 AS pos,
          '' AS cover
   FROM lists
@@ -265,7 +265,7 @@ func list(w http.ResponseWriter, r *http.Request) {
   SELECT cards.slug,
          cards.name,
          cards.due,
-         cards.created_on,
+         cards.id,
          cards.pos,
          coalesce(cards.cover, '') AS cover
   FROM cards
@@ -349,13 +349,13 @@ func card(w http.ResponseWriter, r *http.Request) {
 	// fetch this card and its parent list
 	var cards []Card
 	err = db.Select(&cards, `
-SELECT slug, name, due, created_on, "desc", attachments, checklists, cover
+SELECT slug, name, due, id, "desc", attachments, checklists, cover
 FROM (
   (
     SELECT slug,
            name,
            null AS due,
-           created_on,
+           id,
            '' AS "desc",
            '""'::jsonb AS attachments,
            '""'::jsonb AS checklists,
@@ -369,7 +369,7 @@ FROM (
     SELECT cards.slug,
            cards.name,
            cards.due,
-           cards.created_on,
+           cards.id,
            cards.desc,
            cards.attachments,
            cards.checklists,
