@@ -14,9 +14,8 @@
           <header>
             {{#HasCover}}<a href="/{{^List.Test}}from_list/{{ List_id }}{{/List.Test}}{{#List.Test}}{{ List.Slug }}{{/List.Test}}/{{ Slug }}/"><img src="{{ Cover }}"></a>{{/HasCover}}
             <h1><a class="u-url p-name" href="/{{^List.Test}}from_list/{{ List_id }}{{/List.Test}}{{#List.Test}}{{ List.Slug }}{{/List.Test}}/{{ Slug }}/">{{ Name }}</a></h1>
+            <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
           </header>
-
-          <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
         </article>
       </li>
     {{/Cards}}
