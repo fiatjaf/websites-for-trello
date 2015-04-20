@@ -72,7 +72,9 @@ WHERE custom_domains.domain = $1`,
 	err = db.Select(&lists, `
 SELECT id, name, slug
 FROM lists
-WHERE visible = true AND board_id = $1
+WHERE visible = true
+  AND board_id = $1
+  AND closed = false
 ORDER BY pos
     `, board.Id)
 	if err != nil {
