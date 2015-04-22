@@ -58,11 +58,11 @@ func (b BaseData) PrevPage() int {
 }
 
 type Preferences struct {
-	Favicon      string
-	Domain       string
-	Includes     []string
-	Nav          []Link
-	postsPerPage string `json:"posts-per-page"`
+	Favicon           string
+	Domain            string
+	Includes          []string
+	Nav               []Link
+	PostsPerPageValue string `json:"posts-per-page"`
 }
 
 func (prefs Preferences) JS() []string {
@@ -94,7 +94,7 @@ func (prefs Preferences) CSS() []string {
 }
 
 func (prefs Preferences) PostsPerPage() int {
-	ppp, err := strconv.Atoi(prefs.postsPerPage)
+	ppp, err := strconv.Atoi(prefs.PostsPerPageValue)
 	if err != nil {
 		return 7
 	}
