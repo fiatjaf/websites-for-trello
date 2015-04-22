@@ -494,11 +494,11 @@ func main() {
 
 	router.HandleFunc("/favicon.ico", favicon)
 	router.HandleFunc("/robots.txt", httpError(404))
+	router.HandleFunc("/p/{page:[0-9]+}/", index)
+	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
-	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/{list-slug}/", list)
-	router.HandleFunc("/p/{page:[0-9]+}/", index)
 	router.HandleFunc("/", index)
 
 	port := os.Getenv("PORT")
