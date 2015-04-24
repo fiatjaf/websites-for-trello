@@ -35,10 +35,10 @@
 
   <aside>
     {{#Board.HasUser}}
-    <div class="h-card">
-      {{#Board.GetAvatar}}<img src="{{ Board.GetAvatar }}" class="u-photo">{{/Board.GetAvatar}}
-      <h1 class="p-name">{{ Board.User_id }}</h1>
-      {{#Board.UserHasBio}}<div class="p-note">{{{ Board.BioRender }}}</div>{{/Board.UserHasBio}}
+    <div>
+      {{#Board.GetAvatar}}<img src="{{ Board.GetAvatar }}">{{/Board.GetAvatar}}
+      <h1>{{ Board.User_id }}</h1>
+      {{#Board.UserHasBio}}<div>{{{ Board.BioRender }}}</div>{{/Board.UserHasBio}}
     </div>
     {{/Board.HasUser}}
   </aside>
@@ -51,5 +51,3 @@
 
 {{#Prefs.JS}}<script src="{{ . }}"></script>{{/Prefs.JS}}
 </html>
-
-<!-- unitemplate: https://github.com/fiatjaf/unitemplate/ -->
