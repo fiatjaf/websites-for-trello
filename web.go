@@ -146,7 +146,7 @@ func getPageAt(path string) (Card, error) {
 	err = db.Get(&card, `
 SELECT cards.slug,
        cards.name,
-       cards."pageTitle",
+       coalesce(cards."pageTitle", '') as "pageTitle",
        cards.desc,
        cards.attachments,
        cards.checklists,
@@ -158,6 +158,7 @@ WHERE boards.id = $1
   AND lists."pagesList"
   AND cards.name IN ($2, $3)
 `, context.Board.Id, path, pathAlt)
+	log.Print(err)
 	if err != nil {
 		// this error doesn't matter, since in the majority of cases there will be nothing here anyway.
 		return card, err
