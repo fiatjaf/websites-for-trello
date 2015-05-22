@@ -61,10 +61,16 @@ WHERE custom_domains.domain = $1`,
 			identifier)
 	}
 	if err != nil {
-		log.Print(err)
-		raygun.CreateError(err.Error())
-		http.Error(w, "We don't have the site "+identifier+" here.", 404)
-		return BaseData{error: err}
+		if err.Error() == "sql: no rows in result set" {
+			// don't report to raygun, we already know the error and it doesn't matter
+			http.Error(w, "We don't have the site "+identifier+" here.", 404)
+			return BaseData{error: err}
+		} else {
+			log.Print(err)
+			raygun.CreateError(err.Error())
+			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
+			return BaseData{error: err}
+		}
 	}
 
 	// lists for <nav>
@@ -455,6 +461,8 @@ func main() {
 		// fetch context
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			context = getBaseData(w, r)
+			// when there is an error, abort and return
+			// (the http status and message should have been already set at getBaseData)
 			if context.error != nil {
 				return
 			}
