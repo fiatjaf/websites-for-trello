@@ -363,8 +363,10 @@ INNER JOIN lists on cards.list_id = lists.id
 WHERE cards."shortLink" = $1`, shortLink)
 	if err != nil {
 		log.Print(err)
-		raygun.CreateError(err.Error())
-		http.Error(w, "there is no card with the shortLink "+shortLink, 404)
+		// raygun.CreateError(err.Error())
+		// http.Error(w, "there is no card with the shortLink "+shortLink, 404)
+		// redirect to the actual Trello card instead
+		http.Redirect(w, r, "https://trello.com/c/"+shortLink, 301)
 		return
 	}
 
