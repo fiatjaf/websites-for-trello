@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -479,6 +480,8 @@ func main() {
 	rds.Addr = settings.RedisAddr
 	rds.Password = settings.RedisPassword
 	rds.MaxPoolSize = settings.RedisPoolSize
+
+	CardLinkMatcher = regexp.MustCompile(CardLinkMatcherExpression)
 
 	// middleware
 	middle := interpose.New()

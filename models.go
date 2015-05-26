@@ -6,14 +6,23 @@ import (
 	"github.com/shurcooL/go/github_flavored_markdown"
 	"log"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
+var CardLinkMatcherExpression = "https?://trello.com/c/([^/]+)(/[\\w-]*)?"
+var CardLinkMatcher *regexp.Regexp
+
 func renderMarkdown(md string) string {
-	html := github_flavored_markdown.Markdown([]byte(md))
-	return string(html[:])
+	mdBytes := []byte(md)
+	mdBytes = CardLinkMatcher.ReplaceAllFunc(mdBytes, func(match []byte) []byte {
+		shortLink := CardLinkMatcher.FindSubmatch(match)[1]
+		return append([]byte("/from_shortLink/"), shortLink...)
+	})
+	html := github_flavored_markdown.Markdown(mdBytes)
+	return string(html)
 }
 
 type BaseData struct {
