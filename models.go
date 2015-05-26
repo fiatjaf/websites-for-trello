@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-var CardLinkMatcherExpression = "https?://trello.com/c/([^/]+)(/[\\w-]*)?"
+var CardLinkMatcherExpression = "\\]\\(https?://trello.com/c/([^/]+)(/[\\w-]*)?\\)"
 var CardLinkMatcher *regexp.Regexp
 
 func renderMarkdown(md string) string {
 	mdBytes := []byte(md)
 	mdBytes = CardLinkMatcher.ReplaceAllFunc(mdBytes, func(match []byte) []byte {
-		shortLink := CardLinkMatcher.FindSubmatch(match)[1]
-		return append([]byte("/from_shortLink/"), shortLink...)
+		shortLink := append(CardLinkMatcher.FindSubmatch(match)[1], ")"...)
+		return append([]byte("](/from_shortLink/"), shortLink...)
 	})
 	html := github_flavored_markdown.Markdown(mdBytes)
 	return string(html)
