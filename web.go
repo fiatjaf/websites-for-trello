@@ -339,7 +339,7 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/"+listSlug+"/"+cardSlug+"/", 301)
+	http.Redirect(w, r, "/"+listSlug+"/"+cardSlug+"/", 302)
 }
 
 func shortLinkRedirect(w http.ResponseWriter, r *http.Request) {
@@ -358,19 +358,21 @@ func shortLinkRedirect(w http.ResponseWriter, r *http.Request) {
 	// get entity -- list or card
 	var path string
 	err = db.Get(&path, `
-SELECT lists.slug || '/' || cards.slug FROM cards
+SELECT CASE
+  WHEN lists."pagesList" THEN cards.name
+  ELSE '/' || lists.slug || '/' || cards.slug
+END AS path
+FROM cards
 INNER JOIN lists on cards.list_id = lists.id
 WHERE cards."shortLink" = $1`, shortLink)
 	if err != nil {
 		log.Print(err)
-		// raygun.CreateError(err.Error())
-		// http.Error(w, "there is no card with the shortLink "+shortLink, 404)
 		// redirect to the actual Trello card instead
-		http.Redirect(w, r, "https://trello.com/c/"+shortLink, 301)
+		http.Redirect(w, r, "https://trello.com/c/"+shortLink, 302)
 		return
 	}
 
-	http.Redirect(w, r, "/"+path, 301)
+	http.Redirect(w, r, path, 302)
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
