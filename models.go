@@ -158,6 +158,7 @@ type List struct {
 
 type Card struct {
 	Id          string
+	ShortLink   string `db:"shortLink"`
 	Name        string
 	PageTitle   string `db:"pageTitle"`
 	Slug        string

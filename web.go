@@ -341,6 +341,35 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+listSlug+"/"+cardSlug+"/", 301)
 }
 
+func shortLinkRedirect(w http.ResponseWriter, r *http.Request) {
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
+	// from_shortLink/shortLink/
+	shortLink := mux.Vars(r)["shortLink"]
+
+	// get entity -- list or card
+	var path string
+	err = db.Get(&path, `
+SELECT lists.slug || '/' || cards.slug FROM cards
+INNER JOIN lists on cards.list_id = lists.id
+WHERE cards."shortLink" = $1`, shortLink)
+	if err != nil {
+		log.Print(err)
+		raygun.CreateError(err.Error())
+		http.Error(w, "there is no card with the shortLink "+shortLink, 404)
+		return
+	}
+
+	http.Redirect(w, r, "/"+path, 301)
+}
+
 func card(w http.ResponseWriter, r *http.Request) {
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
@@ -505,6 +534,7 @@ func main() {
 	router.HandleFunc("/robots.txt", httpError(404))
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
+	router.HandleFunc("/from_shortLink/{shortLink}/", shortLinkRedirect)
 	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/", list)
