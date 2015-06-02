@@ -334,7 +334,7 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 	err = db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
 	if err != nil {
 		log.Print(err)
-		raygun.CreateError(err.Error())
+		// do not report this to raygun since it is just a 404
 		http.Error(w, "there is not a "+listId+" list.", 404)
 		return
 	}
@@ -430,7 +430,7 @@ ORDER BY sort
 	`, context.Board.Id, listSlug, cardSlug)
 	if err != nil {
 		log.Print(err)
-		raygun.CreateError(err.Error())
+		// do not report this to raygun since it is just a 404
 		http.Error(w, "there is not a card here.", 404)
 		return
 	}
