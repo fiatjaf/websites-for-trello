@@ -69,7 +69,6 @@ WHERE custom_domains.domain = $1`,
 			http.Error(w, "We don't have the site "+identifier+" here.", 404)
 			return BaseData{error: err}
 		} else {
-			log.Print(err)
 			raygun.CreateError(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return BaseData{error: err}
@@ -167,10 +166,15 @@ WHERE boards.id = $1
   AND lists."pagesList"
   AND cards.name IN ($2, $3)
 `, context.Board.Id, path, pathAlt)
-	log.Print(err)
 	if err != nil {
-		// this error doesn't matter, since in the majority of cases there will be nothing here anyway.
-		return card, err
+		if err.Error() == "sql: no rows in result set" {
+			// this error doesn't matter, since in the majority of cases there will be no standalone page here anyway.
+			return card, err
+		} else {
+			// unknown error. report to raygun and proceed as if nothing was found
+			raygun.CreateError(err.Error())
+			return card, err
+		}
 	}
 	card.IsPage = true
 	return card, nil
@@ -261,7 +265,7 @@ func list(w http.ResponseWriter, r *http.Request) {
 
 	// fetch home cards for this list
 	var cards []Card
-	db.Select(&cards, `
+	err = db.Select(&cards, `
 (
   SELECT slug,
          name,
@@ -291,6 +295,17 @@ func list(w http.ResponseWriter, r *http.Request) {
 )
 ORDER BY pos
     `, context.Board.Id, listSlug, ppp*(context.Page-1), ppp+1)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			// don't report to raygun, we already know the error and it doesn't matter
+			http.Error(w, "there is not a list here.", 404)
+			return
+		} else {
+			raygun.CreateError(err.Error())
+			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
+			return
+		}
+	}
 
 	// the first row is a List dressed as a Card
 	list := List{
@@ -431,10 +446,15 @@ FROM (
 ORDER BY sort
 	`, context.Board.Id, listSlug, cardSlug)
 	if err != nil {
-		log.Print(err)
-		// do not report this to raygun since it is just a 404
-		http.Error(w, "there is not a card here.", 404)
-		return
+		if err.Error() == "sql: no rows in result set" {
+			// don't report to raygun, we already know the error and it doesn't matter
+			http.Error(w, "there is not a card here.", 404)
+			return
+		} else {
+			raygun.CreateError(err.Error())
+			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
+			return
+		}
 	}
 
 	// the first row is a List dressed as a Card
