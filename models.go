@@ -116,7 +116,7 @@ type Link struct {
 }
 
 type Board struct {
-	Id   interface{}
+	Id   string
 	Name string
 	Desc string
 
@@ -278,13 +278,6 @@ type Attachment struct {
 }
 
 // mustache helpers
-func (o Board) Test() interface{} {
-	if o.Id != nil {
-		return o
-	}
-	return false
-}
-
 func (o List) Test() interface{} {
 	if o.Slug != "" {
 		return o
