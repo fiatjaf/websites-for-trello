@@ -109,29 +109,11 @@ ORDER BY pos
 		return BaseData{error: err}
 	}
 
-	// pagination
-	page := 1
-	if val, ok := mux.Vars(r)["page"]; ok {
-		page, err = strconv.Atoi(val)
-		if err != nil {
-			log.Print(err)
-			raygun.CreateError(err.Error())
-			http.Error(w, val+" is not a page number.", 400)
-			return BaseData{error: err}
-		}
-	}
-	hasPrev := false
-	if page > 1 {
-		hasPrev = true
-	}
-
 	return BaseData{
 		Settings: settings,
 		Board:    board,
 		Lists:    lists,
 		Prefs:    prefs,
-		Page:     page,
-		HasPrev:  hasPrev,
 	}
 }
 
@@ -190,22 +172,22 @@ func index(w http.ResponseWriter, r *http.Request) {
 	defer raygun.HandleError()
 	// ~
 
+	// pagination
 	context.Page = 1
+	context.HasPrev = false
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
-			log.Print(err)
+			log.Print(val + " is not a page number.")
 			raygun.CreateError(err.Error())
-			http.Error(w, val+" is not a page number.", 400)
-			return
+			page = 1
 		}
 		context.Page = page
+		if context.Page > 1 {
+			context.HasPrev = true
+		}
 	}
-	if context.Page > 1 {
-		context.HasPrev = true
-	} else {
-		context.HasPrev = false
-	}
+	// ~
 
 	ppp := context.Prefs.PostsPerPage()
 
@@ -260,6 +242,23 @@ func list(w http.ResponseWriter, r *http.Request) {
 	defer raygun.HandleError()
 	// ~
 
+	// pagination
+	context.Page = 1
+	context.HasPrev = false
+	if val, ok := mux.Vars(r)["page"]; ok {
+		page, err := strconv.Atoi(val)
+		if err != nil || page < 0 {
+			log.Print(val + " is not a page number.")
+			raygun.CreateError(err.Error())
+			page = 1
+		}
+		context.Page = page
+		if context.Page > 1 {
+			context.HasPrev = true
+		}
+	}
+	// ~
+
 	ppp := context.Prefs.PostsPerPage()
 	listSlug := mux.Vars(r)["list-slug"]
 
@@ -290,6 +289,7 @@ func list(w http.ResponseWriter, r *http.Request) {
   WHERE board_id = $1
     AND lists.slug = $2
     AND cards.visible
+  ORDER BY pos
   OFFSET $3
   LIMIT $4
 )
@@ -518,6 +518,7 @@ func main() {
 		// CORS
 		AllowedOrigins: []string{"*"},
 	})))
+
 	middle.Use(func(next http.Handler) http.Handler {
 		// fetch context
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -530,6 +531,7 @@ func main() {
 			next.ServeHTTP(w, r)
 		})
 	})
+
 	middle.Use(func(next http.Handler) http.Handler {
 		// count different sessions for each board on redis
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -579,7 +581,6 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true) // redirects '/path' to '/path/'
 	middle.UseHandler(router)
-
 	router.HandleFunc("/favicon.ico", favicon)
 	router.HandleFunc("/robots.txt", httpError(404))
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
