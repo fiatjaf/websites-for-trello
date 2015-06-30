@@ -19,7 +19,7 @@ func renderMarkdown(md string) string {
 	mdBytes := []byte(md)
 	mdBytes = CardLinkMatcher.ReplaceAllFunc(mdBytes, func(match []byte) []byte {
 		shortLink := append(CardLinkMatcher.FindSubmatch(match)[1], ")"...)
-		return append([]byte("](/from_shortLink/"), shortLink...)
+		return append([]byte("](/c/"), shortLink...)
 	})
 	html := github_flavored_markdown.Markdown(mdBytes)
 	return string(html)

@@ -12,8 +12,8 @@
       <li>
         <article>
           <header>
-            {{#HasCover}}<a href="/{{^List.Test}}from_list/{{ List_id }}{{/List.Test}}{{#List.Test}}{{ List.Slug }}{{/List.Test}}/{{ Slug }}/"><img src="{{ Cover }}"></a>{{/HasCover}}
-            <h1><a href="/{{^List.Test}}from_list/{{ List_id }}{{/List.Test}}{{#List.Test}}{{ List.Slug }}{{/List.Test}}/{{ Slug }}/">{{ Name }}</a></h1>
+            {{#HasCover}}<a href="/c/{{ Id }}/"><img src="{{ Cover }}"></a>{{/HasCover}}
+            <h1><a href="/c/{{ Id }}/">{{ Name }}</a></h1>
             <aside><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></aside>
           </header>
         </article>

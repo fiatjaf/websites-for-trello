@@ -333,64 +333,54 @@ ORDER BY pos
 }
 
 func cardRedirect(w http.ResponseWriter, r *http.Request) {
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
-	// from_list/list-id/card-id/
-	vars := mux.Vars(r)
-	listId := vars["list-id"]
-	cardSlug := vars["card-slug"]
-
-	// get list slug
-	var listSlug string
-	err = db.Get(&listSlug, "SELECT slug FROM lists WHERE id = $1", listId)
-	if err != nil {
-		log.Print(err)
-		// do not report this to raygun since it is just a 404
-		http.Error(w, "there is not a "+listId+" list.", 404)
-		return
+	identifier := mux.Vars(r)["card-id-or-shortLink"]
+	kind := "id"
+	if len(identifier) < 15 {
+		kind = "shortLink"
 	}
 
-	http.Redirect(w, r, "/"+listSlug+"/"+cardSlug+"/", 302)
-}
-
-func shortLinkRedirect(w http.ResponseWriter, r *http.Request) {
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
-	// from_shortLink/shortLink/
-	shortLink := mux.Vars(r)["shortLink"]
-
-	// get entity -- list or card
-	var path string
-	err = db.Get(&path, `
-SELECT CASE
-  WHEN lists."pagesList" THEN cards.name
-  ELSE '/' || lists.slug || '/' || cards.slug
-END AS path
-FROM cards
-INNER JOIN lists on cards.list_id = lists.id
-WHERE cards."shortLink" = $1`, shortLink)
+	var slugs []string
+	err := db.Select(&slugs, fmt.Sprintf(`
+WITH card AS (
+  SELECT list_id, slug
+  FROM cards
+  WHERE %s = $1
+)
+SELECT slug
+FROM (
+    (SELECT slug, 1 AS listfirst FROM card)
+  UNION
+    (SELECT lists.slug AS slug, 0 AS listfirst
+    FROM lists
+    INNER JOIN card ON list_id = id)
+)y
+ORDER BY listfirst
+    `, kind), identifier)
 	if err != nil {
 		log.Print(err)
 		// redirect to the actual Trello card instead
-		http.Redirect(w, r, "https://trello.com/c/"+shortLink, 302)
+		http.Redirect(w, r, "https://trello.com/c/"+identifier, 302)
+		return
+	}
+	http.Redirect(w, r, "/"+slugs[0]+"/"+slugs[1]+"/", 302)
+}
+
+func listRedirect(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["list-id"]
+
+	var slug string
+	err := db.Get(&slug, `
+SELECT slug
+FROM lists
+WHERE id = $1
+    `, id)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "there is not a list here.", 404)
 		return
 	}
 
-	http.Redirect(w, r, path, 302)
+	http.Redirect(w, r, "/"+slug+"/", 302)
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
@@ -615,16 +605,24 @@ func main() {
 	router := mux.NewRouter()
 	router.StrictSlash(true) // redirects '/path' to '/path/'
 	middle.UseHandler(router)
+
+	// > static
 	router.HandleFunc("/favicon.ico", favicon)
 	router.HandleFunc("/robots.txt", httpError(404))
+
+	// > redirect from permalinks
+	router.HandleFunc("/c/{card-id-or-shortLink}/", cardRedirect)
+	router.HandleFunc("/l/{list-id}/", listRedirect)
+
+	// > normal pages and index
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
-	router.HandleFunc("/from_shortLink/{shortLink}/", shortLinkRedirect)
-	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
-	router.HandleFunc("/{list-slug}/{card-slug}/desc", cardDesc)
 	router.HandleFunc("/{list-slug}/", list)
 	router.HandleFunc("/", index)
+
+	// > helpers
+	router.HandleFunc("/{list-slug}/{card-slug}/desc", cardDesc)
 	// ~
 
 	port := os.Getenv("PORT")
