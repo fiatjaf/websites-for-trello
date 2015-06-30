@@ -15,6 +15,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -472,6 +473,38 @@ ORDER BY sort
 	)
 }
 
+func cardDesc(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	qs, _ := url.ParseQuery(r.URL.RawQuery)
+
+	listSlug := vars["list-slug"]
+	cardSlug := vars["card-slug"]
+	limit := "200"
+	if val, ok := qs["limit"]; ok {
+		limit = val[0]
+	}
+
+	var desc string
+	err := db.Get(&desc, `
+SELECT substring("desc" from 0 for $3)
+FROM cards
+INNER JOIN lists
+ON lists.id = cards.list_id
+WHERE cards.slug = $1
+  AND lists.slug = $2
+  AND cards.visible
+    `, cardSlug, listSlug, limit)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			http.Error(w, "there is not a card here.", 404)
+		} else {
+			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
+		}
+		return
+	}
+	fmt.Fprint(w, desc)
+}
+
 func favicon(w http.ResponseWriter, r *http.Request) {
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
@@ -578,6 +611,7 @@ func main() {
 	})
 	// ~
 
+	// router
 	router := mux.NewRouter()
 	router.StrictSlash(true) // redirects '/path' to '/path/'
 	middle.UseHandler(router)
@@ -588,8 +622,10 @@ func main() {
 	router.HandleFunc("/from_shortLink/{shortLink}/", shortLinkRedirect)
 	router.HandleFunc("/from_list/{list-id}/{card-slug}/", cardRedirect)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
+	router.HandleFunc("/{list-slug}/{card-slug}/desc", cardDesc)
 	router.HandleFunc("/{list-slug}/", list)
 	router.HandleFunc("/", index)
+	// ~
 
 	port := os.Getenv("PORT")
 	if port == "" {
