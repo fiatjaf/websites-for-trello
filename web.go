@@ -464,30 +464,33 @@ ORDER BY sort
 }
 
 func cardDesc(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+	identifier := mux.Vars(r)["card-id-or-shortLink"]
+	kind := "id"
+	if len(identifier) < 15 {
+		kind = "shortLink"
+	}
 	qs, _ := url.ParseQuery(r.URL.RawQuery)
-
-	listSlug := vars["list-slug"]
-	cardSlug := vars["card-slug"]
-	limit := "200"
+	var limit int
+	var err error
+	limit = 200
 	if val, ok := qs["limit"]; ok {
-		limit = val[0]
+		limit, err = strconv.Atoi(val[0])
+		if err != nil {
+			limit = 200
+		}
 	}
 
 	var desc string
-	err := db.Get(&desc, `
-SELECT substring("desc" from 0 for $3)
+	err = db.Get(&desc, fmt.Sprintf(`
+SELECT substring("desc" from 0 for $2)
 FROM cards
-INNER JOIN lists
-ON lists.id = cards.list_id
-WHERE cards.slug = $1
-  AND lists.slug = $2
-  AND cards.visible
-    `, cardSlug, listSlug, limit)
+WHERE %s = $1
+    `, kind), identifier, limit)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			http.Error(w, "there is not a card here.", 404)
 		} else {
+			log.Print(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 		}
 		return
@@ -614,15 +617,15 @@ func main() {
 	router.HandleFunc("/c/{card-id-or-shortLink}/", cardRedirect)
 	router.HandleFunc("/l/{list-id}/", listRedirect)
 
+	// > helpers
+	router.HandleFunc("/c/{card-id-or-shortLink}/desc", cardDesc)
+
 	// > normal pages and index
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/", list)
 	router.HandleFunc("/", index)
-
-	// > helpers
-	router.HandleFunc("/{list-slug}/{card-slug}/desc", cardDesc)
 	// ~
 
 	port := os.Getenv("PORT")
