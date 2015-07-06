@@ -6,14 +6,12 @@ import (
 	"github.com/carbocation/interpose"
 	"github.com/carbocation/interpose/adaptors"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"github.com/hoisie/redis"
 	"github.com/jabley/mustache"
 	"github.com/jmoiron/sqlx"
 	"github.com/jmoiron/sqlx/types"
 	"github.com/rs/cors"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,6 +27,12 @@ var db *sqlx.DB
 var rds redis.Client
 var settings Settings
 var context BaseData
+
+func countPageViews() {
+	now := time.Now().UTC()
+	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), context.Board.Id)
+	rds.Incr(key)
+}
 
 func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
 	// raygun error reporting
@@ -164,6 +168,7 @@ WHERE boards.id = $1
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
+	countPageViews()
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -234,6 +239,7 @@ LIMIT $3
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
+	countPageViews()
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -384,6 +390,7 @@ WHERE id = $1
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
+	countPageViews()
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -526,9 +533,6 @@ func httpError(code int) func(w http.ResponseWriter, r *http.Request) {
 func main() {
 	settings = LoadSettings()
 
-	rand.Seed(time.Now().Unix())
-	cookieStore := sessions.NewCookieStore([]byte("visitor-session-secret"))
-
 	db, _ = sqlx.Connect("postgres", settings.DatabaseURL)
 	db = db.Unsafe()
 
@@ -559,40 +563,13 @@ func main() {
 	})
 
 	middle.Use(func(next http.Handler) http.Handler {
-		// count different sessions for each board on redis
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			now := time.Now().UTC()
-			endOfMonth := time.Date(now.Year(), now.Month(), 32, 0, 0, 0, 0, time.UTC)
-			endOfMonth = endOfMonth.AddDate(0, 0, -endOfMonth.Day())
-			toEnd := endOfMonth.Sub(now).Seconds()
-
-			key := fmt.Sprintf("sessions:%s", context.Board.Id)
-			session, _ := cookieStore.Get(r, "visitor")
-			var vid string
-			if val, ok := session.Values["vid"].(string); ok {
-				vid = val
-			} else {
-				// vid = visitorId
-				vid = fmt.Sprintf("%d", rand.Intn(100000000))
-				session.Values["vid"] = vid
-				err := session.Save(r, w)
-				if err != nil {
-					log.Print(err)
-				}
-			}
-
-			rds.Sadd(key, []byte(vid))
-			rds.Expire(key, int64(toEnd))
-			next.ServeHTTP(w, r)
-		})
-	})
-	middle.Use(func(next http.Handler) http.Handler {
 		// try to return a standalone page
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			card, err := getPageAt(r.URL.Path)
 			if err != nil {
 				next.ServeHTTP(w, r)
 			} else {
+				countPageViews()
 				context.Card = card
 				fmt.Fprint(w,
 					mustache.RenderFileInLayout("templates/card.html",
