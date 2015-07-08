@@ -5,3 +5,7 @@ node_modules
 *.js
 browserify-cache.json
 *.env
+.sass-cache
+*.css
+index.html
+prod-index.html

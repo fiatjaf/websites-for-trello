@@ -6,12 +6,12 @@ js:
   output:
     - assets/bundle.js
   formula: >
-    foreman run -e .browserify.env ./node_modules/.bin/browserifyinc -t coffeeify -t envify --extension='.coffee' app.coffee > bundle.js
+    foreman run -e .browserify.env ./node_modules/.bin/browserifyinc -t coffeeify -t envify --extension='.coffee' app.coffee > assets/bundle.js
 
 css:
   help: the less file to css
   dependencies:
-    - scss/*
+    - scss/*.scss
   output:
     - assets/bundle.css
   formula: >
@@ -27,7 +27,8 @@ html:
   formula: >
     cat base.html | py -l "'\n'.join(l).split('<!--app-->')[0]" > index.html;
     cat landing.html >> index.html;
-    cat base.html | py -l "'\n'.join(l).split('<!--app-->')[0]" >> index.html;
+    cat base.html | py -l "'\n'.join(l).split('<!--app-->')[1]" >> index.html;
+    cp base.html account/index.html
 
 prod:
   help: build and minify files
@@ -36,6 +37,7 @@ prod:
     - app.coffee
     - assets/bundle.css
     - index.html
+    - account/index.html
   output:
     - assets/b.min.js
     - assets/b.min.js.map

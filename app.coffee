@@ -1,24 +1,26 @@
 Promise    = require 'lie'
 superagent = (require 'superagent-promise')((require 'superagent'), Promise)
-tl         = require './talio'
+tl         = require 'talio'
 
 {div, main, span, pre, nav, section,
  small, i, p, b, a, button, code,
- h1, h2, h3, h4,
- form, legend, label, input, textarea, select, label,
+ h1, h2, h3, h4, strong,
+ form, legend, label, input, textarea, select, label, option,
  table, thead, tbody, tfoot, tr, th, td,
  dl, dt, dd,
  ul, li} = require 'virtual-elements'
-SelectizeWidget = require 'talio-selectize'
-SelectizeWidget.init tl.delegator
 
-API_URL = 'http://api.' + process.env.DOMAIN
-for node in document.querySelectorAll('[href~="__"]')
-  node.href = node.href.replace '__API_URL__', API_URL
+if process.env.DEBUG
+  API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
+else
+  API_URL = 'http://api.' + process.env.DOMAIN
+
+for node in document.querySelectorAll('[href^="#__"]')
+  node.href = node.href.replace /.*__API_URL__/, API_URL
 
 State = tl.StateFactory
   user: null
-  boards: null
+  boards: []
   tab: 'create' # or 'manage'
 
 handlers =
@@ -97,7 +99,7 @@ vrenderMain = (state, channels) ->
       className: "container"
       id: "header"
     ,
-      (h1 {className: "center"}, "fiatjaf")
+      (h1 {className: "center"}, state.user or '')
       (nav className: "center",
         (a
           href: "#"
@@ -111,7 +113,7 @@ vrenderMain = (state, channels) ->
           target: "_blank"
           href: "http://docs.websitesfortrello.com/"
         , "Documentation")
-        (a {href: "/account/logout"}, "Logout")
+        (a {href: "#{API_URL}/account/logout"}, "Logout")
       )
     )
     (div className: "container narrow block",
@@ -127,7 +129,7 @@ vrenderCreate = (state, channels) ->
       (h2 {}, "Create a new board")
       (input
         name: "name"
-        placeholder: "fiatjaf's site"
+        placeholder: "#{state.user or 'someone'}'s site"
       )
       (button {type: "submit"}, "Create")
     )
