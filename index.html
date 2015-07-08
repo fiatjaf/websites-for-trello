@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Websites for Trello :: run your site from a Trello Board</title>
+  <meta name="description" content="Do you use Trello and want to have a personal blog or website? Websites for Trello is the CMS you're looking for.">
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="/assets/site.css">
+  <script>
+  (function(t,r,a,c,k){k=r.createElement('script');k.type='text/javascript';
+  k.async=true;k.src=a;k.id='ma';r.getElementsByTagName('head')[0].appendChild(k);
+  t.maq=[];t.mai=c;t.ma=function(){t.maq.push(arguments)};
+  })(window,document,'https://spooner.alhur.es:6984/microanalytics/_design/microanalytics/_rewrite/tracker.js','67bb2130');
+
+  ma('pageView');
+  </script>
+
+  <link rel="icon" type="image/png" href="/favicon.ico">
+  <meta name="viewport" content="initial-scale=1">
+
+  <meta property="og:image" content="/favicon.ico">
+
+</head>
+<body>
+
+  <div class="row">
+    
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="row section" id="header">
+  <div class="container" id="title">
+    <img src="/static/logo.png" class="center animate dropIn">
+    <h1 class="center">{{ config.SERVICE_NAME }}</h1>
+  </div>
+  <div class="container">
+    <div class="col-1-2">
+      <h1>The blogging platform powered by your <a target="_blank" alt="Trello" href="https://trello.com/"><img style="height: 1em; width: auto; margin-bottom: -7px; margin-left: -9px;" src="/static/trello-logo-blue.svg"></a> cards.</h1>
+      <h3 class="light">
+        You're already using Trello to organize your life, now you can use it to create and manage your personal blog or website.
+      </h3>
+    </div>
+    <div class="col-1-2" id="login">
+      <p>See right now how it looks like!</p>
+      <a class="button" href="/account/setup" style="font-size: 1.4em; display: block; margin: auto; text-align: center">Start a Trello-based site</a>
+      <p class="center">
+        {% if current_user.is_authenticated() %}
+            <a href="/account">welcome back, {{ current_user.id }}!</a>
+        {% else %}
+            <a href="/account">(or just login)</a>
+        {% endif %}
+      </p>
+    </div>
+    <div class="col-1-2">
+      <br>
+      <p>Or maybe you want to first take a look at this <a href="https://trello.com/b/7hs3uLZE/this-is-a-site">sample board</a> and <a href="http://54c2f73c734b5b084777d1aa.websitesfortrello.com/">the website</a> powered by it.</p>
+    </div>
+  </div>
+</div>
+<div class="row section grey">
+  <div class="container">
+    <div class="col-1-1">
+      <h2></h2>
+    </div>
+  </div>
+  <div class="container">
+    <div class="col-1-2">
+      <h3>Publish easily</h3>
+      <p>To have a site hosted at Websites for Trello you only need a Trello board. If you're already using Trello to post and organize your things and your thoughts, you can publish them right now. If you want to start a blank blog, there's no difficult at all, just create a new Board at Trello.</p>
+      <h3>Your data belongs to you</h3>
+      <p>If you ever want to stop using Websites for Trello, you don't need to worry about moving your data, it is already at your Trello board and will stay there for you to take, host elsewhere or export.</p>
+    </div>
+    <div class="col-1-2">
+      <h3>No need to learn another workflow</h3>
+      <p>There's no need to learn a CMS or adjust yourself to a posting and content managing workflow. Every action you want to take in your site can be taken from inside the Trello board. Modifications you make on your cards and lists map easily and instantly to your website.</p>
+      <h3>Customize your style</h3>
+      <p>We use simple HTML5 semantic templates for your lists and card pages, so they're easy to customize with pure CSS and Javascript files you can include on your site as much as you like. We also provide various pre-built themes and small customizable Javascript scripts that help you add widgets, analytics, and other magic to your site.</p>
+    </div>
+  </div>
+</div>
+<div class="row section" id="getstarted">
+  <div class="container narrow block">
+    <div class="col-1-1">
+      <h2>Starting and managing your site with Trello is easy and free</h2>
+      <h3 class="light">A Board will be your site, Lists will be your categories, Cards will be your pages:</h3>
+    </div>
+  </div>
+  <div class="container narrow block">
+    <div class="col-1-1">
+      <h3>1. Set up your site</h3>
+      <p>Login with your Trello account <a href="#login">here</a> and choose or create a Board to be the base of your site.</p>
+    </div>
+  </div>
+  <div class="container narrow block">
+    <div class="col-1-1">
+      <h3>2. Choose a theme</h3>
+      <p>You can choose between our <a href="#themes">growing collection of themes</a> or <a href="https://github.com/fiatjaf/classless">write your own</a>.</p>
+    </div>
+  </div>
+  <div class="container narrow block">
+    <div class="col-1-1">
+      <h3>3. Manage your content</h3>
+      <p>From within your Trello Board, you can add Lists, create, move and edit Cards and see these changes being reflected in your site.</p>
+    </div>
+  </div>
+</div>
+<div class="row section grey" id="themes">
+  <div class="container">
+    <div class="col-1-1">
+      <h2>Themes</h2>
+      <p>A <a href="http://fiatjaf.alhur.es/classless/showcase">growing collection</a> of ported themes based on the <a href="http://fiatjaf.alhur.es/classless/">classless CSS HTML5-compliant standard</a></p>
+    </div>
+  </div>
+  <div class="container">
+    <style scoped>
+      #themes a:hover > img {
+        padding: 9px;
+        border: 4px dotted;
+      }
+      img { width: 100% }
+      dl { display: none }
+    </style>
+    <div class="col-1-3">
+      {% for theme in themes %}
+        {% if loop.index0 % 3 == 0 %}
+    </div>
+    <div class="col-1-2">
+        {% endif %}
+        <h3>{{ theme | title }}</h3>
+        <ul class="theme">
+          {% for i in range(1, 4) %}
+            <li>
+              <a target="_blank"
+                 href="http://fiatjaf.alhur.es/classless/showcase/screenshots/{{ theme }}-{{ i }}.png">
+                <img
+                  title="the {{ theme }} theme"
+                  alt="screenshot of the {{ theme }} theme"
+                  src="{{ config.FIRESIZE_URL }}/500x300/g_north/http://fiatjaf.alhur.es/classless/showcase/screenshots/{{ theme }}-{{ i }}.png"
+                >
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<div class="row section" id="plans">
+  <div class="container" style="margin-bottom: 5em">
+    <div class="col-1-1">
+      <h2>Pricing</h2>
+      <p>Websites for Trello is free for using within our domains (<span class="code">yoursite.websitesfortrello.com</span>, for example) and to the limit of 300 visitors (sessions) each month. We charge <span class="code" style="background: #883D3D; color: white; font-weight: bold;">$3 / month</span> for using with a custom domain and <span class="code" style="background: #883D3D; color: white; font-weight: bold;">$7 / month</span> for powering more than 1000 visitors/month.</p>
+    </div>
+  </div>
+  <div class="container">
+    <div class="col-1-2">
+      <h2>Documentation</h2>
+      <p>For more information about everything, see <a href="http://docs.websitesfortrello.com/">our docs</a> <small>(which are also a <a href="https://trello.com/b/7ImZnzwk/docs">Trello board</a>)</small>.</p>
+    </div>
+    <div class="col-1-2">
+      <h2>Help</h2>
+      <p>For questions, suggestions and support, feel free to comment at <a href="https://trello.com/c/PDGot9e7/32-help">our Trello development Board</a></p>
+    </div>
+  </div>
+</div>
+<div class="row section grey">
+  <div class="container">
+    <div class="col-1-2">
+      <p>Websites for Trello is a service by <a href="http://alhur.es/">alhures software</a>. For any issue, comment, bug, feature request or just for following our new features, see our <a href="https://trello.com/b/9VdY5mdJ/websites-for-trello">Trello development board</a>, or, for private communication, use the form on the right.</p>
+      <h3>Other stuff we've made</h3>
+      <p><strong><a href="http://boardthreads.com/">BoardThreads</a></strong> is a helpdesk software for Trello users. It treats cards as tickets, creating them automatically from emails and letting you reply to them through comments.</p>
+      <p><strong><a href="http://trello.com/cardsync">Trello card sync</a></strong>, a Trello bot that will sync data, comments, lists, attachments between two or more cards, you just have to add him to the targets.</p>
+    </div>
+    <div class="col-1-2" id="contact">
+      <style scoped>
+        input[type="email"], textarea { width: 100% }
+      </style>
+      <form action="http://api.boardthreads.com/ticket/55848edc1a5446f4de058e45"
+            method="POST">
+        <input type="email" name="replyto" placeholder="Your email">
+        <textarea name="text" rows="5" placeholder="Your message"></textarea>
+        <input type="submit" value="Send">
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ResponsiveSlides.js/1.53/responsiveslides.js"></script>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/ResponsiveSlides.js/1.53/responsiveslides.css">
+<script>
+$(function () {
+  $(".theme").responsiveSlides({
+    auto: true,
+    speed: 800,
+    timeout: 4000,
+    nav: false,
+    maxwidth: "",
+    namespace: "rslides",
+  });
+})
+</script>
+
+{% endblock %}
+
+
+    <div class="container">
+      <p class="footer center">
+        <a href="/">Websites for Trello</a> is not affiliated, sponsored or endorsed in any way by <a href="https://trello.com/">Trello</a>.
+      </p>
+    </div>
+  </div>
+
+  <script src="assets/bundle.js"></script>
+
+</body>
+</html>

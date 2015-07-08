@@ -1,0 +1,25 @@
+{
+  "name": "wft-website",
+  "version": "0.0.0",
+  "description": "",
+  "main": "app.coffee",
+  "dependencies": {
+    "browserify": "^9.0.3",
+    "browserify-incremental": "^3.0.1",
+    "clean-css": "^3.3.5",
+    "coffee-script": "^1.9.3",
+    "coffeeify": "^1.1.0",
+    "envify": "^3.4.0",
+    "lie": "^2.9.1",
+    "mustache-render": "^1.0.0",
+    "superagent": "^1.2.0",
+    "superagent-promise": "^1.0.0",
+    "uglify-js": "^2.4.23"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,7 @@
+.shastore
+*.swo
+*.swp
+node_modules
+*.js
+browserify-cache.json
+*.env
