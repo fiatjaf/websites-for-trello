@@ -8,14 +8,24 @@ cookieSession = require 'cookie-session'
 bodyParser    = require 'body-parser'
 cors          = require 'cors'
 
+if process.env.DEBUG
+  process.env.SITE_URL = 'http://' + process.env.DOMAIN
+  process.env.API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
+  process.env.WEBHOOK_URL = 'http://' + process.env.DOMAIN.replace /0$/, 2
+else
+  process.env.SITE_URL = 'http://' + process.env.DOMAIN
+  process.env.API_URL = 'http://api' + process.env.DOMAIN
+  process.env.WEBHOOK_URL = 'http://webhooks' + process.env.DOMAIN
+
 trello = Promise.promisifyAll new NodeTrello process.env.TRELLO_API_KEY
-oauth = new Trello.OAuth(
+oauth = new NodeTrello.OAuth(
   process.env.TRELLO_API_KEY
   process.env.TRELLO_API_SECRET
-  process.env.SITE_URL + '/setup/board'
+  process.env.API_URL + '/account/setup/end'
   'Websites for Trello'
 )
 pg.defaults.poolSize = 2
+pg.defaults.ssl = true
 Promise.promisifyAll pg.Client.prototype
 Promise.promisifyAll pg.Client
 Promise.promisifyAll pg.Connection.prototype
@@ -32,10 +42,9 @@ app = express()
 app.use bodyParser.json()
 app.use bodyParser.urlencoded(extended: true)
 app.use cookieSession
-  path: '/session'
   secret: process.env.SESSION_SECRET or 'banana'
   name: 'wft'
-  maxAge: 36000000000 # 1000h
+  maxAge: 2505600000 # 29 days
   signed: true
 CORS = cors
   origin: process.env.SITE_URL
@@ -43,54 +52,50 @@ CORS = cors
 app.use CORS
 app.options '*', CORS
 
-app.post '/account/setup/start', (request, response) ->
+userRequired = (request, response, next) ->
+  if not request.session.user
+    return response.sendStatus 401
+  next()
+
+app.get '/account/setup/start', (request, response) ->
   oauth.getRequestToken (err, data) ->
-    if err
-      response.sendStatus 501
+    return response.sendStatus 501 if err
 
-    data.redirect + '&scope=read,write,account'
-    if request.query.next
-      data.redirect + '&next=' + request.query.next
-
+    data.redirect + '&scope=read,write,account&expiration=30days'
     request.session.bag = data
     response.redirect data.redirect
 
 app.get '/account/setup/end', (request, response) ->
-  if not request.session.bag
-    return response.redirect request.query.next or process.env.SITE_URL
-
+  return response.redirect process.env.SITE_URL if not request.session.bag
   bag = extend request.session.bag, request.query
   oauth.getAccessToken bag, (err, data) ->
-    if err
-      return response.redirect request.query.next or process.env.SITE_URL
+    return response.redirect process.env.SITE_URL if err
     delete request.session.bag
-    request.session.token = data.oauth_token
+    request.session.token = data.oauth_access_token
     response.redirect process.env.SITE_URL + '/account'
 
 app.get '/account', (request, response) ->
-  if not request.session.token
-    return response.send {user: null}
   trello.token = request.session.token
   release = null
 
   Promise.resolve().then(->
     Promise.all [
-      trello.get "/1/token/#{request.session.token}/member/username"
+      if request.session.username then request.session.username else trello.getAsync "/1/token/#{trello.token}/member/username"
       pg.connectAsync process.env.DATABASE_URL
     ]
-  ).spread((username, db) ->
+  ).spread((user, db) ->
     conn = db[0]
     release = db[1]
 
     Promise.all [
-      username
-      trello.get "/1/members/#{username}/boards/open"
+      user._value
+      trello.getAsync "/1/members/#{user._value}/boards", {filter: 'open'}
       conn.queryAsync('''
-SELECT id, name, subdomain
+SELECT boards.id, boards.name, boards.subdomain
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
 WHERE users.id = $1
-                      ''', [username])
+                      ''', [user._value])
     ]
   ).spread((username, boards, qresult) ->
     request.session.user = username
@@ -109,11 +114,6 @@ app.get '/account/logout', (request, response) ->
   delete request.session.user
   response.redirect process.env.SITE_URL
 
-userRequired = (request, response, next) ->
-  if not request.session.user
-    return response.sendStatus 401
-  next()
-
 app.post '/board/setup', userRequired, (request, response) ->
   {name} = request.body
   Promise.resolve().then(->
@@ -121,6 +121,7 @@ app.post '/board/setup', userRequired, (request, response) ->
       MessageBody: JSON.stringify {
         'type': 'boardCreateAndSetup'
         'board_name': name
+        'username': request.session.user
         'user_token': request.session.token
       }
       QueueUrl: process.env.SQS_URL
@@ -140,6 +141,7 @@ app.put '/board/setup', userRequired, (request, response) ->
       MessageBody: JSON.stringify {
         'type': 'boardSetup'
         'board_id': id
+        'username': request.session.user
         'user_token': request.session.token
       }
       QueueUrl: process.env.SQS_URL
@@ -186,6 +188,6 @@ WHERE user_id = $1
     console.log e
   )
 
-port = process.env.PORT or 5000
+port = process.env.PORT or 5001
 app.listen port, '0.0.0.0', ->
   console.log 'running at 0.0.0.0:' + port
