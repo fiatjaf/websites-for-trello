@@ -3,7 +3,6 @@ from mistune import BlockLexer
 from slugify import slugify
 from unidecode import unidecode
 
-import settings
 from app import db
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY

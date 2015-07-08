@@ -1,8 +1,9 @@
 from app import db
 from models import Board, List, Card, Label
 from trello import TrelloApi
+import os
 
-trello = TrelloApi(TRELLO_BOT_API_KEY, TRELLO_BOT_TOKEN)
+trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
 
 def createCard(data):
     card = Card.query.get(data['card']['id'])

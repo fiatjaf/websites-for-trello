@@ -4,3 +4,4 @@ venv
 *.pyo
 *.swp
 *.swo
+cron.log

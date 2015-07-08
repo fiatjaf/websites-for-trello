@@ -1,3 +1,4 @@
+import time
 import json
 import handlers as h
 from board_management import board_setup, board_create, initial_fetch
@@ -13,6 +14,7 @@ def process_messages():
             process_message(message)
         except Exception, e:
             print e
+        q.delete_message(message)
 
 def process_message(message):
     body = message.get_body()
@@ -32,6 +34,8 @@ def process_message(message):
         handler(payload['data'])
 
 if __name__ == '__main__':
-    process()
+    for i in range(10):
+        process_messages()
+        time.sleep(6)
 
 # this is meant to be run as a cron job every 3 seconds or so.
