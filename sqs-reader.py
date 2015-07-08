@@ -21,11 +21,11 @@ def process_message(message):
     if payload['type'] == 'boardCreateAndSetup':
         board_id = board_create(payload['user_token'], payload['board_name'])
         board_setup(payload['user_token'], board_id)
-        initial_fetch(board_id)
+        initial_fetch(board_id, payload['username'])
 
     elif payload['type'] == 'boardSetup':
         board_setup(payload['user_token'], payload['board_id'])
-        initial_fetch(payload['board_id'])
+        initial_fetch(payload['board_id'], payload['username'])
 
     else:
         handler = getattr(h, payload['type'])

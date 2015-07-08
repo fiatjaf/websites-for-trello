@@ -14,7 +14,7 @@ def createCard(data):
             list_id=data['list']['id']
         )
 
-    # TODO query the 'pos'
+    card.pos = trello.cards.get_field('pos', card.id)
 
     db.session.add(card)
     db.session.commit()
@@ -50,7 +50,7 @@ def moveCardToBoard(data):
             shortLink=data['card']['shortLink'],
             list_id=data['list']['id']
         )
-        # TODO query 'pos'
+        card.pos = trello.cards.get_field('pos', card.id)
     else:
         card.board_id = data['board']['id']
 
@@ -66,7 +66,7 @@ def convertToCardFromCheckItem(data):
             shortLink=data['card']['shortLink'],
             list_id=data['list']['id'],
         )
-        # TODO query 'pos'
+        card.pos = trello.cards.get_field('pos', card.id)
 
     cardsource = Card.query.get(data['cardSource']['id'])
     if cardsource:
@@ -97,13 +97,12 @@ def deleteAttachmentFromCard(data):
 
 def addChecklistToCard(data):
     card = Card.query.get(data['card']['id'])
-    card.checklists['checklists'].append({
+    checklist = {
         'id': data['checklist']['id'],
         'name': data['checklist']['name'],
-        'checkItems': []
-    })
-
-    # TODO query checkitems
+        'checkItems': trello.checklists.get_checkItem(checklist['id'], fields='name,pos,state')
+    }
+    card.checklists['checklists'].append(checklist)
 
     db.session.add(card)
     db.session.commit()
@@ -127,8 +126,6 @@ def createCheckItem(data):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])
     checklist['checkItems'].append(data['checkItem'])
-
-    # query the 'pos'
 
     db.session.add(card)
     db.session.commit()
@@ -216,8 +213,7 @@ def createList(data):
             board_id=data['board']['id'],
             closed=False
         )
-
-    # TODO query the 'pos'
+    list.pos = trello.lists.get_field('pos', list.id)
 
     db.session.add(list)
     db.session.commit()
@@ -244,7 +240,7 @@ def moveListToBoard(data):
             board_id=data['board']['id'],
             closed=False
         )
-        # TODO query the 'pos'
+        list.pos = trello.lists.get_field('pos', list.id)
     else:
         list.board_id = data['board']['id']
 

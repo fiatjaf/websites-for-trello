@@ -99,11 +99,6 @@ class List(db.Model):
 class Card(db.Model):
     __tablename__ = 'cards'
 
-    def __init__(self):
-        self.attachments = {'attachments': []}
-        self.checklists = {'checklists': []}
-        self.labels = []
-
     # meta
     id = db.Column(db.String(50), primary_key=True)
     shortLink = db.Column(db.String(35), unique=True)
@@ -117,10 +112,10 @@ class Card(db.Model):
     desc = db.Column(db.Text)
     pos = db.Column(db.Integer)
     due = db.Column(db.DateTime)
-    checklists = db.Column(MutableDict.as_mutable(JSONB))
-    attachments = db.Column(MutableDict.as_mutable(JSONB))
+    checklists = db.Column(MutableDict.as_mutable(JSONB), default={'checklists': []})
+    attachments = db.Column(MutableDict.as_mutable(JSONB), default={'attachments': []})
+    labels = db.Column(ARRAY(db.Integer, dimensions=1), default=[]) # bizarre card x label relationship with arrays
     cover = db.Column(db.Text)
-    labels = db.Column(ARRAY(db.Integer, dimensions=1)) # bizarre card x label relationship with arrays
     visible = db.Column(db.Boolean, index=True, default=calc_visibility, onupdate=calc_visibility)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
