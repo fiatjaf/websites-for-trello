@@ -13,10 +13,9 @@ else:
     os.environ['API_URL'] = 'http://api.' + os.environ['DOMAIN']
     os.environ['WEBHOOK_URL'] = 'http://webhooks.' + os.environ['DOMAIN']
 
-os.environ['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
-os.environ['SQLALCHEMY_ECHO'] = os.environ.get('DEBUG')
-
 app = Flask(__name__)
 app.config.update(os.environ)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+# app.config['SQLALCHEMY_ECHO'] = os.environ.get('DEBUG')
 
 db.init_app(app)

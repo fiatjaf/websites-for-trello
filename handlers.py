@@ -1,5 +1,5 @@
 from app import db
-from models import Board, List, Card, Label
+from models import User, Board, List, Card, Label
 from trello import TrelloApi
 import os
 
@@ -15,26 +15,32 @@ def createCard(data):
             list_id=data['list']['id']
         )
 
-    card.pos = trello.cards.get_field('pos', card.id)
+    card.pos = trello.cards.get_field('pos', card.id)['_value']
+    card.desc = trello.cards.get_field('desc', card.id)['_value']
 
     db.session.add(card)
     db.session.commit()
 
 def updateCard(data):
-    card = Card.query.get(data['card']['id'])
+    q = Card.query.filter_by(id=data['card']['id'])
+
+    update = {}
     for attr in ('pos', 'name', 'desc', 'due'):
         if attr in data['card']:
-            setattr(card, attr, data['card'][attr])
+            update[attr] = data['card'][attr]
+
     if 'idAttachmentCover' in data['card']:
-        card.cover = data['card']['idAttachmentCover']
+        update['cover'] = data['card']['idAttachmentCover']
     if 'idList' in data['card']:
-        card.list_id = data['card']['idList']
-    db.session.add(card)
+        update['list_id'] = data['card']['idList']
+
+    q.update(update)
     db.session.commit()
 
 def deleteCard(data):
     card = Card.query.get(data['card']['id'])
     db.session.delete(card)
+    db.session.commit()
 
 def moveCardFromBoard(data):
     if not Board.query.get(data['boardTarget']['id']):
@@ -51,7 +57,8 @@ def moveCardToBoard(data):
             shortLink=data['card']['shortLink'],
             list_id=data['list']['id']
         )
-        card.pos = trello.cards.get_field('pos', card.id)
+        card.pos = trello.cards.get_field('pos', card.id)['_value']
+        card.desc = trello.cards.get_field('desc', card.id)['_value']
     else:
         card.board_id = data['board']['id']
 
@@ -64,10 +71,11 @@ def convertToCardFromCheckItem(data):
         card = Card(
             id=data['card']['id'],
             name=data['card']['name'],
-            shortLink=data['card']['shortLink'],
-            list_id=data['list']['id'],
+            list_id=data['list']['id']
         )
-        card.pos = trello.cards.get_field('pos', card.id)
+        card.pos = trello.cards.get_field('pos', card.id)['_value']
+        card.shortLink = trello.cards.get_field('shortLink', card.id)['_value']
+        card.desc = trello.cards.get_field('desc', card.id)['_value']
 
     cardsource = Card.query.get(data['cardSource']['id'])
     if cardsource:
@@ -80,13 +88,14 @@ def convertToCardFromCheckItem(data):
                 continue
             break
 
+    cardsource.checklists.changed()
     db.session.add(card)
     db.session.add(cardsource)
     db.session.commit()
 
 def addAttachmentToCard(data):
     card = Card.query.get(data['card']['id'])
-    card.attachments['attachments'].append(data['attachment'])
+    card.attachments['attachments'] = card.attachments['attachments'] + [data['attachment']]
     db.session.add(card)
     db.session.commit()
 
@@ -101,58 +110,77 @@ def addChecklistToCard(data):
     checklist = {
         'id': data['checklist']['id'],
         'name': data['checklist']['name'],
-        'checkItems': trello.checklists.get_checkItem(checklist['id'], fields='name,pos,state')
+        'checkItems': trello.checklists.get_checkItem(data['checklist']['id'], fields='name,pos,state'),
+        'pos': trello.checklists.get_field('pos', data['checklist']['id'])
     }
     card.checklists['checklists'].append(checklist)
 
+    card.checklists.changed()
     db.session.add(card)
     db.session.commit()
 
 def removeChecklistFromCard(data):
     card = Card.query.get(data['card']['id'])
     card.checklists['checklists'] = [chk for chk in card.checklists['checklists'] if chk['id'] != data['checklist']['id']]
+
+    card.checklists.changed()
     db.session.add(card)
     db.session.commit()
 
 def updateChecklist(data):
     card = Card.query.get(data['card']['id'])
-    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])
+    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     for attr in ('pos', 'name'):
         if attr in data['checklist']:
             checklist[attr] = data['checklist'][attr]
+
+    card.checklists.changed()
     db.session.add(card)
     db.session.commit()
 
 def createCheckItem(data):
     card = Card.query.get(data['card']['id'])
-    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])
-    checklist['checkItems'].append(data['checkItem'])
+    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
 
-    db.session.add(card)
-    db.session.commit()
+    for checkItem in checklist['checkItems']:
+        if checkItem['id'] == data['checkItem']['id']:
+            break
+    else:
+        data['checkItem']['pos'] = max(chl.get('pos') for chl in checklist['checkItems']) + 1
+        checklist['checkItems'].append(data['checkItem'])
+
+        card.checklists.changed()
+        db.session.add(card)
+        db.session.commit()
 
 def updateCheckItemStateOnCard(data):
     card = Card.query.get(data['card']['id'])
-    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])
-    checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])
+    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
+    checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])[0]
     checkItem['state'] = data['checkItem']['state']
+
+    card.checklists.changed()
     db.session.add(card)
     db.session.commit()
 
 def deleteCheckItem(data):
     card = Card.query.get(data['card']['id'])
-    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])
+    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     checklist['checkItems'] = [chi for chi in checklist['checkItems'] if chi['id'] == data['checkItem']['id']]
+
+    card.checklists.changed()
     db.session.add(card)
     db.session.commit()
 
 def updateCheckItem(data):
     card = Card.query.get(data['card']['id'])
-    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])
-    checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])
+    checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
+    checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])[0]
     for attr in ('name', 'pos'):
         if attr in data['checkItem']:
             checkItem[attr] = data['checkItem'][attr]
+
+    card.checklists.changed()
     db.session.add(card)
     db.session.commit()
 
@@ -214,16 +242,15 @@ def createList(data):
             board_id=data['board']['id'],
             closed=False
         )
-    list.pos = trello.lists.get_field('pos', list.id)
+    list.pos = trello.lists.get_field('pos', list.id)['_value']
 
     db.session.add(list)
     db.session.commit()
 
 def updateList(data):
-    list = List.query.get(data['list']['id'])
+    q = List.query.filter_by(id=data['list']['id'])
     keychanged = data['old'].keys()[0]
-    setattr(list, keychanged, data['list'][keychanged])
-    db.session.add(list)
+    q.update({keychanged: data['list'][keychanged]})
     db.session.commit()
 
 def moveListFromBoard(data):
@@ -241,7 +268,7 @@ def moveListToBoard(data):
             board_id=data['board']['id'],
             closed=False
         )
-        list.pos = trello.lists.get_field('pos', list.id)
+        list.pos = trello.lists.get_field('pos', list.id)['_value']
     else:
         list.board_id = data['board']['id']
 

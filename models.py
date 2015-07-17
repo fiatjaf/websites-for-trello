@@ -9,17 +9,17 @@ from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.ext.mutable import MutableDict
 
 def calc_visibility(context):
-    name = context.current_parameters.get('name', '')
+    name = context.current_parameters.get('name') or ''
     dashed = name.startswith('_') or name.startswith('#')
     return not dashed
 
 def calc_is_pages(context):
-    name = context.current_parameters.get('name', '')
+    name = context.current_parameters.get('name') or ''
     jogodavelha = name.startswith('#')
     return jogodavelha
 
 def calc_page_title(context):
-    desc = context.current_parameters.get('desc', '')
+    desc = context.current_parameters.get('desc') or ''
     b = BlockLexer()
     elements = b.parse(desc)
     if elements:

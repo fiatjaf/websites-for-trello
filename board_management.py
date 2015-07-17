@@ -1,8 +1,10 @@
 from app import db
-from models import Board, List, Card, Label
+from models import User, Board, List, Card, Label
 from trello import TrelloApi
 import requests
 import os
+
+pwd = os.path.dirname(os.path.realpath(__file__))
 
 def board_create(user_token, name):
     trello = TrelloApi(os.environ['TRELLO_API_KEY'], user_token)
@@ -11,7 +13,7 @@ def board_create(user_token, name):
 
 def board_setup(user_token, id):
     # > add bot
-    r = requests.put('https://api.trello.com/1/members/' + os.environ['TRELLO_BOT_ID'], params={
+    r = requests.put('https://api.trello.com/1/boards/' + id + '/members/' + os.environ['TRELLO_BOT_ID'], params={
         'key': os.environ['TRELLO_API_KEY'],
         'token': user_token
     }, data={
@@ -25,7 +27,7 @@ def board_setup(user_token, id):
     trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
 
     # > change description
-    trello.boards.update_desc(id, desc='This is a website and also a Trello board, and vice-versa!')
+    trello.boards.update_desc(id, 'This is a website and also a Trello board, and vice-versa!')
 
     # > add default lists
     default_lists = {
@@ -41,10 +43,10 @@ def board_setup(user_token, id):
                 trello.lists.update_closed(l['id'], False)
             default_lists[l['name']] = l['id']
 
-    for name, id in default_lists.items():
+    for name, list_id in default_lists.items():
         # create now (only if it doesn't exist)
-        if not id:
-            id = current_user.trello.boards.new_list(board_id, name)['id']
+        if not list_id:
+            list_id = trello.boards.new_list(id, name)['id']
 
     # > add cards to lists
     special_cards = {
@@ -56,9 +58,9 @@ def board_setup(user_token, id):
         'favicon': None
     }
     defaults = {
-        'instructions': open('cards/instructions.md').read(),
-        'includes': open('cards/includes.md').read(),
-        'nav': open('cards/nav.md').read(),
+        'instructions': open(pwd + '/cards/instructions.md').read(),
+        'includes': open(pwd + '/cards/includes.md').read(),
+        'nav': open(pwd + '/cards/nav.md').read(),
         'posts-per-page': '7',
         'domain': '',
         'favicon': 'http://lorempixel.com/32/32/'
@@ -155,78 +157,16 @@ def board_setup(user_token, id):
             break
     else:
         # didn't find /about, so create it
-        trello.cards.new('/about', default_lists['#pages'], desc=open('cards/about.md').read())
+        trello.cards.new('/about', default_lists['#pages'], desc=open(pwd + '/cards/about.md').read())
 
     # > create webhook
     r = requests.put('https://api.trello.com/1/webhooks', params={
         'key': os.environ['TRELLO_BOT_API_KEY'],
         'token': os.environ['TRELLO_BOT_TOKEN']
     }, data={
-        'callbackURL': os.environ['WEBHOOK_URL'],
+        'callbackURL': os.environ['WEBHOOK_URL'] + '/board',
         'idModel': id
     }) 
     if not r.ok:
         print r.text
         raise Exception('could not add webhook')
-
-def initial_fetch(id, username):
-    trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
-
-    # board
-    b = trello.boards.get(id, fields=['name', 'desc', 'shortLink'])
-
-    q = Board.query.filter_by(id=id)
-    if q.count():
-        print 'found, updating'
-        q.update(b)
-    else:
-        print 'not found, creating'
-        board = Board(**b)
-        board.user_id = username
-        board.subdomain = b.shortLink
-        db.session.add(board)
-
-    # lists
-    for l in trello.boards.get_lists(id, fields=['name', 'closed', 'pos', 'idBoard']):
-        l['board_id'] = l.pop('idBoard')
-
-        q = List.query.filter_by(id=id)
-        if q.count():
-            print 'found, updating'
-            q.update(l)
-        else:
-            print 'not found, creating'
-            list = List(**l)
-            db.session.add(list)
-
-        # cards
-        for c in trello.lists.get_card(list.id):
-            c = trello.cards.get(c['id'],
-                                 attachments='true',
-                                 attachment_fields=['name', 'url', 'edgeColor', 'id'],
-                                 checklists='all', checklist_fields=['name'],
-                                 fields=['name', 'pos', 'desc', 'due',
-                                         'idAttachmentCover', 'shortLink', 'idList'])
-            c['list_id'] = c.pop('idList')
-
-            # transform attachments and checklists in json objects
-            c['attachments'] = {'attachments': c['attachments']}
-            c['checklists'] = {'checklists': c['checklists']}
-
-            # extract the card cover
-            cover = None
-            if 'idAttachmentCover' in c:
-                cover_id = c.pop('idAttachmentCover')
-                covers = filter(lambda a: a['id'] == cover_id, c['attachments']['attachments'])
-                if covers:
-                    cover = covers[0]['url']
-            c['cover'] = cover
-
-            card = Card.query.get(id)
-            if card:
-                print 'found, updating'
-                Card.query.filter_by(id=id).update(c)
-            else:
-                print 'not found, creating'
-                card = Card(**c)
-                db.session.add(card)
