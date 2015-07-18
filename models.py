@@ -7,6 +7,7 @@ from app import db
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.ext.mutable import MutableDict
+from mutablelist import MutableList
 
 def calc_visibility(context):
     name = context.current_parameters.get('name') or ''
@@ -113,7 +114,7 @@ class Card(db.Model):
     due = db.Column(db.DateTime)
     checklists = db.Column(MutableDict.as_mutable(JSONB), default={'checklists': []})
     attachments = db.Column(MutableDict.as_mutable(JSONB), default={'attachments': []})
-    labels = db.Column(ARRAY(db.Integer, dimensions=1), default=[]) # bizarre card x label relationship with arrays
+    labels = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x label relationship with arrays
     cover = db.Column(db.Text)
     visible = db.Column(db.Boolean, index=True, default=calc_visibility, onupdate=calc_visibility)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())

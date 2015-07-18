@@ -28,9 +28,9 @@ def process_messages(n=10):
 
         s = sorted(payloads, key=lambda m: m.get('date'))
 
-        print ':: MODEL-UPDATES :: sorted/unsorted/type'
-        for i in range(len(s)):
-            print '\t{} | {} | {}'.format(payloads[i].get('date'), s[i].get('date'), s[i].get('type'))
+        #print ':: MODEL-UPDATES :: sorted/unsorted/type'
+        #for i in range(len(s)):
+        #    print '\t{} | {} | {}'.format(payloads[i].get('date'), s[i].get('date'), s[i].get('type'))
 
         for payload in s:
             with app.app_context():

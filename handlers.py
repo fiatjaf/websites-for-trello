@@ -1,6 +1,7 @@
 from app import db
 from models import User, Board, List, Card, Label
 from trello import TrelloApi
+import requests
 import os
 
 trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
@@ -190,6 +191,7 @@ def createLabel(data):
         label = Label(
             id=data['label']['id'],
             name=data['label']['name'],
+            color=requests.get('https://api.trello.com/1/labels/'+data['label']['id'], params={'token': trello._token, 'key': trello._apikey, 'fields': 'color'}).json()['color'],
             board_id=data['board']['id']
         )
     db.session.add(label)
@@ -202,18 +204,20 @@ def addLabelToCard(data):
 
     labels = set(card.labels or [])
     labels.add(label.id)
-    cards.labels = list(labels)
+    card.labels = list(labels)
+    card.labels.changed()
 
     db.session.add(label)
     db.session.add(card)
     db.session.commit()
 
 def updateLabel(data):
-    label = Label.query.get(data['label']['id'])
+    q = Label.query.filter_by(id=data['label']['id'])
+    update = {}
     for attr in ('color', 'name'):
         if attr in data['label']:
-            setattr(label, attr, data['label'][attr])
-    db.session.add(label)
+            update[attr] = data['label'][attr]
+    q.update(update)
     db.session.commit()
 
 def deleteLabel(data):
@@ -228,8 +232,8 @@ def removeLabelFromCard(data):
     labels = set(card.labels or [])
     labels.remove(label.id)
     card.labels = labels
+    card.labels.changed()
 
-    db.session.add(label)
     db.session.add(card)
     db.session.commit()
 

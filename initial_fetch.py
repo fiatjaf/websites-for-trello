@@ -42,6 +42,19 @@ def initial_fetch(id, username=None, user_token=None):
         board.subdomain = b['shortLink']
         db.session.add(board)
 
+    # labels
+    for l in requests.get('https://api.trello.com/1/boards/' + id + '/labels', params={'key': trello._apikey, 'token': trello._token, 'fields': 'color,name'}).json():
+        l['board_id'] = id
+
+        q = Label.query.filter_by(id=l['id'])
+        if q.count():
+            print ':: MODEL-UPDATES :: found, updating, label', l['id']
+            q.update(l)
+        else:
+            print ':: MODEL-UPDATES :: not found, creating, label', l['id']
+            label = Label(**l)
+            db.session.add(label)
+
     # lists
     for l in trello.boards.get_list(id, fields=['name', 'closed', 'pos', 'idBoard']):
         l['board_id'] = l.pop('idBoard')
@@ -62,8 +75,10 @@ def initial_fetch(id, username=None, user_token=None):
                                  attachment_fields=['name', 'url', 'edgeColor', 'id'],
                                  checklists='all', checklist_fields=['name', 'pos'],
                                  fields=['name', 'pos', 'desc', 'due',
+                                         'idLabels',
                                          'idAttachmentCover', 'shortLink', 'idList'])
             c['list_id'] = c.pop('idList')
+            c['labels'] = c.pop('idLabels')
 
             # transform attachments and checklists in json objects
             c['attachments'] = {'attachments': c['attachments']}
