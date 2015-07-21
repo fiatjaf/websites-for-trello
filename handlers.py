@@ -39,8 +39,9 @@ def updateCard(data):
 
 def deleteCard(data):
     card = Card.query.get(data['card']['id'])
-    db.session.delete(card)
-    db.session.commit()
+    if card:
+        db.session.delete(card)
+        db.session.commit()
 
 def moveCardFromBoard(data):
     if not Board.query.get(data['boardTarget']['id']):
@@ -223,8 +224,9 @@ def updateLabel(data):
 
 def deleteLabel(data):
     label = Label.query.get(data['label']['id'])
-    db.session.delete(label)
-    db.session.commit()
+    if label:
+        db.session.delete(label)
+        db.session.commit()
 
 def removeLabelFromCard(data):
     card = Card.query.get(data['card']['id'])

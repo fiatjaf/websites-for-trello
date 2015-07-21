@@ -8,6 +8,9 @@ import os
 def initial_fetch(id, username=None, user_token=None):
     print ':: MODEL-UPDATES :: initial_fetch for', id
 
+    # to clear things that do not exist anymore in the trello board
+    to_delete = set()
+
     # user (only if user_token is present -- i.e., the first fetch)
     if username and user_token:
         trello = TrelloApi(os.environ['TRELLO_API_KEY'], user_token)
@@ -43,7 +46,9 @@ def initial_fetch(id, username=None, user_token=None):
     db.session.add(board)
 
     # labels
+    for label in board.labels: to_delete.add((Label, label.id))
     for l in requests.get('https://api.trello.com/1/boards/' + id + '/labels', params={'key': trello._apikey, 'token': trello._token, 'fields': 'color,name'}).json():
+        to_delete.discard((Label, l['id']))
         l['board_id'] = id
 
         label = Label.query.get(l['id'])
@@ -56,7 +61,9 @@ def initial_fetch(id, username=None, user_token=None):
         db.session.add(label)
 
     # lists
+    for list in board.lists: to_delete.add((List, list.id))
     for l in trello.boards.get_list(id, fields=['name', 'closed', 'pos', 'idBoard']):
+        to_delete.discard((List, l['id']))
         l['board_id'] = l.pop('idBoard')
 
         list = List.query.get(l['id'])
@@ -69,7 +76,9 @@ def initial_fetch(id, username=None, user_token=None):
         db.session.add(list)
 
         # cards
+        for card in list.cards: to_delete.add((Card, card.id))
         for c in trello.lists.get_card(l['id']):
+            to_delete.discard((Card, c['id']))
             c = trello.cards.get(c['id'],
                                  attachments='true',
                                  attachment_fields=['name', 'url', 'edgeColor', 'id'],
@@ -101,6 +110,11 @@ def initial_fetch(id, username=None, user_token=None):
                 print ':: MODEL-UPDATES :: not found, creating, card', c['id']
                 card = Card(**c)
             db.session.add(card)
+
+    for cls, id in to_delete:
+        entity = cls.query.get(id)
+        print ':: MODEL-UPDATES :: ', entity, 'is not in the trello board anymore. deleting.'
+        db.session.delete(entity)
 
     # final commit
     print ':: MODEL-UPDATES :: COMMITING INITIAL FETCH FOR', id

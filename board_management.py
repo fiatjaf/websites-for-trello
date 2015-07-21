@@ -4,9 +4,6 @@ import os
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 
-def board_clear(id):
-    pass
-
 def board_setup(user_token, id):
     # > remove bot (hoping this will delete the webhook)
     r = requests.delete('https://api.trello.com/1/boards/' + id + '/members/' + os.environ['TRELLO_BOT_ID'], params={

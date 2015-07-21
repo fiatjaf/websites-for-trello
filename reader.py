@@ -7,7 +7,7 @@ import shelve
 import requests
 import traceback
 import handlers as h
-from board_management import board_setup, board_clear
+from board_management import board_setup
 from initial_fetch import initial_fetch
 from app import app
 
@@ -52,8 +52,13 @@ def process_message(payload):
     print ':: MODEL-UPDATES :: processing message', payload.get('date'), payload.get('type')#, payload.get('data')
 
     if payload['type'] == 'boardSetup':
+        board_id = str(payload['board_id'])
+        counts[board_id] = 0
+
         initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
         board_setup(payload['user_token'], payload['board_id'])
+
+        counts[board_id] = 0
 
     else:
         board_id = str(payload['data']['board']['id'])
@@ -67,9 +72,9 @@ def process_message(payload):
 
         # count up for this board. every x messages we do a initial-fetch
         counts[board_id] = counts.get(board_id, 0) + 1
-        #if counts[board_id] % 40 == 0:
-        #    board_clear(board_id)
-        #    initial_fetch(board_id)
+        if counts[board_id] % 70 == 0:
+            board_clear(board_id)
+            initial_fetch(board_id)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'forever':
