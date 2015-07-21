@@ -202,12 +202,13 @@ app.put '/board/:boardId/subdomain', userRequired, (request, response) ->
     release = db[1]
 
     conn.queryAsync '''
-CASE WHEN NOT EXISTS (SELECT id FROM boards WHERE subdomain = $1) THEN
-   UPDATE boards
-   SET subdomain = $1
-   WHERE user_id = $2
-     AND id = $3
-END
+UPDATE boards
+SET subdomain = (CASE
+  WHEN NOT EXISTS (SELECT id FROM boards WHERE subdomain = $1) THEN $1
+  ELSE (SELECT subdomain FROM boards WHERE id = $2)
+  END)
+WHERE user_id = $2
+AND id = $3
                     ''', [subdomain, request.session.user, request.params.boardId]
   ).then(->
     response.sendStatus 200
