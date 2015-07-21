@@ -16,57 +16,57 @@ def initial_fetch(id, username=None, user_token=None):
         u['_id'] = u['id']
         u['id'] = u.pop('username')
 
-        q = User.query.filter_by(id=username)
-        if q.count():
+        user = User.query.get(username)
+        if user:
             print ':: MODEL-UPDATES :: found, updating, user', u['id']
-            q.update(u)
+            for key, value in u.items(): setattr(user, key, value)
         else:
             print ':: MODEL-UPDATES :: not found, creating, user', u['id']
             user = User(**u)
-            db.session.add(user)
+        db.session.add(user)
 
     trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
 
     # board
     b = trello.boards.get(id, fields=['name', 'desc', 'shortLink'])
 
-    q = Board.query.filter_by(id=id)
-    if q.count():
+    board = Board.query.get(id)
+    if board:
         print ':: MODEL-UPDATES :: found, updating, board', b['id']
-        q.update(b)
+        for key, value in b.items(): setattr(board, key, value)
     else:
         print ':: MODEL-UPDATES :: not found, creating, board', b['id']
         board = Board(**b)
         if username:
             board.user_id = username
-        board.subdomain = b['shortLink']
-        db.session.add(board)
+        board.subdomain = b['shortLink'].lower()
+    db.session.add(board)
 
     # labels
     for l in requests.get('https://api.trello.com/1/boards/' + id + '/labels', params={'key': trello._apikey, 'token': trello._token, 'fields': 'color,name'}).json():
         l['board_id'] = id
 
-        q = Label.query.filter_by(id=l['id'])
-        if q.count():
+        label = Label.query.get(l['id'])
+        if label:
             print ':: MODEL-UPDATES :: found, updating, label', l['id']
-            q.update(l)
+            for key, value in l.items(): setattr(label, key, value)
         else:
             print ':: MODEL-UPDATES :: not found, creating, label', l['id']
             label = Label(**l)
-            db.session.add(label)
+        db.session.add(label)
 
     # lists
     for l in trello.boards.get_list(id, fields=['name', 'closed', 'pos', 'idBoard']):
         l['board_id'] = l.pop('idBoard')
 
-        q = List.query.filter_by(id=l['id'])
-        if q.count():
+        list = List.query.get(l['id'])
+        if list:
             print ':: MODEL-UPDATES :: found, updating, list', l['id']
-            q.update(l)
+            for key, value in l.items(): setattr(list, key, value)
         else:
             print ':: MODEL-UPDATES :: not found, creating, list', l['id']
             list = List(**l)
-            db.session.add(list)
+        db.session.add(list)
 
         # cards
         for c in trello.lists.get_card(l['id']):
@@ -93,14 +93,14 @@ def initial_fetch(id, username=None, user_token=None):
                     cover = covers[0]['url']
             c['cover'] = cover
 
-            q = Card.query.filter_by(id=c['id'])
-            if q.count():
+            card = Card.query.get(c['id'])
+            if card:
                 print ':: MODEL-UPDATES :: found, updating, card', c['id']
-                q.update(c)
+                for key, value in c.items(): setattr(card, key, value)
             else:
                 print ':: MODEL-UPDATES :: not found, creating, card', c['id']
                 card = Card(**c)
-                db.session.add(card)
+            db.session.add(card)
 
     # final commit
     print ':: MODEL-UPDATES :: COMMITING INITIAL FETCH FOR', id

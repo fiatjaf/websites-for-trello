@@ -3,15 +3,21 @@ import sys
 import math
 import time
 import json
+import shelve
 import requests
 import traceback
 import handlers as h
-from board_management import board_setup, board_create
+from board_management import board_setup, board_clear
 from initial_fetch import initial_fetch
 from app import app
 
+pwd = os.path.dirname(os.path.realpath(__file__))
+counts = shelve.open(os.path.join(pwd, 'counts.store'))
+
 def process_messages(n=10):
     r = requests.get(os.environ['WEBHOOK_URL'] + '/messages', params={'n': n})
+
+    messages = []
     try:
         messages = json.loads(r.text)
     except ValueError:
@@ -45,16 +51,13 @@ def process_messages(n=10):
 def process_message(payload):
     print ':: MODEL-UPDATES :: processing message', payload.get('date'), payload.get('type')#, payload.get('data')
 
-    if payload['type'] == 'boardCreateAndSetup':
-        board_id = board_create(payload['user_token'], payload['board_name'])
-        board_setup(payload['user_token'], board_id)
-        initial_fetch(board_id, payload['username'], user_token=payload['user_token'])
-
-    elif payload['type'] == 'boardSetup':
+    if payload['type'] == 'boardSetup':
+        initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
         board_setup(payload['user_token'], payload['board_id'])
-        initial_fetch(payload['board_id'], payload['username'], user_token=payload['user_token'])
 
     else:
+        board_id = str(payload['data']['board']['id'])
+
         try:
             handler = getattr(h, payload['type'])
         except AttributeError:
@@ -62,11 +65,17 @@ def process_message(payload):
 
         handler(payload['data'])
 
+        # count up for this board. every x messages we do a initial-fetch
+        counts[board_id] = counts.get(board_id, 0) + 1
+        #if counts[board_id] % 40 == 0:
+        #    board_clear(board_id)
+        #    initial_fetch(board_id)
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'forever':
         while True:
             time.sleep(3)
-            process_messages()
+            process_messages(100)
             time.sleep(3)
     elif len(sys.argv) == 2 and unicode(sys.argv[1]).isnumeric():
         n = int(sys.argv[1])
@@ -74,6 +83,6 @@ if __name__ == '__main__':
     else:
         for i in range(9):
             sleep(6)
-            process_messages(6)
+            process_messages(100)
 
 # this is meant to be run as a cron job every 3 seconds or so.

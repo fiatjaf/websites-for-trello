@@ -4,37 +4,11 @@ from slugify import slugify
 from unidecode import unidecode
 
 from app import db
+from sqlalchemy import event
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.ext.mutable import MutableDict
 from mutablelist import MutableList
-
-def calc_visibility(context):
-    name = context.current_parameters.get('name') or ''
-    dashed = name.startswith('_') or name.startswith('#')
-    return not dashed
-
-def calc_is_pages(context):
-    name = context.current_parameters.get('name') or ''
-    jogodavelha = name.startswith('#')
-    return jogodavelha
-
-def calc_page_title(context):
-    desc = context.current_parameters.get('desc') or ''
-    b = BlockLexer()
-    elements = b.parse(desc)
-    if elements:
-        for elem in elements:
-            if elem['type'] == 'newline':
-                continue
-            elif elem['type'] == 'heading':
-                return elem['text']
-            else:
-                return None
-
-def calc_slug(context):
-    ascii_name = context.current_parameters.get('name')
-    return slugify(ascii_name, to_lower=True) if ascii_name else None
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -80,7 +54,7 @@ class List(db.Model):
 
     # meta
     id = db.Column(db.String(50), primary_key=True)
-    slug = db.Column(db.Text, index=True, default=calc_slug, onupdate=calc_slug)
+    slug = db.Column(db.Text, index=True)
     board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"))
     cards = db.relationship('Card', backref='list', lazy='dynamic')
     # ~
@@ -88,8 +62,8 @@ class List(db.Model):
     name = db.Column(db.Text)
     pos = db.Column(db.Integer)
     closed = db.Column(db.Boolean)
-    visible = db.Column(db.Boolean, index=True, default=calc_visibility, onupdate=calc_visibility)
-    pagesList = db.Column(db.Boolean, index=True, default=calc_is_pages, onupdate=calc_is_pages)
+    visible = db.Column(db.Boolean, index=True)
+    pagesList = db.Column(db.Boolean, index=True)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     @property
@@ -102,13 +76,13 @@ class Card(db.Model):
     # meta
     id = db.Column(db.String(50), primary_key=True)
     shortLink = db.Column(db.String(35), unique=True)
-    slug = db.Column(db.Text, index=True, default=calc_slug, onupdate=calc_slug)
+    slug = db.Column(db.Text, index=True)
     list_id = db.Column(db.String(50), db.ForeignKey('lists.id', ondelete="CASCADE"))
     comments = db.relationship('Comment', backref='card', lazy='dynamic')
     # ~
 
     name = db.Column(db.Text, index=True) # indexed because is used to filter standalone pages
-    pageTitle = db.Column(db.Text, default=calc_page_title, onupdate=calc_page_title)
+    pageTitle = db.Column(db.Text)
     desc = db.Column(db.Text)
     pos = db.Column(db.Integer)
     due = db.Column(db.DateTime)
@@ -116,7 +90,7 @@ class Card(db.Model):
     attachments = db.Column(MutableDict.as_mutable(JSONB), default={'attachments': []})
     labels = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x label relationship with arrays
     cover = db.Column(db.Text)
-    visible = db.Column(db.Boolean, index=True, default=calc_visibility, onupdate=calc_visibility)
+    visible = db.Column(db.Boolean, index=True)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     @property
@@ -135,7 +109,7 @@ class Label(db.Model):
 
     # meta
     id = db.Column(db.String(50), primary_key=True)
-    slug = db.Column(db.Text, index=True, default=calc_slug, onupdate=calc_slug)
+    slug = db.Column(db.Text, index=True)
     board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"))
     # ~
 
@@ -159,3 +133,40 @@ class Comment(db.Model):
     @property
     def created_on(self):
         return datetime.datetime.fromtimestamp(int(self.id[0:8], 16))
+
+# event listeners
+def update_slug(target, value, oldvalue, initiator):
+    if oldvalue != value:
+        ascii_name = value
+        target.slug = slugify(ascii_name, to_lower=True) if ascii_name else None
+
+event.listen(Card.name, 'set', update_slug)
+event.listen(List.name, 'set', update_slug)
+event.listen(Label.name, 'set', update_slug)
+
+def update_page_title(target, value, oldvalue, initiator):
+    b = BlockLexer()
+    elements = b.parse(value)
+    if elements:
+        for elem in elements:
+            if elem['type'] == 'newline':
+                continue
+            elif elem['type'] == 'heading':
+                target.pageTitle = elem['text']
+                break
+            else:
+                target.pageTitle = None
+                break
+
+event.listen(Card.desc, 'set', update_page_title)
+
+def update_visibility(target, value, oldvalue, initiator):
+    target.visible = not (value.startswith('_') or value.startswith('#'))
+
+event.listen(Card.name, 'set', update_visibility)
+event.listen(List.name, 'set', update_visibility)
+
+def update_is_pages(target, value, oldvalue, initiator):
+    target.pagesList = value.startswith('#')
+
+event.listen(List.name, 'set', update_is_pages)

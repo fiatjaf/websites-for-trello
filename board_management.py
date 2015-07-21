@@ -1,17 +1,18 @@
-from app import db
-from models import User, Board, List, Card, Label
 from trello import TrelloApi
 import requests
 import os
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 
-def board_create(user_token, name):
-    trello = TrelloApi(os.environ['TRELLO_API_KEY'], user_token)
-    b = trello.boards.new(name)
-    return b['id']
+def board_clear(id):
+    pass
 
 def board_setup(user_token, id):
+    # > remove bot (hoping this will delete the webhook)
+    r = requests.delete('https://api.trello.com/1/boards/' + id + '/members/' + os.environ['TRELLO_BOT_ID'], params={
+        'key': os.environ['TRELLO_API_KEY'],
+        'token': user_token
+    })
     # > add bot
     r = requests.put('https://api.trello.com/1/boards/' + id + '/members/' + os.environ['TRELLO_BOT_ID'], params={
         'key': os.environ['TRELLO_API_KEY'],
