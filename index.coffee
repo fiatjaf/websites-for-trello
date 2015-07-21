@@ -77,10 +77,13 @@ app.get '/account/setup/start', (request, response) ->
   oauth.getRequestToken (err, data) ->
     return response.sendStatus 501 if err
 
+    console.log data
     request.session.bag = data
     response.redirect data.redirect + '&scope=read,write,account&expiration=30days'
 
 app.get '/account/setup/end', (request, response) ->
+  console.log ':: API :: request for /account/setup/end'
+  console.log bag
   return response.redirect process.env.SITE_URL if not request.session.bag
   bag = extend request.session.bag, request.query
   oauth.getAccessToken bag, (err, data) ->
@@ -89,7 +92,7 @@ app.get '/account/setup/end', (request, response) ->
     request.session.token = data.oauth_access_token
     response.redirect process.env.SITE_URL + '/account'
 
-app.get '/account', (request, response) ->
+app.get '/account/info', (request, response) ->
   if not request.session.token
     return response.sendStatus 204
 
@@ -98,7 +101,7 @@ app.get '/account', (request, response) ->
 
   Promise.resolve().then(->
     Promise.all [
-      if request.session.username then request.session.username else trello.getAsync "/1/token/#{trello.token}/member/username"
+      (request.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
       pg.connectAsync process.env.DATABASE_URL
     ]
   ).spread((user, db) ->
@@ -106,14 +109,14 @@ app.get '/account', (request, response) ->
     release = db[1]
 
     Promise.all [
-      user._value
-      trello.getAsync "/1/members/#{user._value}/boards", {filter: 'open'}
+      (user._value or user)
+      trello.getAsync "/1/members/#{user._value or user}/boards", {filter: 'open'}
       conn.queryAsync('''
-SELECT boards.id, boards.name, boards.subdomain
+SELECT boards.id, boards.name, subdomain, "shortLink"
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
 WHERE users.id = $1
-                      ''', [user._value])
+                      ''', [user._value or user])
     ]
   ).spread((username, boards, qresult) ->
     request.session.user = username
@@ -123,32 +126,25 @@ WHERE users.id = $1
       boards: boards
       activeboards: qresult.rows
   ).catch(handleError.bind(@, request, response))
-  .finally(release)
+  .finally(->
+    release()
+  )
 
 app.get '/account/logout', (request, response) ->
-  delete request.session.token
-  delete request.session.user
-  response.redirect process.env.SITE_URL
+  request.session = null
+  if request.accepts('json', 'html') == 'json'
+    response.sendStatus 200
+  else
+    response.redirect process.env.SITE_URL
 
-app.post '/board/setup', userRequired, (request, response) ->
-  {name} = request.body
-  payload = JSON.stringify {
-    'type': 'boardCreateAndSetup'
-    'board_name': name
-    'username': request.session.user
-    'user_token': request.session.token
-  }
-  Promise.resolve().then(->
-    rsmq.sendMessageAsync
-      qname: qname
-      message: payload
-  ).then((data) ->
-    console.log ':: API :: boardCreateAndSetup message sent:', payload
-    response.sendStatus 201
-  ).catch(handleError.bind(@, request, response))
+setupBoard = (request, response) ->
+  console.log ':: API :: request for /board/setup'
+  console.log request.session
 
-app.put '/board/setup', userRequired, (request, response) ->
   {id} = request.body
+  trello.token = request.session.token
+  release = null
+
   payload = JSON.stringify {
     'type': 'boardSetup'
     'board_id': id
@@ -156,34 +152,79 @@ app.put '/board/setup', userRequired, (request, response) ->
     'user_token': request.session.token
   }
   Promise.resolve().then(->
-    rsmq.sendMessageAsync
-      qname: qname
-      message: payload
-  ).then((data) ->
+    pg.connectAsync process.env.DATABASE_URL
+  ).then((db) ->
+    conn = db[0]
+    release = db[1]
+
+    Promise.all [
+      rsmq.sendMessageAsync { qname: qname, message: payload }
+      conn.queryAsync 'SELECT id, name, "shortLink", subdomain FROM boards WHERE id=$1', [id]
+      trello.getAsync "/1/boards/#{id}/shortLink"
+    ]
+  ).spread((_, qresult, shortLink) ->
     console.log ':: API :: boardSetup message sent:', payload
-    response.sendStatus 200
+    if qresult.rows.length
+      board = qresult.rows[0]
+    else
+      board =
+        id: id
+        shortLink: shortLink._value
+        subdomain: shortLink._value
+    response.send board
   ).catch(handleError.bind(@, request, response))
+  .finally(->
+    release()
+  )
+
+app.post '/board/setup', userRequired, (request, response) ->
+  {name} = request.body
+  trello.token = request.session.token
+  Promise.resolve().then(->
+    trello.post "/1/boards", {
+      name: name
+    }
+  ).then((board) ->
+    console.log ':: API :: created board', name
+    request.body.id = board.id
+    setupBoard request, response
+  ).catch(handleError.bind(@, request, response))
+app.put '/board/setup', userRequired, setupBoard
 
 app.put '/board/:boardId/subdomain', userRequired, (request, response) ->
-  {subdomain} = request.body
+  subdomain = request.body.value.toLowerCase()
+  release = null
+
   Promise.resolve().then(->
     pg.connectAsync process.env.DATABASE_URL
-  ).spread((conn, release) ->
+  ).then((db) ->
+    conn = db[0]
+    release = db[1]
+
     conn.queryAsync '''
-UPDATE boards
-SET subdomain = $1
-WHERE user_id = $2
-  AND id = $3
+CASE WHEN NOT EXISTS (SELECT id FROM boards WHERE subdomain = $1) THEN
+   UPDATE boards
+   SET subdomain = $1
+   WHERE user_id = $2
+     AND id = $3
+END
                     ''', [subdomain, request.session.user, request.params.boardId]
   ).then(->
     response.sendStatus 200
   ).catch(handleError.bind(@, request, response))
-  .finally(release)
+  .finally(->
+    release()
+  )
 
 app.delete '/board/:boardId', userRequired, (request, response) ->
+  release = null
+
   Promise.resolve().then(->
     pg.connectAsync process.env.DATABASE_URL
-  ).spread((conn, release) ->
+  ).spread((db) ->
+    conn = db[0]
+    release = db[1]
+
     conn.queryAsync '''
 DELETE FROM boards
 WHERE user_id = $1
@@ -192,7 +233,9 @@ WHERE user_id = $1
   ).then(->
     response.sendStatus 200
   ).catch(handleError.bind(@, request, response))
-  .finally(release)
+  .finally(->
+    release()
+  )
 
 app.listen port, '0.0.0.0', ->
   console.log ':: API :: running at 0.0.0.0:' + port
