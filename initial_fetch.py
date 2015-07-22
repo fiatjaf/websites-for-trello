@@ -39,10 +39,10 @@ def initial_fetch(id, username=None, user_token=None):
     else:
         print ':: MODEL-UPDATES :: not found, creating, board', b['id']
         board = Board()
+        board.subdomain = b['shortLink'].lower()
     for key, value in b.items(): setattr(board, key, value)
     if username:
         board.user_id = username
-    board.subdomain = b['shortLink'].lower()
     db.session.add(board)
 
     # labels
@@ -79,37 +79,40 @@ def initial_fetch(id, username=None, user_token=None):
         for card in list.cards: to_delete.add((Card, card.id))
         for c in trello.lists.get_card(l['id']):
             to_delete.discard((Card, c['id']))
-            c = trello.cards.get(c['id'],
-                                 attachments='true',
-                                 attachment_fields=['name', 'url', 'edgeColor', 'id'],
-                                 checklists='all', checklist_fields=['name', 'pos'],
-                                 fields=['name', 'pos', 'desc', 'due',
-                                         'idLabels',
-                                         'idAttachmentCover', 'shortLink', 'idList'])
-            c['list_id'] = c.pop('idList')
-            c['labels'] = c.pop('idLabels')
+            try:
+                c = trello.cards.get(c['id'],
+                                     attachments='true',
+                                     attachment_fields=['name', 'url', 'edgeColor', 'id'],
+                                     checklists='all', checklist_fields=['name', 'pos'],
+                                     fields=['name', 'pos', 'desc', 'due',
+                                             'idLabels',
+                                             'idAttachmentCover', 'shortLink', 'idList'])
+                c['list_id'] = c.pop('idList')
+                c['labels'] = c.pop('idLabels')
 
-            # transform attachments and checklists in json objects
-            c['attachments'] = {'attachments': c['attachments']}
-            c['checklists'] = {'checklists': c['checklists']}
+                # transform attachments and checklists in json objects
+                c['attachments'] = {'attachments': c['attachments']}
+                c['checklists'] = {'checklists': c['checklists']}
 
-            # extract the card cover
-            cover = None
-            if 'idAttachmentCover' in c:
-                cover_id = c.pop('idAttachmentCover')
-                covers = filter(lambda a: a['id'] == cover_id, c['attachments']['attachments'])
-                if covers:
-                    cover = covers[0]['url']
-            c['cover'] = cover
+                # extract the card cover
+                cover = None
+                if 'idAttachmentCover' in c:
+                    cover_id = c.pop('idAttachmentCover')
+                    covers = filter(lambda a: a['id'] == cover_id, c['attachments']['attachments'])
+                    if covers:
+                        cover = covers[0]['url']
+                c['cover'] = cover
 
-            card = Card.query.get(c['id'])
-            if card:
-                print ':: MODEL-UPDATES :: found, updating, card', c['id']
-            else:
-                print ':: MODEL-UPDATES :: not found, creating, card', c['id']
-                card = Card()
-            for key, value in c.items(): setattr(card, key, value)
-            db.session.add(card)
+                card = Card.query.get(c['id'])
+                if card:
+                    print ':: MODEL-UPDATES :: found, updating, card', c['id']
+                else:
+                    print ':: MODEL-UPDATES :: not found, creating, card', c['id']
+                    card = Card()
+                for key, value in c.items(): setattr(card, key, value)
+                db.session.add(card)
+            except requests.exceptions.ConnectTimeout:
+                print 'connect timeout for card', c['id']
 
     for cls, id in to_delete:
         entity = cls.query.get(id)

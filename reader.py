@@ -87,7 +87,7 @@ if __name__ == '__main__':
         process_messages(n)
     else:
         for i in range(9):
-            sleep(6)
+            time.sleep(6)
             process_messages(100)
 
 # this is meant to be run as a cron job every 3 seconds or so.

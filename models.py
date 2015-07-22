@@ -60,7 +60,7 @@ class List(db.Model):
     # ~
 
     name = db.Column(db.Text)
-    pos = db.Column(db.Integer)
+    pos = db.Column(db.BigInteger)
     closed = db.Column(db.Boolean)
     visible = db.Column(db.Boolean, index=True)
     pagesList = db.Column(db.Boolean, index=True)
@@ -84,7 +84,7 @@ class Card(db.Model):
     name = db.Column(db.Text, index=True) # indexed because is used to filter standalone pages
     pageTitle = db.Column(db.Text)
     desc = db.Column(db.Text)
-    pos = db.Column(db.Integer)
+    pos = db.Column(db.BigInteger)
     due = db.Column(db.DateTime)
     checklists = db.Column(MutableDict.as_mutable(JSONB), default={'checklists': []})
     attachments = db.Column(MutableDict.as_mutable(JSONB), default={'attachments': []})
@@ -136,9 +136,8 @@ class Comment(db.Model):
 
 # event listeners
 def update_slug(target, value, oldvalue, initiator):
-    if oldvalue != value:
-        ascii_name = value
-        target.slug = slugify(ascii_name, to_lower=True) if ascii_name else None
+    if oldvalue != value or target.slug == None:
+        target.slug = slugify(value, to_lower=True) if value else None
 
 event.listen(Card.name, 'set', update_slug)
 event.listen(List.name, 'set', update_slug)
