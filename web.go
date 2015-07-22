@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -55,7 +54,7 @@ func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
 SELECT boards.id, name, boards.desc, users.id AS user_id, "avatarHash", "gravatarHash", users.bio
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
-WHERE subdomain = $1`,
+WHERE subdomain = lower($1)`,
 			identifier)
 	} else {
 		// domain
@@ -74,6 +73,7 @@ WHERE custom_domains.domain = $1`,
 			http.Error(w, "We don't have the site "+identifier+" here.", 404)
 			return BaseData{error: err}
 		} else {
+			log.Print(err.Error())
 			raygun.CreateError(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return BaseData{error: err}
@@ -85,14 +85,15 @@ WHERE custom_domains.domain = $1`,
 	err = db.Select(&lists, `
 SELECT id, name, slug
 FROM lists
-WHERE visible = true
-  AND board_id = $1
-  AND closed = false
+WHERE board_id = $1
+  AND visible
+  AND NOT closed
 ORDER BY pos
     `, board.Id)
 	if err != nil {
 		log.Print(err)
-		http.Error(w, "There was an error in the process of fetching data for "+identifier+" from Trello, or this process was aborted by the Board owner. If you are the Board owner, try updating the Board somehow, maybe changing its description, or try to re-enable the same Board from our dashboard.", 500)
+		raygun.CreateError(err.Error())
+		http.Error(w, "There was an error in the process of fetching data for "+identifier+" from Trello, or this process was aborted by the Board owner. If you are the Board owner, try to re-setup the same Board from our dashboard.", 500)
 		return BaseData{error: err}
 	}
 
@@ -100,7 +101,7 @@ ORDER BY pos
 	var jsonPrefs types.JsonText
 	err = db.Get(&jsonPrefs, "SELECT preferences($1)", identifier)
 	if err != nil {
-		log.Print(err)
+		log.Print(err.Error())
 		raygun.CreateError(err.Error())
 		http.Error(w, "A strange error ocurred. If you are the Board owner for this site, please report it to us. It is probably an error with the _preferences List.", 500)
 		return BaseData{error: err}
@@ -108,7 +109,7 @@ ORDER BY pos
 	var prefs Preferences
 	err = jsonPrefs.Unmarshal(&prefs)
 	if err != nil {
-		log.Print(err)
+		log.Print(err.Error())
 		raygun.CreateError(err.Error())
 		http.Error(w, err.Error(), 500)
 		return BaseData{error: err}
@@ -159,6 +160,7 @@ WHERE boards.id = $1
 			return card, err
 		} else {
 			// unknown error. report to raygun and proceed as if nothing was found
+			log.Print(err.Error())
 			raygun.CreateError(err.Error())
 			return card, err
 		}
@@ -184,6 +186,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
+			log.Print(err.Error())
 			log.Print(val + " is not a page number.")
 			raygun.CreateError(err.Error())
 			page = 1
@@ -209,8 +212,8 @@ SELECT cards.slug,
 FROM cards
 INNER JOIN lists ON lists.id = cards.list_id
 WHERE lists.board_id = $1
-  AND lists.visible = true
-  AND cards.visible = true
+  AND lists.visible
+  AND cards.visible
 ORDER BY cards.due DESC, cards.id DESC
 OFFSET $2
 LIMIT $3
@@ -255,7 +258,7 @@ func list(w http.ResponseWriter, r *http.Request) {
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
-			log.Print(val + " is not a page number.")
+			log.Print(err.Error())
 			raygun.CreateError(err.Error())
 			page = 1
 		}
@@ -308,6 +311,7 @@ ORDER BY pos
 			http.Error(w, "there is not a list here.", 404)
 			return
 		} else {
+			log.Print(err.Error())
 			raygun.CreateError(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return
@@ -450,6 +454,7 @@ ORDER BY sort
 			return
 		} else {
 			raygun.CreateError(err.Error())
+			log.Print(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return
 		}
@@ -605,10 +610,6 @@ func main() {
 	router.HandleFunc("/", index)
 	// ~
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "5000"
-	}
-	log.Print("listening...")
-	http.ListenAndServe(":"+port, middle)
+	log.Print(":: SITES :: listening at port " + settings.Port)
+	http.ListenAndServe(":"+settings.Port, middle)
 }
