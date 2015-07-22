@@ -22,10 +22,10 @@ def initial_fetch(id, username=None, user_token=None):
         user = User.query.get(username)
         if user:
             print ':: MODEL-UPDATES :: found, updating, user', u['id']
-            for key, value in u.items(): setattr(user, key, value)
         else:
             print ':: MODEL-UPDATES :: not found, creating, user', u['id']
-            user = User(**u)
+            user = User()
+        for key, value in u.items(): setattr(user, key, value)
         db.session.add(user)
 
     trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
@@ -36,13 +36,13 @@ def initial_fetch(id, username=None, user_token=None):
     board = Board.query.get(id)
     if board:
         print ':: MODEL-UPDATES :: found, updating, board', b['id']
-        for key, value in b.items(): setattr(board, key, value)
     else:
         print ':: MODEL-UPDATES :: not found, creating, board', b['id']
-        board = Board(**b)
-        if username:
-            board.user_id = username
-        board.subdomain = b['shortLink'].lower()
+        board = Board()
+    for key, value in b.items(): setattr(board, key, value)
+    if username:
+        board.user_id = username
+    board.subdomain = b['shortLink'].lower()
     db.session.add(board)
 
     # labels
@@ -54,10 +54,10 @@ def initial_fetch(id, username=None, user_token=None):
         label = Label.query.get(l['id'])
         if label:
             print ':: MODEL-UPDATES :: found, updating, label', l['id']
-            for key, value in l.items(): setattr(label, key, value)
         else:
             print ':: MODEL-UPDATES :: not found, creating, label', l['id']
-            label = Label(**l)
+            label = Label()
+        for key, value in l.items(): setattr(label, key, value)
         db.session.add(label)
 
     # lists
@@ -69,10 +69,10 @@ def initial_fetch(id, username=None, user_token=None):
         list = List.query.get(l['id'])
         if list:
             print ':: MODEL-UPDATES :: found, updating, list', l['id']
-            for key, value in l.items(): setattr(list, key, value)
         else:
             print ':: MODEL-UPDATES :: not found, creating, list', l['id']
-            list = List(**l)
+            list = List()
+        for key, value in l.items(): setattr(list, key, value)
         db.session.add(list)
 
         # cards
@@ -105,10 +105,10 @@ def initial_fetch(id, username=None, user_token=None):
             card = Card.query.get(c['id'])
             if card:
                 print ':: MODEL-UPDATES :: found, updating, card', c['id']
-                for key, value in c.items(): setattr(card, key, value)
             else:
                 print ':: MODEL-UPDATES :: not found, creating, card', c['id']
-                card = Card(**c)
+                card = Card()
+            for key, value in c.items(): setattr(card, key, value)
             db.session.add(card)
 
     for cls, id in to_delete:
