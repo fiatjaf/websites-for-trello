@@ -1,6 +1,8 @@
 Promise    = require 'lie'
-superagent = (require 'superagent-promise')((require 'superagent'), Promise)
+Router     = require 'routerjs'
+retry      = require 'retry'
 tl         = require 'talio'
+superagent = (require 'superagent-promise')((require 'superagent'), Promise)
 
 {div, main, span, pre, nav, section,
  small, i, p, b, a, button, code,
@@ -11,23 +13,54 @@ tl         = require 'talio'
  ul, li} = require 'virtual-elements'
 
 if process.env.DEBUG
-  API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
+  process.env.API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
+  process.env.SITES_DOMAIN = process.env.DOMAIN.replace /0$/, '3'
+  `
+  Function.prototype.bind = function (oThis) {
+    if (typeof this !== 'function') {
+      // closest thing possible to the ECMAScript 5
+      // internal IsCallable function
+      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+    }
+
+    var aArgs   = Array.prototype.slice.call(arguments, 1),
+        fToBind = this,
+        fNOP    = function() {},
+        fBound  = function() {
+          return fToBind.apply(this instanceof fNOP
+                 ? this
+                 : oThis,
+                 aArgs.concat(Array.prototype.slice.call(arguments)));
+        };
+
+    fNOP.prototype = this.prototype;
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+  `
 else
-  API_URL = 'http://api.' + process.env.DOMAIN
+  process.env.API_URL = 'http://api.' + process.env.DOMAIN
+  process.env.SITES_DOMAIN = process.env.DOMAIN
 
 for node in document.querySelectorAll('[href^="#__"]')
-  node.href = node.href.replace /.*__API_URL__/, API_URL
+  node.href = node.href.replace /.*__API_URL__/, process.env.API_URL
+
+router = new Router()
 
 State = tl.StateFactory
   user: null
   boards: []
-  tab: 'create' # or 'manage'
+  setupDone:
+    board: null
+    ready: false
+  tab: 'create' # or ['manage', 'setupDone']
 
 handlers =
-  refresh: (State) ->
+  refresh: (State, silent) ->
     Promise.resolve().then(->
       superagent
-        .get(API_URL + '/account')
+        .get(process.env.API_URL + '/account/info')
         .withCredentials()
         .type('json')
         .accept('json')
@@ -38,11 +71,9 @@ handlers =
           boards: res.body.boards
           activeboards: res.body.activeboards
           user: res.body.user
-          tab: if res.body.activeboards.length then 'manage' else 'create'
+        if not silent
+          router.redirect if res.body.activeboards.length then '#/' else '#/setup'
     ).catch(console.log.bind console)
-
-  changeTab: (State, tabName) ->
-    State.change 'tab', tabName
 
   setupBoard: (State, data) ->
     self = @
@@ -50,26 +81,46 @@ handlers =
       if data.name
         # create
         superagent
-          .post(API_URL + '/board/setup')
+          .post(process.env.API_URL + '/board/setup')
           .send(name: data.name)
           .withCredentials()
           .end()
       else if data.id
         # reuse
         superagent
-          .put(API_URL + '/board/setup')
+          .put(process.env.API_URL + '/board/setup')
           .send(id: data.id)
           .withCredentials()
           .end()
     ).then((res) ->
-      self.refresh()
+      board = res.body
+      State.change
+        setupDone:
+          board: board
+        tab: 'setupDone'
+
+      # retry until the thing is working
+      op = retry.operation
+        retries: 100
+        factor: 1.1
+        minTimeout: 2000
+        maxTimeout: 3300
+      op.attempt (currentAttempt) ->
+        Promise.resolve().then(->
+          superagent
+            .get("http://#{board.subdomain}.#{process.env.SITES_DOMAIN}/")
+            .end()
+        ).then(->
+          self.refresh State, true
+          State.change 'setupDone.ready', true
+        ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
 
   deleteBoard: (State, data) ->
     self = @
     Promise.resolve().then(->
       superagent
-        .delete(API_URL + '/board/' + data.id)
+        .del(process.env.API_URL + '/board/' + data.id)
         .withCredentials()
         .end()
     ).then(->
@@ -80,7 +131,7 @@ handlers =
     self = @
     Promise.resolve().then(->
       superagent
-        .put(API_URL + '/board/' + data.id + '/subdomain')
+        .put(process.env.API_URL + '/board/' + data.id + '/subdomain')
         .send(value: data.subdomain)
         .withCredentials()
         .end()
@@ -88,116 +139,28 @@ handlers =
       self.refresh()
     ).catch(console.log.bind console)
 
-vrenderMain = (state, channels) ->
-  vrenderTab = ({
-    'create': vrenderCreate
-    'manage': vrenderManage
-  })[state.tab]
-
-  (div className: "row section",
-    (div
-      className: "container"
-      id: "header"
-    ,
-      (h1 {className: "center"}, state.user or '')
-      (nav className: "center",
-        (a
-          href: "#"
-          'ev-click': tl.sendClick channels.changeTab, 'manage', {preventDefault: true}
-        , "Manage account")
-        (a
-          href: "#"
-          'ev-click': tl.sendClick channels.changeTab, 'create', {preventDefault: true}
-        , "Use another board")
-        (a
-          target: "_blank"
-          href: "http://docs.websitesfortrello.com/"
-        , "Documentation")
-        (a {href: "#{API_URL}/account/logout"}, "Logout")
-      )
-    )
-    (div className: "container narrow block",
-      (vrenderTab state, channels)
-    )
-  )
-
-vrenderCreate = (state, channels) ->
-  (div className: "col-1-1",
-    (form
-      'ev-submit': tl.sendSubmit channels.setupBoard
-    ,
-      (h2 {}, "Create a new board")
-      (input
-        name: "name"
-        placeholder: "#{state.user or 'someone'}'s site"
-      )
-      (button {type: "submit"}, "Create")
-    )
-    (form
-      'ev-submit': tl.sendSubmit channels.setupBoard
-    ,
-      (h2 {}, "Use an existing board")
-      (select name: "id",
-        (option {value: b.id}, b.name) for b in state.boards
-      )
-      (button {type: "submit"}, "Use")
-    )
-  )
-
-vrenderManage = (state, channels) ->
-  (div className: "col-1-1",
-    (h2 {}, "Active boards:")
-    (ul {},
-      (li {},
-        (strong {}, ab.name)
-        (ul {},
-          (li {},
-            (a
-              target: "_blank"
-              href: "https://trello.com/b/#{ab.id}"
-            , "Go to the Trello board")
-          )
-          (li {},
-            (a
-              target: "_blank"
-              href: "http://#{ab.subdomain}.websitesfortrello.com/"
-            , "Visit site")
-          )
-          (li {},
-            (form
-              'ev-submit': tl.sendSubmit channels.changeSubdomain, {id: ab.id}
-              className: "inline"
-            ,
-              (label {},
-                "Change address to http://"
-                (input
-                  name: "subdomain"
-                  defaultValue: ab.id
-                  style: {"width":"148px","text-align":"right"}
-                )
-                ".websitesfortrello.com/"
-              )
-              (button {}, "change")
-            )
-          )
-          (li {},
-            (form
-              'ev-submit': tl.sendSubmit channels.deleteBoard, {id: ab.id}
-              className: "inline"
-            ,
-              (button {}, "disable site")
-            )
-          )
-        )
-      ) for ab in state.activeboards
-    )
-  ) if (state.activeboards or []).length
-
-# run this on startup
-handlers.refresh State
-# ~
+  logout: (State) ->
+    Promise.resolve().then(->
+      superagent
+        .get(process.env.API_URL + '/account/logout')
+        .end()
+    ).then(->
+      location.pathname = '/'
+    ).catch(console.log.bind console)
 
 if '/account/' == location.pathname
+  # setup router
+  router
+    .addRoute '#/setup', -> State.change 'tab', 'create'
+    .addRoute '#/setup/again', -> State.change 'tab', 'create'
+    .addRoute '#/logout', -> handlers.logout State
+    .addRoute '#/', -> State.change 'tab', 'manage'
+    .run('#/')
+
+  # run this on startup
+  handlers.refresh State
+  # ~
+
   app = document.createElement 'div'
   document.querySelector('body > .row').insertBefore(app, document.querySelector('body > .row > .container'))
-  tl.run app, vrenderMain, handlers, State
+  tl.run app, (require './vrender-main'), handlers, State

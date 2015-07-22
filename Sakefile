@@ -1,12 +1,14 @@
 js:
   help: the javascript app
   dependencies:
+    - app.coffee
     - '*.coffee'
     - package.json
   output:
     - assets/bundle.js
   formula: >
-    foreman run -e .browserify.env ./node_modules/.bin/browserifyinc -t coffeeify -t envify --extension='.coffee' app.coffee > assets/bundle.js
+    . ../test/base.sh;
+    ./node_modules/.bin/browserifyinc -t coffeeify -t envify --extension='.coffee' app.coffee > assets/bundle.js
 
 css:
   help: the less file to css
@@ -33,20 +35,20 @@ html:
 prod:
   help: build and minify files
   dependencies:
-    - .prod.browserify.env
-    - app.coffee
     - assets/bundle.css
     - index.html
     - account/index.html
+    - app.coffee
   output:
     - assets/b.min.js
+    - assets/bundle.prod.js
     - assets/b.min.js.map
     - assets/b.min.css
     - prod-index.html
     - account/prod-index.html
   formula: >
-    foreman run -e .prod.browserify.env ./node_modules/.bin/browserify -t coffeeify -t envify --extension='.coffee' app.coffee > assets/bundle.prod.js;
-    ./node_modules/.bin/uglifyjs assets/bundle.prod.js -o assets/b.min.js --source-map assets/b.min.js.map;
+    env $(cat ../.prod.env | xargs) ./node_modules/.bin/browserify -t coffeeify -t envify --extension='.coffee' app.coffee > assets/bundle.prod.js;
+    ./node_modules/.bin/uglifyjs assets/bundle.prod.js -o assets/b.min.js --source-map-root http://websitesfortrello.com/ --source-map assets/b.min.js.map --source-map-url http://websitesfortrello.com/assets/b.min.js.map;
     ./node_modules/.bin/cleancss -o assets/b.min.css assets/bundle.css;
     sed -e 's/bundle\./b.min./' index.html > prod-index.html;
     sed -e 's/bundle\./b.min./' account/index.html > account/prod-index.html;
@@ -54,7 +56,7 @@ prod:
 s3:
   help: uploads app to s3
   dependencies:
-    - assets/b.min.js
+    - assets/bundle.prod.js
     - assets/b.min.js
     - assets/b.min.js.map
     - assets/*

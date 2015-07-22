@@ -9,3 +9,4 @@ browserify-cache.json
 *.css
 index.html
 prod-index.html
+*.map
