@@ -173,7 +173,7 @@ setupBoard = (request, response) ->
       board =
         id: id
         shortLink: shortLink._value
-        subdomain: shortLink._value
+        subdomain: shortLink._value.toLowerCase()
     response.send board
   ).catch(handleError.bind(@, request, response))
   .finally(->
