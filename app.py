@@ -1,6 +1,13 @@
 import os
+import redis
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+
+redis = redis.StrictRedis(
+    host=os.environ['REDIS_HOST'],
+    port=os.environ['REDIS_PORT'],
+    password=os.environ['REDIS_PASSWORD']
+)
 
 db = SQLAlchemy()
 

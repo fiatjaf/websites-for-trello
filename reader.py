@@ -5,12 +5,13 @@ import time
 import json
 import shelve
 import requests
+import datetime
 import traceback
 import handlers as h
 from raygun4py import raygunprovider
 from board_management import board_setup
 from initial_fetch import initial_fetch
-from app import app
+from app import app, redis
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
@@ -86,6 +87,10 @@ def process_message(payload):
             )
 
         handler(payload['data'])
+
+        # count webhooks on redis
+        today = datetime.date.today()
+        redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
 
         # count up for this board. every x messages we do a initial-fetch
         counts[board_id] = counts.get(board_id, 0) + 1
