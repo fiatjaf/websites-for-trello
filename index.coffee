@@ -17,8 +17,8 @@ if process.env.DEBUG
   rsmq_ns = 'test-rsmq'
 else
   process.env.SITE_URL = 'http://' + process.env.DOMAIN
-  process.env.API_URL = 'http://api' + process.env.DOMAIN
-  process.env.WEBHOOK_URL = 'http://webhooks' + process.env.DOMAIN
+  process.env.API_URL = 'http://api.' + process.env.DOMAIN
+  process.env.WEBHOOK_URL = 'http://webhooks.' + process.env.DOMAIN
   port = process.env.PORT
   rsmq_ns = 'rsmq'
 
