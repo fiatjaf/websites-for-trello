@@ -71,11 +71,6 @@ userRequired = (request, response, next) ->
     return response.sendStatus 401
   next()
 
-handleError = (request, response, e) ->
-  response.sendStatus 500
-  console.log ':: API :: error:', e
-  console.log ':: API :: request:', request.originalUrl, request.body
-
 app.get '/account/setup/start', (request, response) ->
   oauth.getRequestToken (err, data) ->
     return response.sendStatus 501 if err
@@ -95,7 +90,7 @@ app.get '/account/setup/end', (request, response) ->
     request.session.token = data.oauth_access_token
     response.redirect process.env.SITE_URL + '/account'
 
-app.get '/account/info', (request, response) ->
+app.get '/account/info', (request, response, next) ->
   if not request.session.token
     return response.sendStatus 204
 
@@ -128,7 +123,7 @@ WHERE users.id = $1
       user: username
       boards: boards
       activeboards: qresult.rows
-  ).catch(handleError.bind(@, request, response))
+  ).catch(next)
   .finally(->
     release()
   )
@@ -140,10 +135,7 @@ app.get '/account/logout', (request, response) ->
   else
     response.redirect process.env.SITE_URL
 
-setupBoard = (request, response) ->
-  console.log ':: API :: request for /board/setup'
-  console.log request.session
-
+setupBoard = (request, response, next) ->
   {id} = request.body
   trello.token = request.session.token
   release = null
@@ -175,26 +167,26 @@ setupBoard = (request, response) ->
         shortLink: shortLink._value
         subdomain: shortLink._value.toLowerCase()
     response.send board
-  ).catch(handleError.bind(@, request, response))
+  ).catch(next)
   .finally(->
     release()
   )
 
-app.post '/board/setup', userRequired, (request, response) ->
+app.post '/board/setup', userRequired, (request, response, next) ->
   {name} = request.body
   trello.token = request.session.token
   Promise.resolve().then(->
-    trello.post "/1/boards", {
+    trello.postAsync "/1/boards", {
       name: name
     }
   ).then((board) ->
     console.log ':: API :: created board', name
     request.body.id = board.id
     setupBoard request, response
-  ).catch(handleError.bind(@, request, response))
+  ).catch(next)
 app.put '/board/setup', userRequired, setupBoard
 
-app.put '/board/:boardId/subdomain', userRequired, (request, response) ->
+app.put '/board/:boardId/subdomain', userRequired, (request, response, next) ->
   subdomain = request.body.value.toLowerCase()
   release = null
 
@@ -215,17 +207,17 @@ AND id = $3
                     ''', [subdomain, request.session.user, request.params.boardId]
   ).then(->
     response.sendStatus 200
-  ).catch(handleError.bind(@, request, response))
+  ).catch(next)
   .finally(->
     release()
   )
 
-app.delete '/board/:boardId', userRequired, (request, response) ->
+app.delete '/board/:boardId', userRequired, (request, response, next) ->
   release = null
 
   Promise.resolve().then(->
     pg.connectAsync process.env.DATABASE_URL
-  ).spread((db) ->
+  ).then((db) ->
     conn = db[0]
     release = db[1]
 
@@ -236,14 +228,21 @@ WHERE user_id = $1
                     ''', [request.session.user, request.params.boardId]
   ).then(->
     response.sendStatus 200
-  ).catch(handleError.bind(@, request, response))
+  ).catch(next)
   .finally(->
     release()
   )
 
 if raygun
-  app.use (err, req, res, next) ->
-    raygun.send err, {}, (->), {}, ['API']
+  app.use (err, request, response, next) ->
+    raygun.send err, {}, (->), request, ['API']
+    next(err)
+
+app.use (err, request, response) ->
+  response.sendStatus 500
+  console.log ':: API :: error:', err
+  console.log ':: API :: request:', request.originalUrl, request.body
+
 
 app.listen port, '0.0.0.0', ->
   console.log ':: API :: running at 0.0.0.0:' + port
