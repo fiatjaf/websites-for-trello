@@ -7,11 +7,13 @@ import shelve
 import requests
 import traceback
 import handlers as h
+from raygun4py import raygunprovider
 from board_management import board_setup
 from initial_fetch import initial_fetch
 from app import app
 
 pwd = os.path.dirname(os.path.realpath(__file__))
+raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
 counts = shelve.open(os.path.join(pwd, 'counts.store'))
 
 def process_messages(n=10):
@@ -55,8 +57,16 @@ def process_message(payload):
         board_id = str(payload['board_id'])
         counts[board_id] = 0
 
-        initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
-        board_setup(payload['user_token'], payload['board_id'])
+        try:
+            initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
+            board_setup(payload['user_token'], payload['board_id'])
+        except:
+            raygun.set_user(payload['username'])
+            raygun.send_exception(
+                exc_info=sys.exc_info(),
+                userCustomData={'board_id': payload['board_id']},
+                tags=['boardSetup']
+            )
 
         counts[board_id] = 0
 
@@ -67,6 +77,13 @@ def process_message(payload):
             handler = getattr(h, payload['type'])
         except AttributeError:
             return
+        except:
+            raygun.set_user(payload['memberCreator']['username'])
+            raygun.send_exception(
+                exc_info=sys.exc_info(),
+                userCustomData=payload['data'],
+                tags=['webhook', payload['type']]
+            )
 
         handler(payload['data'])
 
