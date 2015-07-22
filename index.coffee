@@ -4,6 +4,7 @@ RedisSMQ      = require 'rsmq'
 Promise       = require 'bluebird'
 NodeTrello    = require 'node-trello'
 extend        = require 'xtend'
+raygunProvider= require 'raygun'
 express       = require 'express'
 cookieSession = require 'cookie-session'
 bodyParser    = require 'body-parser'
@@ -21,6 +22,8 @@ else
   process.env.WEBHOOK_URL = 'http://webhooks.' + process.env.DOMAIN
   port = process.env.PORT
   rsmq_ns = 'rsmq'
+  raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
+  raygun.user = (request) -> request.session.username
 
 r = redis.createClient process.env.REDIS_PORT, process.env.REDIS_HOST, {
   auth_pass: process.env.REDIS_PASSWORD
@@ -237,6 +240,10 @@ WHERE user_id = $1
   .finally(->
     release()
   )
+
+if raygun
+  app.use (err, req, res, next) ->
+    raygun.send err, {}, (->), {}, ['API']
 
 app.listen port, '0.0.0.0', ->
   console.log ':: API :: running at 0.0.0.0:' + port
