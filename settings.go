@@ -19,7 +19,7 @@ type Settings struct {
 func LoadSettings() Settings {
 	redisPoolSize, err := strconv.Atoi(os.Getenv("REDIS_POOL_SIZE"))
 	if err != nil {
-		redisPoolSize = 8
+		redisPoolSize = 6
 	}
 
 	port := os.Getenv("PORT")

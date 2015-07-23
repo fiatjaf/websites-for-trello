@@ -220,6 +220,7 @@ func (card Card) GetChecklists() []Checklist {
 	if err != nil {
 		log.Print("Problem unmarshaling checklists JSON")
 		log.Print(err)
+		log.Print(card.Checklists)
 	}
 	var checklists []Checklist
 	err = mapstructure.Decode(dat["checklists"], &checklists)
@@ -236,6 +237,7 @@ func (card Card) GetAttachments() []Attachment {
 	if err != nil {
 		log.Print("Problem unmarshaling attachments JSON")
 		log.Print(err)
+		log.Print(card.Attachments)
 	}
 	var attachments []Attachment
 	err = mapstructure.Decode(dat["attachments"], &attachments)

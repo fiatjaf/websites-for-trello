@@ -540,6 +540,7 @@ func main() {
 
 	db, _ = sqlx.Connect("postgres", settings.DatabaseURL)
 	db = db.Unsafe()
+	db.SetMaxOpenConns(7)
 
 	rds.Addr = settings.RedisAddr
 	rds.Password = settings.RedisPassword
