@@ -75,13 +75,10 @@ app.get '/account/setup/start', (request, response) ->
   oauth.getRequestToken (err, data) ->
     return response.sendStatus 501 if err
 
-    console.log data
     request.session.bag = data
     response.redirect data.redirect + '&scope=read,write,account&expiration=30days'
 
 app.get '/account/setup/end', (request, response) ->
-  console.log ':: API :: request for /account/setup/end'
-  console.log bag
   return response.redirect process.env.SITE_URL if not request.session.bag
   bag = extend request.session.bag, request.query
   oauth.getAccessToken bag, (err, data) ->
@@ -242,7 +239,6 @@ app.use (err, request, response) ->
   response.sendStatus 500
   console.log ':: API :: error:', err
   console.log ':: API :: request:', request.originalUrl, request.body
-
 
 app.listen port, '0.0.0.0', ->
   console.log ':: API :: running at 0.0.0.0:' + port
