@@ -354,7 +354,7 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 WITH card AS (
   SELECT list_id, slug
   FROM cards
-  WHERE %s = $1
+  WHERE "%s" = $1
 )
 SELECT slug
 FROM (
@@ -496,7 +496,7 @@ func cardDesc(w http.ResponseWriter, r *http.Request) {
 	err = db.Get(&desc, fmt.Sprintf(`
 SELECT substring("desc" from 0 for $2)
 FROM cards
-WHERE %s = $1
+WHERE "%s" = $1
     `, kind), identifier, limit)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
