@@ -609,6 +609,9 @@ func main() {
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/", list)
 	router.HandleFunc("/", index)
+
+	// > errors
+	router.NotFoundHandler = http.HandlerFunc(httpError(404))
 	// ~
 
 	log.Print(":: SITES :: listening at port " + settings.Port)
