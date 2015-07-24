@@ -27,16 +27,16 @@ func renderMarkdown(md string) string {
 
 type BaseData struct {
 	error
-	Board    Board
-	Lists    []List
-	List     List
-	Cards    []Card
-	Card     Card
-	Page     int
-	HasNext  bool
-	HasPrev  bool
-	Prefs    Preferences
-	Settings Settings
+	Board      Board
+	Lists      []List
+	Aggregator Aggregator
+	Cards      []Card
+	Card       Card
+	Page       int
+	HasNext    bool
+	HasPrev    bool
+	Prefs      Preferences
+	Settings   Settings
 }
 
 func (b BaseData) NavItems() []Link {
@@ -158,11 +158,36 @@ func (o Board) UserHasBio() bool {
 	return false
 }
 
+type Aggregator interface {
+	Test() interface{}
+}
+
 type List struct {
 	Id   string
 	Name string
 	Slug string
 	Pos  int
+}
+
+type Label struct {
+	Id    string
+	Name  string
+	Slug  string
+	Color string
+}
+
+func (o Label) NameOrSpaces() string {
+	if o.Name == "" {
+		return "       "
+	}
+	return o.Name
+}
+
+func (o Label) SlugOrId() string {
+	if o.Slug == "" {
+		return o.Id
+	}
+	return o.Slug
 }
 
 type Card struct {
@@ -175,10 +200,11 @@ type Card struct {
 	Desc        string
 	Due         interface{}
 	List_id     string
-	Labels      []interface{}
+	Labels      types.JsonText
 	Checklists  types.JsonText
 	Attachments types.JsonText
 	IsPage      bool
+	Color       string // THIS IS JUST FOR DISGUISING LABELS AS CARDS
 }
 
 func (card Card) DescRender() string {
@@ -220,7 +246,7 @@ func (card Card) GetChecklists() []Checklist {
 	if err != nil {
 		log.Print("Problem unmarshaling checklists JSON")
 		log.Print(err)
-		log.Print(card.Checklists)
+		log.Print(string(card.Checklists[:]))
 	}
 	var checklists []Checklist
 	err = mapstructure.Decode(dat["checklists"], &checklists)
@@ -237,7 +263,7 @@ func (card Card) GetAttachments() []Attachment {
 	if err != nil {
 		log.Print("Problem unmarshaling attachments JSON")
 		log.Print(err)
-		log.Print(card.Attachments)
+		log.Print(string(card.Attachments[:]))
 	}
 	var attachments []Attachment
 	err = mapstructure.Decode(dat["attachments"], &attachments)
@@ -254,6 +280,23 @@ func (card Card) HasAttachments() bool {
 		return true
 	}
 	return false
+}
+
+func (card Card) GetLabels() []Label {
+	var dat []map[string]interface{}
+	err := card.Labels.Unmarshal(&dat)
+	if err != nil {
+		log.Print("Problem unmarshaling labels JSON")
+		log.Print(err)
+		log.Print(string(card.Labels[:]))
+	}
+	var labels []Label
+	err = mapstructure.Decode(dat, &labels)
+	if err != nil {
+		log.Print("Problem converting labels map to struct")
+		log.Print(err)
+	}
+	return labels
 }
 
 type Checklist struct {
@@ -280,6 +323,13 @@ type Attachment struct {
 }
 
 // mustache helpers
+func (o Label) Test() interface{} {
+	if o.Slug != "" {
+		return o
+	}
+	return false
+}
+
 func (o List) Test() interface{} {
 	if o.Slug != "" {
 		return o

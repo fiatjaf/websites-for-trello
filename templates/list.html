@@ -1,10 +1,10 @@
-{{#List.Test}}
+{{#Aggregator.Test}}
   <header>
     <h1>
       <a href="/{{ Slug }}/">{{ Name }}</a>
     </h1>
   </header>
-{{/List.Test}}
+{{/Aggregator.Test}}
 
 <section>
   <ul>
@@ -24,8 +24,8 @@
 <footer>
   <nav>
     <ul>
-      <li><a {{#HasPrev}}href="{{#List.Test}}/{{ List.Slug }}{{/List.Test}}/p/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
-      <li><a {{#HasNext}}href="{{#List.Test}}/{{ List.Slug }}{{/List.Test}}/p/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
+      <li><a {{#HasPrev}}href="{{#Aggregator.Test}}/{{ Aggregator.Slug }}{{/Aggregator.Test}}/p/{{ PrevPage }}/"{{/HasPrev}}>❰</a></li>
+      <li><a {{#HasNext}}href="{{#Aggregator.Test}}/{{ Aggregator.Slug }}{{/Aggregator.Test}}/p/{{ NextPage }}/"{{/HasNext}}>❱</a></li>
     </ul>
   </nav>
 </footer>

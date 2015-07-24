@@ -332,7 +332,108 @@ ORDER BY pos
 		context.HasNext = false
 	}
 
-	context.List = list
+	context.Aggregator = list
+	context.Cards = cards
+
+	fmt.Fprint(w,
+		mustache.RenderFileInLayout("templates/list.html",
+			"templates/base.html",
+			context),
+	)
+}
+
+func label(w http.ResponseWriter, r *http.Request) {
+	countPageViews()
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
+	// pagination
+	context.Page = 1
+	context.HasPrev = false
+	if val, ok := mux.Vars(r)["page"]; ok {
+		page, err := strconv.Atoi(val)
+		if err != nil || page < 0 {
+			log.Print(err.Error())
+			raygun.CreateError(err.Error())
+			page = 1
+		}
+		context.Page = page
+		if context.Page > 1 {
+			context.HasPrev = true
+		}
+	}
+	// ~
+
+	ppp := context.Prefs.PostsPerPage()
+	labelSlug := mux.Vars(r)["label-slug"]
+
+	// fetch home cards for this label
+	var cards []Card
+	err = db.Select(&cards, `
+(
+  SELECT slug,
+         name,
+         null AS due,
+         id,
+         0 AS pos,
+         '' AS cover
+  FROM labels
+  WHERE board_id = $1
+    AND slug = $2
+) UNION ALL (
+  SELECT cards.slug,
+         cards.name,
+         cards.due,
+         cards.id,
+         cards.pos,
+         coalesce(cards.cover, '') AS cover
+  FROM cards
+  INNER JOIN labels
+  ON labels.id = ANY(cards.labels)
+  WHERE board_id = $1
+    AND (labels.slug = $2 OR labels.id = $2)
+    AND cards.visible
+  ORDER BY pos
+  OFFSET $3
+  LIMIT $4
+)
+ORDER BY pos
+    `, context.Board.Id, labelSlug, ppp*(context.Page-1), ppp+1)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			// don't report to raygun, we already know the error and it doesn't matter
+			http.Error(w, "there is not a label here.", 404)
+			return
+		} else {
+			log.Print(err.Error())
+			raygun.CreateError(err.Error())
+			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
+			return
+		}
+	}
+
+	// the first row is a Label dressed as a Card
+	label := Label{
+		Name:  cards[0].Name,
+		Color: cards[0].Color,
+		Slug:  cards[0].Slug,
+	}
+	cards = cards[1:]
+
+	if len(cards) > ppp {
+		context.HasNext = true
+		cards = cards[:ppp]
+	} else {
+		context.HasNext = false
+	}
+
+	context.Aggregator = label
 	context.Cards = cards
 
 	fmt.Fprint(w,
@@ -411,7 +512,7 @@ func card(w http.ResponseWriter, r *http.Request) {
 	// fetch this card and its parent list
 	var cards []Card
 	err = db.Select(&cards, `
-SELECT slug, name, due, id, "desc", attachments, checklists, cover
+SELECT slug, name, due, id, "desc", attachments, checklists, labels, cover
 FROM (
   (
     SELECT slug,
@@ -421,6 +522,7 @@ FROM (
            '' AS "desc",
            '""'::jsonb AS attachments,
            '""'::jsonb AS checklists,
+           '""'::json AS labels,
            0 AS sort,
            '' AS cover
     FROM lists
@@ -435,6 +537,7 @@ FROM (
            cards.desc,
            cards.attachments,
            cards.checklists,
+           array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels))) AS labels,
            1 AS sort,
            coalesce(cards.cover, '') AS cover
     FROM cards
@@ -443,6 +546,7 @@ FROM (
     WHERE cards.slug = $3
       AND lists.slug = $2
       AND cards.visible
+    GROUP BY cards.id
   )
 ) AS u
 ORDER BY sort
@@ -465,7 +569,7 @@ ORDER BY sort
 		Name: cards[0].Name,
 		Slug: cards[0].Slug,
 	}
-	context.List = list
+	context.Aggregator = list
 	context.Card = cards[1]
 
 	fmt.Fprint(w,
@@ -605,6 +709,7 @@ func main() {
 
 	// > normal pages and index
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
+	router.HandleFunc("/tag/{label-slug}/", label)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)
 	router.HandleFunc("/{list-slug}/", list)

@@ -8,7 +8,8 @@
   {{#Prefs.Favicon}}
   <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
   {{/Prefs.Favicon}}
-  <title>{{#Card.Test}}{{#IsPage}}{{ Card.PageTitle }}{{/IsPage}}{{^IsPage}}{{ Name }}{{/IsPage}} | {{/Card.Test}}{{^Card.Test}}{{#List.Test}}{{ Name }} | {{/List.Test}}{{/Card.Test}}{{ Board.Name }}</title>
+  <link href="//webhooks.websitesfortrello.com/webmention" rel="webmention">
+  <title>{{#Card.Test}}{{#IsPage}}{{ Card.PageTitle }}{{/IsPage}}{{^IsPage}}{{ Name }}{{/IsPage}} | {{/Card.Test}}{{^Card.Test}}{{#Aggregator.Test}}{{ Name }} | {{/Aggregator.Test}}{{/Card.Test}}{{ Board.Name }}</title>
   {{#Board.Desc}}<meta name="description" content="{{ Board.Desc }}">{{/Board.Desc}}
   <link href="/webmention" rel="webmention">
   {{#Prefs.CSS}}<link rel="stylesheet" href="{{ . }}">{{/Prefs.CSS}}

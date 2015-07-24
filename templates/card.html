@@ -1,10 +1,10 @@
-{{#List.Test}}
+{{#Aggregator.Test}}
   <header>
     <h1>
       <a href="/{{ Slug }}/">{{ Name }}</a>
     </h1>
   </header>
-{{/List.Test}}
+{{/Aggregator.Test}}
 
 {{#Card}}
 <article>
@@ -14,17 +14,16 @@
 
     {{^IsPage}}
       <h1>
-        <a href="/{{ List.Slug }}/{{ Slug }}/">{{ Name }}</a>
+        <a href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
       </h1>
 
-      <div>
-        <style scoped>.tag { padding: 10px; color: black; text-shadow: white 1px 1px 1px; margin: 2px; }</style>
-        {{#Labels}}
-          <a class="tag" style="background-color: {{ Color }}">{{ NameOrSpace }}</a>
-        {{/Labels}}
-      </div>
-
       <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
+
+      <ul>
+        {{#GetLabels}}
+          <li><a href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
+        {{/GetLabels}}
+      </ul>
     {{/IsPage}}
 
   </header>
