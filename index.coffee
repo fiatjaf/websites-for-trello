@@ -212,6 +212,11 @@ AND id = $3
 app.delete '/board/:boardId', userRequired, (request, response, next) ->
   release = null
 
+  payload = JSON.stringify {
+    'type': 'boardDeleted'
+    'board_id': request.params.boardId
+    'user_token': request.session.token
+  }
   Promise.resolve().then(->
     pg.connectAsync process.env.DATABASE_URL
   ).then((db) ->
@@ -225,6 +230,8 @@ WHERE user_id = $1
                     ''', [request.session.user, request.params.boardId]
   ).then(->
     response.sendStatus 200
+
+    rsmq.sendMessageAsync { qname: qname, message: payload }
   ).catch(next)
   .finally(->
     release()
