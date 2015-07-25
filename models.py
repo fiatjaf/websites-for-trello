@@ -36,8 +36,8 @@ class Board(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     shortLink = db.Column(db.String(35), unique=True)
     webhook = db.Column(db.String(50))
-    user_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete="CASCADE"))
-    subdomain = db.Column(db.Text, index=True, unique=True)
+    user_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    subdomain = db.Column(db.Text, index=True, unique=True, nullable=False)
     lists = db.relationship('List', backref='board', lazy='dynamic')
     labels = db.relationship('Label', backref='board', lazy='dynamic')
     # ~
@@ -54,14 +54,14 @@ class List(db.Model):
 
     # meta
     id = db.Column(db.String(50), primary_key=True)
-    slug = db.Column(db.Text, index=True)
-    board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"))
+    slug = db.Column(db.Text, index=True, nullable=False)
+    board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"), nullable=False)
     cards = db.relationship('Card', backref='list', lazy='dynamic')
     # ~
 
-    name = db.Column(db.Text)
+    name = db.Column(db.Text, nullable=False)
     pos = db.Column(db.BigInteger)
-    closed = db.Column(db.Boolean)
+    closed = db.Column(db.Boolean, default=False)
     visible = db.Column(db.Boolean, index=True)
     pagesList = db.Column(db.Boolean, index=True)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
@@ -75,13 +75,13 @@ class Card(db.Model):
 
     # meta
     id = db.Column(db.String(50), primary_key=True)
-    shortLink = db.Column(db.String(35), unique=True)
-    slug = db.Column(db.Text, index=True)
-    list_id = db.Column(db.String(50), db.ForeignKey('lists.id', ondelete="CASCADE"))
+    shortLink = db.Column(db.String(35), unique=True, nullable=False)
+    slug = db.Column(db.Text, index=True, nullable=False)
+    list_id = db.Column(db.String(50), db.ForeignKey('lists.id', ondelete="CASCADE"), nullable=False)
     comments = db.relationship('Comment', backref='card', lazy='dynamic')
     # ~
 
-    name = db.Column(db.Text, index=True) # indexed because is used to filter standalone pages
+    name = db.Column(db.Text, index=True, nullable=False) # indexed because is used to filter standalone pages
     pageTitle = db.Column(db.Text)
     desc = db.Column(db.Text)
     pos = db.Column(db.BigInteger)
@@ -90,6 +90,7 @@ class Card(db.Model):
     attachments = db.Column(MutableDict.as_mutable(JSONB), default={'attachments': []})
     labels = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x label relationship with arrays
     cover = db.Column(db.Text)
+    closed = db.Column(db.Boolean, default=False)
     visible = db.Column(db.Boolean, index=True)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
@@ -110,7 +111,7 @@ class Label(db.Model):
     # meta
     id = db.Column(db.String(50), primary_key=True)
     slug = db.Column(db.Text, index=True)
-    board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"))
+    board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"), nullable=False)
     # ~
 
     name = db.Column(db.Text)

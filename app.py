@@ -3,11 +3,14 @@ import redis
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
-redis = redis.StrictRedis(
+pool = redis.BlockingConnectionPool(
+    max_connections=6,
+    timeout=20,
     host=os.environ['REDIS_HOST'],
     port=os.environ['REDIS_PORT'],
-    password=os.environ['REDIS_PASSWORD']
+    password=os.environ['REDIS_PASSWORD'],
 )
+redis = redis.StrictRedis(connection_pool=pool)
 
 db = SQLAlchemy()
 

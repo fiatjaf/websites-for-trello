@@ -149,7 +149,7 @@ def createCheckItem(data):
         if checkItem['id'] == data['checkItem']['id']:
             break
     else:
-        data['checkItem']['pos'] = max(chl.get('pos') for chl in checklist['checkItems']) + 1
+        data['checkItem']['pos'] = max([chl.get('pos') for chl in checklist['checkItems']] or [0]) + 1
         checklist['checkItems'].append(data['checkItem'])
 
         card.checklists.changed()

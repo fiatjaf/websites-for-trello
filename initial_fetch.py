@@ -1,4 +1,5 @@
 import sys
+import traceback
 from app import app, db
 from models import User, Board, List, Card, Label
 from trello import TrelloApi
@@ -14,8 +15,7 @@ def initial_fetch(id, username=None, user_token=None):
     # user (only if user_token is present -- i.e., the first fetch)
     if username and user_token:
         trello = TrelloApi(os.environ['TRELLO_API_KEY'], user_token)
-        u = trello.members.get(username, fields=['username', 'email', 'fullName',
-                                                 'bio', 'gravatarHash', 'avatarHash'])
+        u = trello.members.get(username, fields='username,email,fullName,bio,gravatarHash,avatarHash')
         u['_id'] = u['id']
         u['id'] = u.pop('username')
 
@@ -31,7 +31,7 @@ def initial_fetch(id, username=None, user_token=None):
     trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
 
     # board
-    b = trello.boards.get(id, fields=['name', 'desc', 'shortLink'])
+    b = trello.boards.get(id, fields='name,desc,shortLink')
 
     board = Board.query.get(id)
     if board:
@@ -62,7 +62,7 @@ def initial_fetch(id, username=None, user_token=None):
 
     # lists
     for list in board.lists: to_delete.add((List, list.id))
-    for l in trello.boards.get_list(id, fields=['name', 'closed', 'pos', 'idBoard']):
+    for l in trello.boards.get_list(id, fields='name,closed,pos,idBoard', filter='all'):
         to_delete.discard((List, l['id']))
         l['board_id'] = l.pop('idBoard')
 
@@ -77,16 +77,14 @@ def initial_fetch(id, username=None, user_token=None):
 
         # cards
         for card in list.cards: to_delete.add((Card, card.id))
-        for c in trello.lists.get_card(l['id']):
+        for c in trello.lists.get_card(l['id'], filter='all'):
             to_delete.discard((Card, c['id']))
             try:
                 c = trello.cards.get(c['id'],
                                      attachments='true',
-                                     attachment_fields=['name', 'url', 'edgeColor', 'id'],
-                                     checklists='all', checklist_fields=['name', 'pos'],
-                                     fields=['name', 'pos', 'desc', 'due',
-                                             'idLabels',
-                                             'idAttachmentCover', 'shortLink', 'idList'])
+                                     attachment_fields='name,url,edgeColor,id',
+                                     checklists='all', checklist_fields='name,pos',
+                                     fields='name,pos,desc,due,closed,idLabels,idAttachmentCover,shortLink,idList')
                 c['list_id'] = c.pop('idList')
                 c['labels'] = c.pop('idLabels')
 
@@ -111,8 +109,14 @@ def initial_fetch(id, username=None, user_token=None):
                     card = Card()
                 for key, value in c.items(): setattr(card, key, value)
                 db.session.add(card)
-            except requests.exceptions.ConnectTimeout:
-                print 'connect timeout for card', c['id']
+            except requests.exceptions.Timeout:
+                print ':: MODEL-UPDATES :: connect timeout when fetching card', c['id']
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 408:
+                    print ':: MODEL-UPDATES :: timeout error (408) when fetching card', c['id']
+                else:
+                    traceback.print_exc(file=sys.stdout)
+                    raise e
 
     for cls, id in to_delete:
         entity = cls.query.get(id)

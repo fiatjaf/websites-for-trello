@@ -9,7 +9,7 @@ import datetime
 import traceback
 import handlers as h
 from raygun4py import raygunprovider
-from board_management import board_setup
+from board_management import board_setup, add_bot, remove_bot
 from initial_fetch import initial_fetch
 from app import app, redis
 
@@ -23,6 +23,7 @@ def process_messages(n=10):
     messages = []
     try:
         messages = json.loads(r.text)
+        print ':: MODEL-UPDATES :: got %s messages.' % len(messages)
     except ValueError:
         print ':: MODEL-UPDATES :: response from the queue server:', r.text
         traceback.print_exc(file=sys.stdout)
@@ -48,19 +49,21 @@ def process_messages(n=10):
                 except Exception:
                     print ':: MODEL-UPDATES :: payload:', payload
                     traceback.print_exc(file=sys.stdout)
+
             # delete message
             requests.delete(os.environ['WEBHOOK_URL'] + '/messages/%s' % payload['message']['id'])
 
 def process_message(payload):
-    print ':: MODEL-UPDATES :: processing message', payload.get('date'), payload.get('type')#, payload.get('data')
+    print ':: MODEL-UPDATES :: processing', payload.get('date'), payload.get('type')
 
     if payload['type'] == 'boardSetup':
         board_id = str(payload['board_id'])
         counts[board_id] = 0
 
         try:
+            add_bot(payload['user_token'], payload['board_id'])
             initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
-            board_setup(payload['user_token'], payload['board_id'])
+            board_setup(payload['board_id'])
         except:
             raygun.set_user(payload['username'])
             raygun.send_exception(
@@ -68,8 +71,26 @@ def process_message(payload):
                 userCustomData={'board_id': payload['board_id']},
                 tags=['boardSetup']
             )
+            traceback.print_exc(file=sys.stdout)
+            print ':: MODEL-UPDATES :: payload:', payload
 
         counts[board_id] = 0
+
+    elif payload['type'] == 'boardDeleted':
+        board_id = str(payload['board_id'])
+        del counts[board_id]
+
+        try:
+            remove_bot(payload['board_id'])
+        except:
+            raygun.set_user(payload['username'])
+            raygun.send_exception(
+                exc_info=sys.exc_info(),
+                userCustomData={'board_id': payload['board_id']},
+                tags=['boardDeleted']
+            )
+            traceback.print_exc(file=sys.stdout)
+            print ':: MODEL-UPDATES :: payload:', payload
 
     else:
         board_id = str(payload['data']['board']['id'])
@@ -85,6 +106,8 @@ def process_message(payload):
                 userCustomData=payload['data'],
                 tags=['webhook', payload['type']]
             )
+            traceback.print_exc(file=sys.stdout)
+            print ':: MODEL-UPDATES :: payload:', payload
 
         handler(payload['data'])
 
@@ -95,7 +118,6 @@ def process_message(payload):
         # count up for this board. every x messages we do a initial-fetch
         counts[board_id] = counts.get(board_id, 0) + 1
         if counts[board_id] % 70 == 0:
-            board_clear(board_id)
             initial_fetch(board_id)
 
 if __name__ == '__main__':

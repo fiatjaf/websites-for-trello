@@ -23,16 +23,12 @@ def stats():
     ids = set(pvids + whids)
     pv = dict(zip(pvids, map(int, pvvalues)))
     wh = dict(zip(whids, map(int, whvalues)))
-    boards = {}
-    for id, pvv in pv.items():
-        boards[id] = (pvv, 0, id)
-    for id, whv in wh.items():
-        t = boards.get('id') or (0, 0, id)
-        t = (t[0], whv, id)
-        boards[id] = t
+    boards = []
+    for id in ids:
+        boards.append((pv.get(id, 0), wh.get(id, 0), id))
 
     print '%7s %24s %27s %5s %5s' % ('month', 'subdomain', 'user', 'PV', 'WH')
-    for pvv, whv, id in sorted(boards.values()):
+    for pvv, whv, id in sorted(boards):
         board = Board.query.get(id)
         if board:
             print '%2s/%s %24s %27s %5d %5d' % (month, year, board.subdomain, board.user_id, pvv, whv)

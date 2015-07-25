@@ -1,15 +1,17 @@
 from trello import TrelloApi
 import requests
+import sys
 import os
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 
-def board_setup(user_token, id):
-    # > remove bot (hoping this will delete the webhook)
+def remove_bot(id):
     r = requests.delete('https://api.trello.com/1/boards/' + id + '/members/' + os.environ['TRELLO_BOT_ID'], params={
-        'key': os.environ['TRELLO_API_KEY'],
-        'token': user_token
+        'key': os.environ['TRELLO_BOT_API_KEY'],
+        'token': os.environ['TRELLO_BOT_TOKEN']
     })
+
+def add_bot(user_token, id):
     # > add bot
     r = requests.put('https://api.trello.com/1/boards/' + id + '/members/' + os.environ['TRELLO_BOT_ID'], params={
         'key': os.environ['TRELLO_API_KEY'],
@@ -20,6 +22,9 @@ def board_setup(user_token, id):
     if not r.ok:
         print r.text
         raise Exception('could not add bot to board.')
+
+def board_setup(id):
+    print ':: MODEL-UPDATES :: board_setup for', id
 
     # > from now on all actions performed by the bot
     trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
@@ -33,18 +38,25 @@ def board_setup(user_token, id):
         '_preferences': None,
     }
 
-    lists = trello.boards.get_list(id, fields=['name', 'closed'])
+    lists = trello.boards.get_list(id, fields='name,closed', filter='all')
     for l in lists:
         if l['name'] in ('_preferences', '#pages'):
-            # bring back if archived
-            if l['closed']:
-                trello.lists.update_closed(l['id'], False)
-            default_lists[l['name']] = l['id']
+            # only manipulate one, if there are many with the same name
+            if default_lists[l['name']] == None:
+                # bring back if archived
+                if l['closed']:
+                    trello.lists.update_closed(l['id'], 'false')
+                default_lists[l['name']] = l['id']
+            else:
+                if l['name'] == '_preferences':
+                    # rename to something that will not interfere
+                    trello.lists.update_name(l['id'], '_preferences (old)')
+                    trello.lists.update_closed(l['id'], 'true') # and archive.
 
     for name, list_id in default_lists.items():
         # create now (only if it doesn't exist)
         if not list_id:
-            list_id = trello.boards.new_list(id, name)['id']
+            default_lists[name] = trello.boards.new_list(id, name)['id']
 
     # > add cards to lists
     special_cards = {
@@ -79,7 +91,9 @@ def board_setup(user_token, id):
             '[Javascript for the __Aluod__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/aluod.js)': 'false',
         },
         'utils': {
-            '[Hide author information](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/5517c2096e37332144e497538c169ff503e1314c/hide-author.css)': 'false',
+            '[Eager -- a service that includes apps for you, take a look at https://eager.io/ (replace with your own code)](//fast.eager.io/<your-code-from-eager.io>.js)': 'false',
+            '[Label colors, Trello defaults](//cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/75fdccad8dce304c8c2bfca3125328a4e7eef1d1/label-colors-trello.css)': 'true',
+            '[Hide author information](//cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/5517c2096e37332144e497538c169ff503e1314c/hide-author.css)': 'false',
 
             '[Google Analytics -- edit here to add your code](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/e4060e9348079792a098d42fa8ad8b3c2bf2aee5/add-google-analytics.js?code=YOUR_GOOGLE_ANALYTICS_TRACKING_CODE)': 'false',
             '[Disqus -- edit here to add your shortname](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/29721482d7cf63d6bb077cf29a324d799017d068/add-disqus.js?shortname=YOUR_DISQUS_SHORTNAME)': 'false',
@@ -94,12 +108,12 @@ def board_setup(user_token, id):
     }
 
     # cards already existing
-    cards = trello.lists.get_card(default_lists['_preferences'], fields=['name', 'closed'])
+    cards = trello.lists.get_card(default_lists['_preferences'], fields='name,closed', filter='all')
     for c in cards:
         if c['name'] in special_cards:
             # revive archived cards
             if c['closed']:
-                trello.cards.update_closed(c['id'], False)
+                trello.cards.update_closed(c['id'], 'false')
             special_cards[c['name']] = c['id']
 
     # create cards or reset values
@@ -116,7 +130,7 @@ def board_setup(user_token, id):
         if name == 'includes':
 
             # delete our default checklists
-            checklists = trello.cards.get_checklist(card_id, fields=['name'])
+            checklists = trello.cards.get_checklist(card_id, fields='name')
             for checkl in checklists:
                 if checkl['name'] in includes_checklists:
                     trello.cards.delete_checklist_idChecklist(checkl['id'], card_id)
@@ -139,7 +153,7 @@ def board_setup(user_token, id):
                     )
         elif name == 'nav':
             # delete our default checklists
-            checklists = trello.cards.get_checklist(card_id, fields=['name'])
+            checklists = trello.cards.get_checklist(card_id, fields='name')
             for checkl in checklists:
                 trello.cards.delete_checklist_idChecklist(checkl['id'], card_id)
 
@@ -148,7 +162,7 @@ def board_setup(user_token, id):
             trello.checklists.new_checkItem(checkl['id'], '__lists__')
             trello.checklists.new_checkItem(checkl['id'], '[About](/about)')
 
-    cards = trello.lists.get_card(default_lists['#pages'], fields=['name'])
+    cards = trello.lists.get_card(default_lists['#pages'], fields='name', filter='all')
     for c in cards:
         if c['name'] in ('/about', '/about/'):
             # already exist, so ignore, leave it there
@@ -168,3 +182,10 @@ def board_setup(user_token, id):
     if not r.ok:
         print r.text
         raise Exception('could not add webhook')
+
+    print ':: MODEL-UPDATES :: board_setup finished for', id
+
+if __name__ == '__main__':
+    import app
+    if len(sys.argv) == 2:
+        board_setup(sys.argv[1])
