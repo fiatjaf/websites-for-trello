@@ -10,6 +10,9 @@ def remove_bot(id):
         'key': os.environ['TRELLO_BOT_API_KEY'],
         'token': os.environ['TRELLO_BOT_TOKEN']
     })
+    if not r.ok:
+        print r.text
+        raise Exception('could not remove bot from board.')
 
 def add_bot(user_token, id):
     # > add bot

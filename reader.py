@@ -11,6 +11,7 @@ import handlers as h
 from raygun4py import raygunprovider
 from board_management import board_setup, add_bot, remove_bot
 from initial_fetch import initial_fetch
+from webmention_handling import handle_webmention
 from app import app, redis
 
 pwd = os.path.dirname(os.path.realpath(__file__))
@@ -88,6 +89,18 @@ def process_message(payload):
                 exc_info=sys.exc_info(),
                 userCustomData={'board_id': payload['board_id']},
                 tags=['boardDeleted']
+            )
+            traceback.print_exc(file=sys.stdout)
+            print ':: MODEL-UPDATES :: payload:', payload
+
+    elif payload['type'] == 'webmentionReceived':
+        try:
+            handle_webmention(source=payload['source'], target=payload['target'])
+        except:
+            raygun.send_exception(
+                exc_info=sys.exc_info(),
+                userCustomData=payload,
+                tags=['webmentionReceived']
             )
             traceback.print_exc(file=sys.stdout)
             print ':: MODEL-UPDATES :: payload:', payload

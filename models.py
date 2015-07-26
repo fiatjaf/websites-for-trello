@@ -1,4 +1,6 @@
+import os
 import datetime
+import requests
 from mistune import BlockLexer
 from slugify import slugify
 from unidecode import unidecode
@@ -129,6 +131,16 @@ class Comment(db.Model):
     card_id = db.Column(db.String(50), db.ForeignKey('cards.id', ondelete="CASCADE"))
     # ~
 
+    creator_id = db.Column(db.String(50), nullable=False)
+    raw = db.Column(db.Text)
+
+    # automatically filled
+    source_url = db.Column(db.Text)
+    source_display = db.Column(db.Text)
+    author_name = db.Column(db.Text)
+    author_url = db.Column(db.Text)
+    # ~
+
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     @property
@@ -170,3 +182,20 @@ def update_is_pages(target, value, oldvalue, initiator):
     target.pagesList = value.startswith('#')
 
 event.listen(List.name, 'set', update_is_pages)
+
+def update_comment(target, value, oldvalue, initiator):
+    if target.creator_id == os.environ['TRELLO_BOT_ID']:
+        rawlines = target.raw.splitlines()
+        target.body = '\n'.join(map(lambda l: l[2:], rawlines[2:-2]))
+        target.author_name = rawlines[0].split('**[')[1].split('](')[0]
+        target.author_url = rawlines[0].split('](')[1].split(')')[0]
+        target.source_display = rawlines[-1].split('via _[')[1].split('](')[0]
+        target.source_url = rawlines[-1].split('](')[1].split(')')[0]
+    else:
+        target.body = target.raw
+        target.author_name = requests.get('https://api.trello.com/1/members/'+target.raw.creator_id+'/username').json()['_value']
+        target.author_url = 'https://trello.com/' + target.creator_id
+        target.source_display = 'trello.com'
+        target.source_url = 'https://trello.com/c/' + target.card_id
+
+event.listen(Comment.raw, 'set', update_comment)
