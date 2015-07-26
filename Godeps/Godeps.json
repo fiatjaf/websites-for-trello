@@ -39,14 +39,6 @@
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
 		},
 		{
-			"ImportPath": "github.com/gorilla/securecookie",
-			"Rev": "8e98dd730fc43f1383f19615db6f2e702c9738e8"
-		},
-		{
-			"ImportPath": "github.com/gorilla/sessions",
-			"Rev": "f61c3ec2cf65d69e7efedfd4d060fe128882c951"
-		},
-		{
 			"ImportPath": "github.com/hoisie/redis",
 			"Rev": "788f01e396a99c96c8f56338383926f16841ebae"
 		},
@@ -63,6 +55,15 @@
 		{
 			"ImportPath": "github.com/kaeuferportal/stack2struct",
 			"Rev": "6838fbadc9188e5d5778b0c708da95d90653bda0"
+		},
+		{
+			"ImportPath": "github.com/kr/pretty",
+			"Comment": "go.weekly.2011-12-22-24-gf31442d",
+			"Rev": "f31442d60e51465c69811e2107ae978868dbea5c"
+		},
+		{
+			"ImportPath": "github.com/kr/text",
+			"Rev": "6807e777504f54ad073ecef66747de158294b639"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",

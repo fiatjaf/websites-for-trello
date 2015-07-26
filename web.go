@@ -60,7 +60,7 @@ WHERE subdomain = lower($1)`,
 		// domain
 		identifier = r.Host
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc, users.id AS user_id, 'avatarHash', 'gravatarHash', users.bio
+SELECT boards.id, name, boards.desc, users.id AS user_id, "avatarHash", "gravatarHash", users.bio
 FROM boards
 INNER JOIN custom_domains ON custom_domains.board_id = boards.id
 INNER JOIN users ON users.id = boards.user_id
