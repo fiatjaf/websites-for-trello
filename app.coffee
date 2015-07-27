@@ -43,8 +43,17 @@ else
   process.env.API_URL = 'http://api.' + process.env.DOMAIN
   process.env.SITES_DOMAIN = process.env.DOMAIN
 
+# landing page modifications
 for node in document.querySelectorAll('[href^="#__"]')
   node.href = node.href.replace /.*__API_URL__/, process.env.API_URL
+
+# humane.js notifications
+humane.timeout = 2500
+humane.waitForMove = false
+humane.clickToClose = true
+humane.info = humane.spawn(addnCls: 'humane-flatty-info', timeout: 5000)
+humane.error = humane.spawn(addnCls: 'humane-flatty-error', timeout: 4000)
+humane.success = humane.spawn(addnCls: 'humane-flatty-success', timeout: 2500)
 
 router = new Router()
 
@@ -67,15 +76,21 @@ handlers =
         .end()
     ).then((res) ->
       if res.body and res.body.user
-        ma('login', res.body.user) if State.get('user') != res.body.user
-        State.change
-          boards: res.body.boards
-          activeboards: res.body.activeboards
-          user: res.body.user
-        if not silent
-          router.redirect if res.body.activeboards.length then '#/' else '#/setup'
+        if location.pathname == '/'
+          humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard."
+        else
+          if State.get('user') != res.body.user
+            ma('login', res.body.user)
+          State.change
+            boards: res.body.boards
+            activeboards: res.body.activeboards
+            user: res.body.user
+          if not silent
+            router.redirect if res.body.activeboards.length then '#/' else '#/setup'
       else
-        location.pathname = '/'
+        if location.pathname == '/account/'
+          humane.error 'You must login before accessing the dashboard.'
+          location.pathname = '/'
     ).catch(console.log.bind console)
 
   setupBoard: (State, data) ->
@@ -116,6 +131,7 @@ handlers =
             .get("http://#{board.subdomain}.#{process.env.SITES_DOMAIN}/")
             .end()
         ).then(->
+          humane.success "Success!"
           self.refresh State, true
           State.change 'setupDone.ready', true
           ma 'setupdone', board.id
@@ -131,6 +147,10 @@ handlers =
         .withCredentials()
         .end()
     ).then(->
+      humane.info "Board <b>#{data.id}</b> is not a site anymore."
+      self.refresh State
+    ).catch(->
+      humane.error "Couldn't disable board <b>#{board.id}</b>."
       self.refresh State
     ).catch(console.log.bind console)
 
@@ -144,18 +164,28 @@ handlers =
         .withCredentials()
         .end()
     ).then(->
+      humane.success "Changed subdomain to <b>#{data.subdomain}</b>. Board address is now <a href=\"http://#{data.subdomain}.websitesfortrello.com\">http://#{data.subdomain}.websitesfortrello.com/</a>."
+      self.refresh State
+    ).catch(->
+      humane.error "Couldn't change subdomain to <b>#{data.subdomain}</b>."
       self.refresh State
     ).catch(console.log.bind console)
 
   logout: (State) ->
     ma 'logout', State.get 'user'
+    humane.log "Logging out..."
     Promise.resolve().then(->
       superagent
         .get(process.env.API_URL + '/account/logout')
+        .withCredentials()
         .end()
     ).then(->
       location.pathname = '/'
     ).catch(console.log.bind console)
+
+# run this on startup
+handlers.refresh State
+# ~
 
 if '/account/' == location.pathname
   # setup router
@@ -165,10 +195,6 @@ if '/account/' == location.pathname
     .addRoute '#/logout', -> handlers.logout State
     .addRoute '#/', -> State.change 'tab', 'manage'
     .run('#/')
-
-  # run this on startup
-  handlers.refresh State
-  # ~
 
   app = document.createElement 'div'
   document.querySelector('body > .row').insertBefore(app, document.querySelector('body > .row > .container'))
