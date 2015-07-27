@@ -37,6 +37,7 @@ type BaseData struct {
 	HasPrev    bool
 	Prefs      Preferences
 	Settings   Settings
+	ShowMF2    bool
 }
 
 func (b BaseData) NavItems() []Link {

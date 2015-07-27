@@ -35,7 +35,7 @@
 
   <aside>
     {{#Board.HasUser}}
-    <div>
+    <div {{#ShowMF2}}class="h-card"{{/ShowMF2}}>
       {{#Board.GetAvatar}}<img src="{{ Board.GetAvatar }}">{{/Board.GetAvatar}}
       <h1>{{ Board.User_id }}</h1>
       {{#Board.UserHasBio}}<div>{{{ Board.BioRender }}}</div>{{/Board.UserHasBio}}

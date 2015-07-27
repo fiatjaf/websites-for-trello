@@ -120,6 +120,7 @@ ORDER BY pos
 		Board:    board,
 		Lists:    lists,
 		Prefs:    prefs,
+		ShowMF2:  !strings.Contains(r.UserAgent(), "Mozilla"),
 	}
 }
 
