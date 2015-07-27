@@ -19,7 +19,7 @@ module.exports = (setupDoneState, channels) ->
       (div innerHTML: svgbox)
       (div {},
         (p {}, "Fetching your data from Trello...")
-        (small {}, "(this usually takes a minute)")
+        (small {}, "(this usually takes a minute, but if your Board has a lot of content on it 3 minutes is not too much time -- you can close this window and come back later if you want to)")
       )
     ) if not setupDoneState.ready
     (div

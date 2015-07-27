@@ -66,17 +66,21 @@ handlers =
         .accept('json')
         .end()
     ).then((res) ->
-      if res.body.user
+      if res.body and res.body.user
+        ma('login', res.body.user) if State.get('user') != res.body.user
         State.change
           boards: res.body.boards
           activeboards: res.body.activeboards
           user: res.body.user
         if not silent
           router.redirect if res.body.activeboards.length then '#/' else '#/setup'
+      else
+        location.pathname = '/'
     ).catch(console.log.bind console)
 
   setupBoard: (State, data) ->
     self = @
+    ma 'setup', data.name or data.id
     Promise.resolve().then(->
       if data.name
         # create
@@ -97,6 +101,7 @@ handlers =
       State.change
         setupDone:
           board: board
+          ready: false
         tab: 'setupDone'
 
       # retry until the thing is working
@@ -113,22 +118,25 @@ handlers =
         ).then(->
           self.refresh State, true
           State.change 'setupDone.ready', true
+          ma 'setupdone', board.id
         ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
 
   deleteBoard: (State, data) ->
     self = @
+    ma 'delete', data.id
     Promise.resolve().then(->
       superagent
         .del(process.env.API_URL + '/board/' + data.id)
         .withCredentials()
         .end()
     ).then(->
-      self.refresh()
+      self.refresh State
     ).catch(console.log.bind console)
 
   changeSubdomain: (State, data) ->
     self = @
+    ma 'subdomain', data.subdomain
     Promise.resolve().then(->
       superagent
         .put(process.env.API_URL + '/board/' + data.id + '/subdomain')
@@ -136,10 +144,11 @@ handlers =
         .withCredentials()
         .end()
     ).then(->
-      self.refresh()
+      self.refresh State
     ).catch(console.log.bind console)
 
   logout: (State) ->
+    ma 'logout', State.get 'user'
     Promise.resolve().then(->
       superagent
         .get(process.env.API_URL + '/account/logout')
