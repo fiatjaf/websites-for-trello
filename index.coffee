@@ -111,6 +111,7 @@ SELECT boards.id, boards.name, subdomain, "shortLink"
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
 WHERE users.id = $1
+ORDER BY boards.name
                       ''', [user._value or user])
     ]
   ).spread((username, boards, qresult) ->
