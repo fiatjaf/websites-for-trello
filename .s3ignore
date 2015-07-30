@@ -15,3 +15,7 @@ scss/*
 .sass-cache/*
 *.env
 Sakefile
+*.scss
+*.sass
+*.swp
+*.swo

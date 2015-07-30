@@ -1,0 +1,110 @@
+@import "base.scss";
+@import "materialize/materialize.scss";
+
+@font-face {
+  font-family: 'Raleway';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Raleway'), url(http://fonts.gstatic.com/s/raleway/v9/0dTEPzkLWceF7z0koJaX1A.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215, U+E0FF, U+EFFD, U+F000;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Raleway, Georgia, Times, serif;
+}
+html {
+  background-color: rgb(244, 236, 221);
+}
+
+body > header {
+  text-align: center;
+}
+
+main {
+  background-color: inherit;
+  padding: 3%;
+  width: 100%;
+
+  & + *,
+  & > *:last-child { clear: both; }
+}
+main > article {
+  min-height: 10px;
+}
+main > section ul {
+  width: 100%;
+  height: auto;
+  overflow: auto;
+  text-align: center;
+  background-opacity: 0.5;
+}
+main > section ul li {
+  @extend .card;
+  float: left;
+  width: 31%;
+  @media (max-width: 800px) {
+    width: 100%;
+    padding: 6% 15%;
+  }
+
+  margin: 1%;
+  min-height: 423px;
+
+  article {
+    width: 100%;
+    height: auto;
+    overflow: auto;
+    padding-top: 3%;
+
+    header h1 {
+      @extend .card-title;
+    }
+
+    img {
+      transition: width,opacity 2s ease;
+      -webkit-transition: width,opacity 2s ease;
+      -moz-transition: width,opacity 2s ease;
+      -o-transition: width,opacity 2s ease;
+      -ms-transition: width,opacity 2s ease;
+    }
+
+    img:not(.alternate) {
+      border: 3px solid white;
+      opacity: 1;
+      width: auto;
+    }
+
+    img.alternate {
+      opacity: 0;
+      width: 0;
+    }
+
+    & > *:last-child {
+      @extend .card-action;
+    }
+
+    &:hover {
+      padding-top: 0;
+
+      header {
+        @extend .card-image;
+      }
+      img:not(.alternate) {
+        opacity: 0;
+        width: 0;
+        position: absolute;
+        top: -200px;
+      }
+      img.alternate {
+        opacity: 1;
+        width: 100%;
+      }
+    }
+  }
+
+}
+
+body > footer {
+  text-align: center;
+}

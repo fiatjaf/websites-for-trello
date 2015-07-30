@@ -1,0 +1,29 @@
+// basic elements behavior
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+header li,
+body > nav li,
+footer li,
+section > ul > li {
+  display: inline;
+}
+
+nav a,
+h1 a {
+  color: inherit; text-decoration: inherit;
+}
+
+// container structure
+body > header {}
+body > nav {}
+main {}
+
+main > section,
+main > article {}
+
+body > aside {}
+body > footer {}

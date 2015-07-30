@@ -1,0 +1,18 @@
+css:
+  help: build the css
+  dependencies:
+    - base.scss
+    - style.scss
+  output:
+    - css.css
+  formula: >
+    scss --sourcemap=none style.scss css.css
+
+prod:
+  help: make the prod-index
+  dependencies:
+    - index.html
+  output:
+    - prod-index.html
+  formula: >
+    cp index.html prod-index.html;
