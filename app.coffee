@@ -138,6 +138,19 @@ handlers =
         ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
 
+  initialFetch: (State, data) ->
+    ma 'initial-fetch', data.id
+    Promise.resolve().then(->
+      superagent
+        .post(process.env.API_URL + '/board/' + data.id + '/initial-fetch')
+        .withCredentials()
+        .end()
+    ).then(->
+      humane.info "Successfully queued a <b>sync</b>."
+    ).catch(->
+      humane.error "An error ocurred"
+    ).catch(console.log.bind console)
+
   deleteBoard: (State, data) ->
     self = @
     ma 'delete', data.id

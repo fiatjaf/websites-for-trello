@@ -29,6 +29,15 @@ module.exports = (state, channels) ->
               , "Visit site")
             )
             (li {},
+              'Some update is not showing? '
+              (form
+                'ev-submit': tl.sendSubmit channels.initialFetch, {id: ab.id}
+                className: "inline"
+              ,
+                (button {}, "trigger a sync")
+              )
+            )
+            (li {},
               (form
                 'ev-submit': tl.sendSubmit channels.changeSubdomain, {id: ab.id}
                 className: "inline"
