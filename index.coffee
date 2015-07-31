@@ -138,11 +138,15 @@ setupBoard = (request, response, next) ->
   trello.token = request.session.token
   release = null
 
-  payload = JSON.stringify {
+  boardSetupPayload = JSON.stringify {
     'type': 'boardSetup'
     'board_id': id
     'username': request.session.user
     'user_token': request.session.token
+  }
+  initialFetchPayload = JSON.stringify {
+    'type': 'initialFetch'
+    'board_id': id
   }
   Promise.resolve().then(->
     pg.connectAsync process.env.DATABASE_URL
@@ -151,12 +155,13 @@ setupBoard = (request, response, next) ->
     release = db[1]
 
     Promise.all [
-      rsmq.sendMessageAsync { qname: qname, message: payload }
       conn.queryAsync 'SELECT id, name, "shortLink", subdomain FROM boards WHERE id=$1', [id]
       trello.getAsync "/1/boards/#{id}/shortLink"
+      rsmq.sendMessageAsync { qname: qname, message: boardSetupPayload }
+      rsmq.sendMessageAsync { qname: qname, message: initialFetchPayload, delay: 240 }
     ]
-  ).spread((_, qresult, shortLink) ->
-    console.log ':: API :: boardSetup message sent:', payload
+  ).spread((qresult, shortLink) ->
+    console.log ':: API :: boardSetup message sent:', boardSetupPayload
     if qresult.rows.length
       board = qresult.rows[0]
     else
@@ -209,6 +214,13 @@ AND id = $3
   .finally(->
     release()
   )
+
+app.post '/board/:boardId/initial-fetch', userRequired, (request, response, next) ->
+  payload = JSON.stringify {
+    'type': 'initialFetch'
+    'board_id': request.params.boardId
+  }
+  rsmq.sendMessageAsync({ qname: qname, message: payload }).then(-> response.sendStatus 202).catch(next)
 
 app.delete '/board/:boardId', userRequired, (request, response, next) ->
   release = null
