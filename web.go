@@ -454,22 +454,22 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 	var slugs []string
 	err := db.Select(&slugs, fmt.Sprintf(`
 WITH card AS (
-  SELECT list_id, slug
+  SELECT list_id, slug, visible
   FROM cards
   WHERE "%s" = $1
 )
 SELECT slug
 FROM (
-    (SELECT slug, 1 AS listfirst FROM card)
+    (SELECT slug, 1 AS listfirst FROM card WHERE visible)
   UNION
     (SELECT lists.slug AS slug, 0 AS listfirst
     FROM lists
-    INNER JOIN card ON list_id = id)
+    INNER JOIN card ON list_id = id
+    WHERE lists.visible)
 )y
 ORDER BY listfirst
     `, kind), identifier)
-	if err != nil {
-		log.Print(err)
+	if err != nil || len(slugs) != 2 {
 		// redirect to the actual Trello card instead
 		http.Redirect(w, r, "https://trello.com/c/"+identifier, 302)
 		return
