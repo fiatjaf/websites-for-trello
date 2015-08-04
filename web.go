@@ -319,6 +319,12 @@ ORDER BY pos
 		}
 	}
 
+	// we haven't found the requested list and card
+	if len(cards) < 2 {
+		error404(w, r)
+		return
+	}
+
 	// the first row is a List dressed as a Card
 	list := List{
 		Name: cards[0].Name,
@@ -565,6 +571,12 @@ ORDER BY sort
 		}
 	}
 
+	// we haven't found the requested list and card
+	if len(cards) != 2 {
+		error404(w, r)
+		return
+	}
+
 	// the first row is a List dressed as a Card
 	list := List{
 		Name: cards[0].Name,
@@ -634,10 +646,13 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fav, 301)
 }
 
-func httpError(code int) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Not found.", 404)
-	}
+func error404(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(404)
+	fmt.Fprint(w,
+		mustache.RenderFileInLayout("templates/404.html",
+			"templates/base.html",
+			context),
+	)
 }
 
 func main() {
@@ -699,7 +714,7 @@ func main() {
 
 	// > static
 	router.HandleFunc("/favicon.ico", favicon)
-	router.HandleFunc("/robots.txt", httpError(404))
+	router.HandleFunc("/robots.txt", error404)
 
 	// > redirect from permalinks
 	router.HandleFunc("/c/{card-id-or-shortLink}/", cardRedirect)
@@ -717,7 +732,7 @@ func main() {
 	router.HandleFunc("/", index)
 
 	// > errors
-	router.NotFoundHandler = http.HandlerFunc(httpError(404))
+	router.NotFoundHandler = http.HandlerFunc(error404)
 	// ~
 
 	log.Print(":: SITES :: listening at port " + settings.Port)
