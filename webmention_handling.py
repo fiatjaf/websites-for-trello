@@ -1,19 +1,21 @@
 from trello import TrelloApi
 from models import User, Board, List, Card, Label, Comment
 from urlparse import urlparse
-from sqlalchemy import func
+from sqlalchemy import func, select
+from app import db
 import os
 import went
+import requests
 
 def handle_webmention(source, target):
     # find target card
     url = urlparse(target)
     pathsplit = filter(bool, url.path.split('/'))
     if url.netloc.endswith(os.environ['DOMAIN']):
-        board = Board.query.filter_by(subdomain=url.netloc.split('.')[0]).first()
+        ok = Board.query.filter_by(subdomain=url.netloc.split('.')[0]).first()
     else:
-        board = Board.query.filter(func.preferences(url.netloc)).first()
-    if not board or len(pathsplit) != 2:
+        ok = len(db.engine.execute(select([func.preferences(url.netloc)])).first()[0].keys()) > 2
+    if not ok or len(pathsplit) != 2:
         print ':: MODEL-UPDATES :: webmention targetting wrong place:', target
         return
 
@@ -44,8 +46,8 @@ def handle_webmention(source, target):
         source_display=getattr(webmention, 'via') or url
     )
 
-    # see if it already exists
-    comment = Comment.query.filter_by(card_id=card.id, webmention_source=source)
+    # check if it already exists
+    comment = Comment.query.filter_by(card_id=card.id, source_url=webmention.url).first()
 
     if comment:
         # update comment

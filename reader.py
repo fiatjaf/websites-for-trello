@@ -12,11 +12,13 @@ from raygun4py import raygunprovider
 from board_management import board_setup, add_bot, remove_bot
 from initial_fetch import initial_fetch
 from webmention_handling import handle_webmention
+from models import Board
 from app import app, redis
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
 counts = shelve.open(os.path.join(pwd, 'counts.store'))
+starttime = datetime.datetime.now()
 
 def process_messages(n=10):
     r = requests.get(os.environ['WEBHOOK_URL'] + '/messages', params={'n': n})
@@ -24,7 +26,8 @@ def process_messages(n=10):
     messages = []
     try:
         messages = json.loads(r.text)
-        print ':: MODEL-UPDATES :: got %s messages.' % len(messages)
+        if len(messages) > 0:
+            print ':: MODEL-UPDATES :: got %s messages.' % len(messages)
     except ValueError:
         print ':: MODEL-UPDATES :: response from the queue server:', r.text
         traceback.print_exc(file=sys.stdout)
@@ -77,6 +80,17 @@ def process_message(payload):
 
         counts[board_id] = 0
 
+    elif payload['type'] == 'initialFetch':
+        try:
+            initial_fetch(payload['board_id'])
+        except:
+            raygun.send_exception(
+                exc_info=sys.exc_info(),
+                userCustomData={'board_id': payload['board_id']},
+                tags=['initialFetch']
+            )
+            traceback.print_exc(file=sys.stdout)
+
     elif payload['type'] == 'boardDeleted':
         board_id = str(payload['board_id'])
         del counts[board_id]
@@ -110,9 +124,12 @@ def process_message(payload):
 
         try:
             handler = getattr(h, payload['type'])
+            handler(payload['data'], payload=payload)
         except AttributeError:
             return
         except:
+            if not Board.query.get(payload['data']['board']['id']):
+                print ':: MODEL-UPDATES :: webhook for a board not registered anymore.'
             raygun.set_user(payload['memberCreator']['username'])
             raygun.send_exception(
                 exc_info=sys.exc_info(),
@@ -122,11 +139,12 @@ def process_message(payload):
             traceback.print_exc(file=sys.stdout)
             print ':: MODEL-UPDATES :: payload:', payload
 
-        handler(payload['data'])
-
         # count webhooks on redis
         today = datetime.date.today()
-        redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
+        try:
+            redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
+        except redis.exceptions.ResponseError:
+            print ':: MODEL-UPDATES ::', e, ' -- couldn\'t INCR webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id'])
 
         # count up for this board. every x messages we do a initial-fetch
         counts[board_id] = counts.get(board_id, 0) + 1
@@ -145,6 +163,8 @@ if __name__ == '__main__':
     else:
         for i in range(9):
             time.sleep(6)
+            if (datetime.datetime.now() - starttime).seconds > 59:
+                break
             process_messages(100)
 
 # this is meant to be run as a cron job every 3 seconds or so.

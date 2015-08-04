@@ -11,10 +11,10 @@ from models import *
 manager = Manager(app)
 
 @manager.command
-def stats():
-    pvkeys = redis.keys('pageviews:%s:%s:*' % (datetime.date.today().year, datetime.date.today().month))
+def stats(year=datetime.date.today().year, month=datetime.date.today().month):
+    pvkeys = redis.keys('pageviews:%s:%s:*' % (year, month))
     pvvalues = redis.mget(pvkeys)
-    whkeys = redis.keys('webhooks:%s:%s:*' % (datetime.date.today().year, datetime.date.today().month))
+    whkeys = redis.keys('webhooks:%s:%s:*' % (year, month))
     whvalues = redis.mget(whkeys)
 
     _, year, month, _ = pvkeys[0].split(':')

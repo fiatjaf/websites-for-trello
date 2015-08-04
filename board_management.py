@@ -94,19 +94,20 @@ def board_setup(id):
             '[Javascript for the __Aluod__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/aluod.js)': 'false',
         },
         'utils': {
-            '[Eager -- a service that includes apps for you, take a look at https://eager.io/ (replace with your own code)](//fast.eager.io/<your-code-from-eager.io>.js)': 'false',
+            '[Add __Eager__ -- a service that includes apps for you, take a look at https://eager.io/ (replace with your own code)](//fast.eager.io/<your-code-from-eager.io>.js)': 'false',
+            '[Simple forms styling](//cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/99492734f07574399e74105d815b9b6e6730548b/forms.css)': 'true',
             '[Label colors, Trello defaults](//cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/75fdccad8dce304c8c2bfca3125328a4e7eef1d1/label-colors-trello.css)': 'true',
             '[Hide author information](//cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/5517c2096e37332144e497538c169ff503e1314c/hide-author.css)': 'false',
 
-            '[Google Analytics -- edit here to add your code](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/e4060e9348079792a098d42fa8ad8b3c2bf2aee5/add-google-analytics.js?code=YOUR_GOOGLE_ANALYTICS_TRACKING_CODE)': 'false',
-            '[Disqus -- edit here to add your shortname](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/29721482d7cf63d6bb077cf29a324d799017d068/add-disqus.js?shortname=YOUR_DISQUS_SHORTNAME)': 'false',
+            '[Add __Google Analytics__ -- edit here to add your code](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/e4060e9348079792a098d42fa8ad8b3c2bf2aee5/add-google-analytics.js?code=YOUR_GOOGLE_ANALYTICS_TRACKING_CODE)': 'false',
+            '[Add __Disqus__ -- edit here to add your shortname](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/29721482d7cf63d6bb077cf29a324d799017d068/add-disqus.js?shortname=YOUR_DISQUS_SHORTNAME)': 'false',
             '[Show image attachments as actual images instead of links](http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/567162cc78cff0fab4bb9de1785743b9a87234ca/show-attachments-as-images.js)': 'false',
             '[Change footer text -- edit here to choose the text](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/a77b24106a2fe33bd804b9f939e33b040aeae8bb/replace-footer-text.css?text=YOUR_FOOTER_TEXT)': 'false',
             '[Hide posts date](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/8dcf95329c21791dd327df47bb1e2a043453548f/hide-date.css)': 'false',
             '[Hide category title on article pages](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/dcb70e2adc030f21f58c644757877a07e01479b5/hide-category-header-on-article-pages.css)': 'true',
             '[Show post excerpts on home page and category pages -- edit the number of characters and "read more" text](http://temperos.alhur.es/https://rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/6ccdca1b221b70f6abd87ef3875e469ec08c9a5e/show-excerpts.js?limit=200&read_more_text=(read+more...))': 'false',
             '[Turn Youtube links into embedded videos](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/2a892b56fe14e0b75452394148b2b29015a76ef7/youtube-embed.js)': 'true',
-            '[Add Carnival comments -- edit your site id](http://temperos.alhur.es/https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/6d6b95595339369d84d51d127be45af7f5926d7e/add-carnival-comments.js?YOUR-SITE-ID=)': 'false',
+            '[Add __Hypothes.is__ annotations](//hypothes.is/embed.js)': 'true'
         }
     }
 

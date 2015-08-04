@@ -1,12 +1,12 @@
 from app import db
-from models import User, Board, List, Card, Label
+from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi
 import requests
 import os
 
 trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
 
-def createCard(data):
+def createCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     if not card:
         card = Card(
@@ -22,7 +22,7 @@ def createCard(data):
     db.session.add(card)
     db.session.commit()
 
-def updateCard(data):
+def updateCard(data, **kw):
     card = Card.query.get(data['card']['id'])
 
     for attr in ('pos', 'name', 'desc', 'due'):
@@ -30,26 +30,30 @@ def updateCard(data):
             setattr(card, attr, data['card'][attr])
 
     if 'idAttachmentCover' in data['card']:
-        card.cover = data['card']['idAttachmentCover']
+        card.cover = None
+        for attachment in card.attachments['attachments']:
+            if attachment['id'] == data['card']['idAttachmentCover']:
+                card.cover = attachment['url']
+                break
     if 'idList' in data['card']:
         card.list_id = data['card']['idList']
 
     db.session.add(card)
     db.session.commit()
 
-def deleteCard(data):
+def deleteCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     if card:
         db.session.delete(card)
         db.session.commit()
 
-def moveCardFromBoard(data):
+def moveCardFromBoard(data, **kw):
     if not Board.query.get(data['boardTarget']['id']):
         card = Card.query.get(data['card']['id'])
         db.session.delete(card)
         db.session.commit()
 
-def moveCardToBoard(data):
+def moveCardToBoard(data, **kw):
     card = Card.query.get(data['card']['id'])
     if not card:
         card = Card(
@@ -66,7 +70,7 @@ def moveCardToBoard(data):
     db.session.add(card)
     db.session.commit()
 
-def convertToCardFromCheckItem(data):
+def convertToCardFromCheckItem(data, **kw):
     card = Card.query.get(data['card']['id'])
     if not card:
         card = Card(
@@ -94,7 +98,7 @@ def convertToCardFromCheckItem(data):
     db.session.add(cardsource)
     db.session.commit()
 
-def addAttachmentToCard(data):
+def addAttachmentToCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     if data['attachment']['id'] not in [a['id'] for a in card.attachments['attachments']]:
         card.attachments['attachments'].append(data['attachment'])
@@ -102,13 +106,13 @@ def addAttachmentToCard(data):
         db.session.add(card)
         db.session.commit()
 
-def deleteAttachmentFromCard(data):
+def deleteAttachmentFromCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     card.attachments['attachments'] = [att for att in card.attachments['attachments'] if att['id'] != data['attachment']['id']]
     db.session.add(card)
     db.session.commit()
 
-def addChecklistToCard(data):
+def addChecklistToCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     if data['checklist']['id'] not in [c['id'] for c in card.checklists['checklists']]:
         checklist = {
@@ -122,7 +126,7 @@ def addChecklistToCard(data):
         db.session.add(card)
         db.session.commit()
 
-def removeChecklistFromCard(data):
+def removeChecklistFromCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     card.checklists['checklists'] = [chk for chk in card.checklists['checklists'] if chk['id'] != data['checklist']['id']]
 
@@ -130,7 +134,7 @@ def removeChecklistFromCard(data):
     db.session.add(card)
     db.session.commit()
 
-def updateChecklist(data):
+def updateChecklist(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     for attr in ('pos', 'name'):
@@ -141,7 +145,7 @@ def updateChecklist(data):
     db.session.add(card)
     db.session.commit()
 
-def createCheckItem(data):
+def createCheckItem(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
 
@@ -156,7 +160,7 @@ def createCheckItem(data):
         db.session.add(card)
         db.session.commit()
 
-def updateCheckItemStateOnCard(data):
+def updateCheckItemStateOnCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])[0]
@@ -166,7 +170,7 @@ def updateCheckItemStateOnCard(data):
     db.session.add(card)
     db.session.commit()
 
-def deleteCheckItem(data):
+def deleteCheckItem(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     checklist['checkItems'] = [chi for chi in checklist['checkItems'] if chi['id'] != data['checkItem']['id']]
@@ -175,7 +179,7 @@ def deleteCheckItem(data):
     db.session.add(card)
     db.session.commit()
 
-def updateCheckItem(data):
+def updateCheckItem(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])[0]
@@ -187,7 +191,7 @@ def updateCheckItem(data):
     db.session.add(card)
     db.session.commit()
 
-def createLabel(data):
+def createLabel(data, **kw):
     label = Label.query.get(data['label']['id'])
     if not label:
         label = Label(
@@ -199,7 +203,7 @@ def createLabel(data):
     db.session.add(label)
     db.session.commit()
 
-def addLabelToCard(data):
+def addLabelToCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     label = Label.query.get(data['label']['id'])
     label.color = data['label'].get('color')
@@ -213,7 +217,7 @@ def addLabelToCard(data):
     db.session.add(card)
     db.session.commit()
 
-def updateLabel(data):
+def updateLabel(data, **kw):
     label = Label.query.get(data['label']['id'])
     for attr in ('color', 'name'):
         if attr in data['label']:
@@ -222,25 +226,25 @@ def updateLabel(data):
     db.session.add(label)
     db.session.commit()
 
-def deleteLabel(data):
+def deleteLabel(data, **kw):
     label = Label.query.get(data['label']['id'])
     if label:
         db.session.delete(label)
         db.session.commit()
 
-def removeLabelFromCard(data):
+def removeLabelFromCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     label = Label.query.get(data['label']['id'])
 
     labels = set(card.labels or [])
     labels.remove(label.id)
-    card.labels = labels
+    card.labels = list(labels)
     card.labels.changed()
 
     db.session.add(card)
     db.session.commit()
 
-def createList(data):
+def createList(data, **kw):
     list = List.query.get(data['list']['id'])
     if not list:
         list = List(
@@ -254,7 +258,7 @@ def createList(data):
     db.session.add(list)
     db.session.commit()
 
-def updateList(data):
+def updateList(data, **kw):
     list = List.query.get(data['list']['id'])
     keychanged = data['old'].keys()[0]
     setattr(list, keychanged, data['list'][keychanged])
@@ -262,13 +266,13 @@ def updateList(data):
     db.session.add(list)
     db.session.commit()
 
-def moveListFromBoard(data):
+def moveListFromBoard(data, **kw):
     if not data['boardTarget']['id']:
         list = List.query.get(data['list']['id'])
         db.session.delete(list)
         db.session.commit()
 
-def moveListToBoard(data):
+def moveListToBoard(data, **kw):
     list = List.query.get(data['list']['id'])
     if not list:
         list = List(
@@ -284,9 +288,36 @@ def moveListToBoard(data):
     db.session.add(list)
     db.session.commit()
 
-def updateBoard(data):
+def updateBoard(data, **kw):
     board = Board.query.get(data['board']['id'])
     keychanged = data['old'].keys()[0]
     setattr(board, keychanged, data['board'][keychanged])
     db.session.add(board)
     db.session.commit()
+
+def commentCard(data, **kw):
+    id = kw['payload']['id']
+    comment = Comment.query.get(id)
+    if not comment:
+        comment = Comment(id=id, card_id=data['card']['id'], creator_id=kw['payload']['memberCreator']['id'])
+        comment.raw = data['text']
+    db.session.add(comment)
+    db.session.commit()
+
+def updateComment(data, **kw):
+    comment = Comment.query.get(data['action']['id'])
+    comment.raw = data['action']['text']
+    db.session.add(comment)
+    db.session.commit()
+
+def deleteComment(data, **kw):
+    comment = Comment.query.get(data['action']['id'])
+    db.session.delete(comment)
+    db.session.commit()
+
+def removeMemberFromBoard(data, **kw):
+    if os.environ['TRELLO_BOT_ID'] == data['member']['id']:
+        board = Board.query.get(data['board']['id'])
+        if board:
+            db.session.delete(board)
+            db.session.commit()

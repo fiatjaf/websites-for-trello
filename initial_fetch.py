@@ -1,10 +1,46 @@
 import sys
 import traceback
 from app import app, db
-from models import User, Board, List, Card, Label
+from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi
+from email import utils
 import requests
+import datetime
+import time
 import os
+
+def schedule_welcome_email(user_id, user_email):
+    now = datetime.datetime.now()
+    inthreedays = now + datetime.timedelta(days=3) - datetime.timedelta(hours=4)
+    deliverytime = utils.formatdate(time.mktime(inthreedays.timetuple()))
+
+    r = requests.post('https://api.mailgun.net/v3/websitesfortrello.com/messages',
+        auth=('api', os.getenv('MAILGUN_API_KEY')),
+        data={
+            'from': 'welcome@websitesfortrello.com',
+            'to': user_email,
+            'subject': 'Feedback request from Websites for Trello',
+            'text': '''
+hey {name},
+
+I've seen you tried http://websitesfortrello.com/ some time ago and created a website.
+
+Would you care to waste a little of your time to tell us what did you like and what you didn't like? Is there something that you want and we aren't providing?
+
+Anything you say will help us a lot.
+Thank you very much for your time and for reading this!
+
+Giovanni T. Parra.
+Websites for Trello
+            '''.format(name=user_id),
+            'h:Reply-To': 'websitesfortrello@boardthreads.com',
+            'o:deliverytime': deliverytime
+        }
+    )
+    if r.ok:
+        print ':: MODEL-UPDATES :: scheduled email to %s to %s' % (user_id, deliverytime)
+    else:
+        print r.text
 
 def initial_fetch(id, username=None, user_token=None):
     print ':: MODEL-UPDATES :: initial_fetch for', id
@@ -25,6 +61,8 @@ def initial_fetch(id, username=None, user_token=None):
         else:
             print ':: MODEL-UPDATES :: not found, creating, user', u['id']
             user = User()
+            print ':: MODEL-UPDATES :: scheduling welcome email'
+            schedule_welcome_email(u['id'], u['email'])
         for key, value in u.items(): setattr(user, key, value)
         db.session.add(user)
 
@@ -117,6 +155,24 @@ def initial_fetch(id, username=None, user_token=None):
                 else:
                     traceback.print_exc(file=sys.stdout)
                     raise e
+
+            # comments
+            #for comment in card.comments: to_delete.add((Comment, comment.id))
+            #for co in trello.cards.get_action(c['id'], filter='commentCard', limit=1000, fields='data'):
+            #    to_delete.discard((Comment, co['id']))
+
+            #    comment = Comment.query.get(co['id'])
+            #    if comment:
+            #        print ':: MODEL-UPDATES :: found, updating, comment', co['id']
+            #    else:
+            #        print ':: MODEL-UPDATES :: not found, creating, comment', co['id']
+            #        comment = Comment(
+            #            id=co['id'],
+            #            card_id=co['data']['card']['id'],
+            #            creator_id=co['memberCreator']['id']
+            #        )
+            #    comment.raw = co['data']['text']
+            #    db.session.add(comment)
 
     for cls, id in to_delete:
         entity = cls.query.get(id)
