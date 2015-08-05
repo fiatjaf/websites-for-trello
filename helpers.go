@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/MindscapeHQ/raygun4go"
 	"github.com/jmoiron/sqlx/types"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -151,4 +154,46 @@ WHERE boards.id = $1
 	}
 	card.IsPage = true
 	return card, nil
+}
+
+func filter(s []string, fn func(string) bool) []string {
+	var p []string
+	for _, v := range s {
+		if fn(v) {
+			p = append(p, v)
+		}
+	}
+	return p
+}
+
+func search(query string, idBoard string) ([]Card, error) {
+	var cards []Card
+
+	qs := url.Values{}
+	qs.Set("key", settings.TrelloBotAPIKey)
+	qs.Set("token", settings.TrelloBotToken)
+	qs.Set("modelTypes", "cards")
+	qs.Set("idBoards", idBoard)
+	qs.Set("card_fields", "id,name")
+	qs.Set("query", query)
+
+	res, err := http.Get("https://api.trello.com/1/search?" + qs.Encode())
+	if err != nil {
+		return cards, err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return cards, err
+	}
+
+	var result struct {
+		Cards []Card
+	}
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return cards, err
+	}
+
+	return result.Cards, nil
 }

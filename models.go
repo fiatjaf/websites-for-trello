@@ -27,17 +27,21 @@ func renderMarkdown(md string) string {
 
 type BaseData struct {
 	error
-	Board      Board
-	Lists      []List
-	Aggregator Aggregator
-	Cards      []Card
-	Card       Card
-	Page       int
-	HasNext    bool
-	HasPrev    bool
-	Prefs      Preferences
-	Settings   Settings
-	ShowMF2    bool
+	Board            Board
+	Lists            []List
+	Aggregator       Aggregator
+	Cards            []Card
+	Card             Card
+	Page             int
+	SearchQuery      string
+	TypedSearchQuery bool
+	SearchResults    SearchResults
+	HasNext          bool
+	HasPrev          bool
+	Prefs            Preferences
+	Settings         Settings
+	ShowMF2          bool
+	Content          string
 }
 
 func (b BaseData) NavItems() []Link {
@@ -109,6 +113,19 @@ func (prefs Preferences) PostsPerPage() int {
 		return 7
 	}
 	return ppp
+}
+
+type SearchResults []Card
+
+func (o SearchResults) Some() bool {
+	if len(o) > 0 {
+		return true
+	}
+	return false
+}
+
+func (o SearchResults) Len() int {
+	return len(o)
 }
 
 type Link struct {

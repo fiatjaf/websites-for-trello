@@ -1,1 +1,6 @@
-We couldn't find what you were searching.
+<section>
+  <p>The requested page couldn't be found.</p>
+  {{#SearchResults.Some}}<p>Maybe you are looking for some of the following results:</p>{{/SearchResults.Some}}
+  {{^SearchResults.Some}}<p>Maybe you should try to search for this content here, since it could have been moved:</p>{{/SearchResults.Some}}
+</section>
+{{{ Content }}}

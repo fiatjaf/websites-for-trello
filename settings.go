@@ -7,13 +7,15 @@ import (
 )
 
 type Settings struct {
-	Domain        string
-	Port          string
-	DatabaseURL   string
-	RaygunAPIKey  string
-	RedisAddr     string
-	RedisPassword string
-	RedisPoolSize int
+	Domain          string
+	Port            string
+	DatabaseURL     string
+	RaygunAPIKey    string
+	RedisAddr       string
+	RedisPassword   string
+	RedisPoolSize   int
+	TrelloBotAPIKey string
+	TrelloBotToken  string
 }
 
 func LoadSettings() Settings {
@@ -34,12 +36,14 @@ func LoadSettings() Settings {
 	}
 
 	return Settings{
-		Domain:        domain,
-		Port:          port,
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		RaygunAPIKey:  os.Getenv("RAYGUN_API_KEY"),
-		RedisAddr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
-		RedisPassword: os.Getenv("REDIS_PASSWORD"),
-		RedisPoolSize: redisPoolSize,
+		Domain:          domain,
+		Port:            port,
+		DatabaseURL:     os.Getenv("DATABASE_URL"),
+		RaygunAPIKey:    os.Getenv("RAYGUN_API_KEY"),
+		RedisAddr:       os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
+		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
+		RedisPoolSize:   redisPoolSize,
+		TrelloBotAPIKey: os.Getenv("TRELLO_BOT_API_KEY"),
+		TrelloBotToken:  os.Getenv("TRELLO_BOT_TOKEN"),
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/carbocation/interpose/adaptors"
 	"github.com/gorilla/mux"
 	"github.com/hoisie/redis"
-	"github.com/jabley/mustache"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/cors"
 	"log"
@@ -15,6 +14,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 
 	_ "github.com/lib/pq"
 )
@@ -90,9 +90,10 @@ LIMIT $3
 	context.Cards = cards
 
 	fmt.Fprint(w,
-		mustache.RenderFileInLayout("templates/list.html",
+		renderOnTopOf(context,
+			"templates/list.html",
 			"templates/base.html",
-			context),
+		),
 	)
 }
 
@@ -163,7 +164,8 @@ ORDER BY pos
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
-			http.Error(w, "there is not a list here.", 404)
+			log.Print("list not found.")
+			error404(w, r)
 			return
 		} else {
 			log.Print(err.Error())
@@ -173,8 +175,8 @@ ORDER BY pos
 		}
 	}
 
-	// we haven't found the requested list and card
-	if len(cards) < 2 {
+	// we haven't found the requested list (when the list has 0 cards, we should have 1 here)
+	if len(cards) < 1 {
 		error404(w, r)
 		return
 	}
@@ -197,9 +199,10 @@ ORDER BY pos
 	context.Cards = cards
 
 	fmt.Fprint(w,
-		mustache.RenderFileInLayout("templates/list.html",
+		renderOnTopOf(context,
+			"templates/list.html",
 			"templates/base.html",
-			context),
+		),
 	)
 }
 
@@ -269,7 +272,8 @@ ORDER BY pos
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
-			http.Error(w, "there is not a label here.", 404)
+			log.Print("label not found.")
+			error404(w, r)
 			return
 		} else {
 			log.Print(err.Error())
@@ -298,9 +302,10 @@ ORDER BY pos
 	context.Cards = cards
 
 	fmt.Fprint(w,
-		mustache.RenderFileInLayout("templates/list.html",
+		renderOnTopOf(context,
+			"templates/list.html",
 			"templates/base.html",
-			context),
+		),
 	)
 }
 
@@ -347,8 +352,8 @@ FROM lists
 WHERE id = $1
     `, id)
 	if err != nil {
-		log.Print(err)
-		http.Error(w, "there is not a list here.", 404)
+		log.Print("list not found.")
+		error404(w, r)
 		return
 	}
 
@@ -415,7 +420,8 @@ ORDER BY sort
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
-			http.Error(w, "there is not a card here.", 404)
+			log.Print("card not found.")
+			error404(w, r)
 			return
 		} else {
 			raygun.CreateError(err.Error())
@@ -440,9 +446,25 @@ ORDER BY sort
 	context.Card = cards[1]
 
 	fmt.Fprint(w,
-		mustache.RenderFileInLayout("templates/card.html",
+		renderOnTopOf(context,
+			"templates/card.html",
 			"templates/base.html",
-			context),
+		),
+	)
+}
+
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	values := r.URL.Query()
+	query := values.Get("query")
+
+	context.SearchQuery = query
+	context.TypedSearchQuery = query != ""
+	context.SearchResults, _ = search(query, context.Board.Id)
+	fmt.Fprint(w,
+		renderOnTopOf(context,
+			"templates/search.html",
+			"templates/base.html",
+		),
 	)
 }
 
@@ -471,7 +493,9 @@ WHERE "%s" = $1
     `, kind), identifier, limit)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			http.Error(w, "there is not a card here.", 404)
+			log.Print("there is not a card here.")
+			error404(w, r)
+			return
 		} else {
 			log.Print(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
@@ -479,6 +503,30 @@ WHERE "%s" = $1
 		return
 	}
 	fmt.Fprint(w, desc)
+}
+
+func error404(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(404)
+
+	query := strings.Join(filter(strings.Split(r.URL.Path, "/"), func(s string) bool {
+		if s == "" {
+			return false
+		}
+		return true
+	}), " ")
+	query = strings.Join(strings.Split(query, "-"), " ")
+
+	context.SearchQuery = query
+	context.TypedSearchQuery = true
+	context.SearchResults, _ = search(query, context.Board.Id)
+
+	fmt.Fprint(w,
+		renderOnTopOf(context,
+			"templates/search.html",
+			"templates/404.html",
+			"templates/base.html",
+		),
+	)
 }
 
 func favicon(w http.ResponseWriter, r *http.Request) {
@@ -498,15 +546,6 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 		fav = "http://lorempixel.com/32/32/"
 	}
 	http.Redirect(w, r, fav, 301)
-}
-
-func error404(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(404)
-	fmt.Fprint(w,
-		mustache.RenderFileInLayout("templates/404.html",
-			"templates/base.html",
-			context),
-	)
 }
 
 func main() {
@@ -552,9 +591,10 @@ func main() {
 				countPageViews()
 				context.Card = card
 				fmt.Fprint(w,
-					mustache.RenderFileInLayout("templates/card.html",
+					renderOnTopOf(context,
+						"templates/card.html",
 						"templates/base.html",
-						context),
+					),
 				)
 			}
 		})
@@ -576,6 +616,7 @@ func main() {
 
 	// > helpers
 	router.HandleFunc("/c/{card-id-or-shortLink}/desc", cardDesc)
+	router.HandleFunc("/search/", handleSearch)
 
 	// > normal pages and index
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
