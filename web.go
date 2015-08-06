@@ -319,18 +319,22 @@ func cardRedirect(w http.ResponseWriter, r *http.Request) {
 	var slugs []string
 	err := db.Select(&slugs, fmt.Sprintf(`
 WITH card AS (
-  SELECT list_id, slug, visible
+  SELECT name, list_id, slug, visible
   FROM cards
   WHERE "%s" = $1
 )
-SELECT slug
-FROM (
-    (SELECT slug, 1 AS listfirst FROM card WHERE visible)
-  UNION
-    (SELECT lists.slug AS slug, 0 AS listfirst
-    FROM lists
-    INNER JOIN card ON list_id = id
-    WHERE lists.visible)
+SELECT slug FROM (
+  (SELECT
+    CASE WHEN "pagesList" THEN '' ELSE lists.slug END AS slug,
+    0 AS listfirst
+  FROM lists
+  INNER JOIN card ON list_id = lists.id
+  WHERE lists.visible OR "pagesList")
+UNION
+  (SELECT
+    CASE WHEN visible THEN slug ELSE name END AS slug,
+    1 AS listfirst
+  FROM card)
 )y
 ORDER BY listfirst
     `, kind), identifier)
