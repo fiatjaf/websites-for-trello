@@ -154,6 +154,7 @@ func list(w http.ResponseWriter, r *http.Request) {
   ON lists.id = cards.list_id
   WHERE board_id = $1
     AND lists.slug = $2
+    AND lists.visible
     AND cards.visible
   ORDER BY pos
   OFFSET $3
