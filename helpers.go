@@ -168,33 +168,53 @@ func filter(s []string, fn func(string) bool) []string {
 }
 
 func search(query string, idBoard string) ([]Card, error) {
-	var cards []Card
+	var empty []Card
 
+	// query trello
 	qs := url.Values{}
 	qs.Set("key", settings.TrelloBotAPIKey)
 	qs.Set("token", settings.TrelloBotToken)
 	qs.Set("modelTypes", "cards")
 	qs.Set("idBoards", idBoard)
+	qs.Set("cards_limit", "20")
 	qs.Set("card_fields", "id,name")
+	qs.Set("card_list", "true")
 	qs.Set("query", query)
 
 	res, err := http.Get("https://api.trello.com/1/search?" + qs.Encode())
 	if err != nil {
-		return cards, err
+		return empty, err
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return cards, err
+		return empty, err
 	}
 
 	var result struct {
-		Cards []Card
+		Cards []struct {
+			Id   string
+			Name string
+			List struct {
+				Name string
+			}
+		}
 	}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return cards, err
+		return empty, err
 	}
 
-	return result.Cards, nil
+	// filter out cards starting with _ and lists starting with _
+	var filteredcards []Card
+	for _, c := range result.Cards {
+		if !strings.HasPrefix(c.Name, "_") && !strings.HasPrefix(c.List.Name, "_") {
+			filteredcards = append(filteredcards, Card{
+				Id:   c.Id,
+				Name: c.Name,
+			})
+		}
+	}
+
+	return filteredcards, nil
 }
