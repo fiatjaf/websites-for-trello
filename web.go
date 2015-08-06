@@ -413,7 +413,8 @@ FROM (
     FROM cards
     INNER JOIN lists
     ON lists.id = cards.list_id
-    WHERE cards.slug = $3
+    WHERE board_id = $1
+      AND cards.slug = $3
       AND lists.slug = $2
       AND cards.visible
     GROUP BY cards.id
