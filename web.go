@@ -437,7 +437,7 @@ ORDER BY sort
 	}
 
 	// we haven't found the requested list and card
-	if len(cards) != 2 {
+	if len(cards) < 2 {
 		error404(w, r)
 		return
 	}
