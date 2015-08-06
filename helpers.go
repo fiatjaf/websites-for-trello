@@ -102,6 +102,7 @@ ORDER BY pos
 	}
 
 	return BaseData{
+		Request:  r,
 		Settings: settings,
 		Board:    board,
 		Lists:    lists,

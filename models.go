@@ -5,6 +5,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/shurcooL/go/github_flavored_markdown"
 	"log"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -27,6 +28,7 @@ func renderMarkdown(md string) string {
 
 type BaseData struct {
 	error
+	Request          *http.Request
 	Board            Board
 	Lists            []List
 	Aggregator       Aggregator

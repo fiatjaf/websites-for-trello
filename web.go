@@ -529,6 +529,10 @@ func error404(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+func opensearch(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, renderOnTopOf(context, "templates/opensearch.xml"))
+}
+
 func favicon(w http.ResponseWriter, r *http.Request) {
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
@@ -609,6 +613,7 @@ func main() {
 	// > static
 	router.HandleFunc("/favicon.ico", favicon)
 	router.HandleFunc("/robots.txt", error404)
+	router.HandleFunc("/opensearch.xml", opensearch)
 
 	// > redirect from permalinks
 	router.HandleFunc("/c/{card-id-or-shortLink}/", cardRedirect)
