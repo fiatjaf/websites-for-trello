@@ -1,3 +1,5 @@
+require 'newrelic'
+
 pg            = require 'pg'
 redis         = require 'rsmq/node_modules/redis'
 RedisSMQ      = require 'rsmq'
