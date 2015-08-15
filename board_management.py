@@ -80,18 +80,18 @@ def board_setup(id):
     }
     includes_checklists = {
         'themes': {
-            '[CSS for the __Lebo__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/lebo.css)': 'true',
-            '[CSS for the __Jeen__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/jeen.css)': 'false',
-            '[CSS for the __Wardrobe__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/wardrobe.css)': 'false',
-            '[CSS for the __Ghostwriter__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/ghostwriter.css)': 'false',
-            '[CSS for the __Festively__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/festively.css)': 'false',
-            '[CSS for the __Aluod__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/aluod.css)': 'false',
-            '[CSS for the __dbyll__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/dbyll.css)': 'false',
+            '[CSS for the __Lebo__ theme](//fiatjaf.github.io/classless/themes/lebo.css)': 'true',
+            '[CSS for the __Jeen__ theme](//fiatjaf.github.io/classless/themes/jeen.css)': 'false',
+            '[CSS for the __Wardrobe__ theme](//fiatjaf.github.io/classless/themes/wardrobe.css)': 'false',
+            '[CSS for the __Ghostwriter__ theme](//fiatjaf.github.io/classless/themes/ghostwriter.css)': 'false',
+            '[CSS for the __Festively__ theme](//fiatjaf.github.io/classless/themes/festively.css)': 'false',
+            '[CSS for the __Aluod__ theme](//fiatjaf.github.io/classless/themes/aluod.css)': 'false',
+            '[CSS for the __dbyll__ theme](//fiatjaf.github.io/classless/themes/dbyll.css)': 'false',
         },
         'themes-js': {
-            '[Javascript for the __Ghostwriter__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/ghostwriter.js)': 'false',
-            '[Javascript for the __Festively__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/festively.js)': 'false',
-            '[Javascript for the __Aluod__ theme](//rawgit.com/fiatjaf/classless/gh-pages/themes/aluod.js)': 'false',
+            '[Javascript for the __Ghostwriter__ theme](//fiatjaf.github.io/classless/themes/ghostwriter.js)': 'false',
+            '[Javascript for the __Festively__ theme](//fiatjaf.github.io/classless/themes/festively.js)': 'false',
+            '[Javascript for the __Aluod__ theme](//fiatjaf.github.io/classless/themes/aluod.js)': 'false',
         },
         'utils': {
             '[Add __Eager__ -- a service that includes apps for you, take a look at https://eager.io/ (replace with your own code)](//fast.eager.io/<your-code-from-eager.io>.js)': 'false',

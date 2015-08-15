@@ -44,7 +44,7 @@ class Board(db.Model):
     labels = db.relationship('Label', backref='board', lazy='dynamic')
     # ~
 
-    name = db.Column(db.Text)
+    name = db.Column(db.Text, nullable=False)
     desc = db.Column(db.Text)
 
     @property
@@ -85,7 +85,7 @@ class Card(db.Model):
 
     name = db.Column(db.Text, index=True, nullable=False) # indexed because is used to filter standalone pages
     pageTitle = db.Column(db.Text)
-    desc = db.Column(db.Text)
+    desc = db.Column(db.Text, nullable=False)
     pos = db.Column(db.BigInteger)
     due = db.Column(db.DateTime)
     checklists = db.Column(MutableDict.as_mutable(JSONB), default={'checklists': []})

@@ -3,44 +3,10 @@ import traceback
 from app import app, db
 from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi
-from email import utils
+from helpers import schedule_welcome_email, extract_card_cover
 import requests
-import datetime
 import time
 import os
-
-def schedule_welcome_email(user_id, user_email):
-    now = datetime.datetime.now()
-    inthreedays = now + datetime.timedelta(days=3) - datetime.timedelta(hours=4)
-    deliverytime = utils.formatdate(time.mktime(inthreedays.timetuple()))
-
-    r = requests.post('https://api.mailgun.net/v3/websitesfortrello.com/messages',
-        auth=('api', os.getenv('MAILGUN_API_KEY')),
-        data={
-            'from': 'welcome@websitesfortrello.com',
-            'to': user_email,
-            'subject': 'Feedback request from Websites for Trello',
-            'text': '''
-hey {name},
-
-I've seen you tried http://websitesfortrello.com/ some time ago and created a website.
-
-Would you care to waste a little of your time to tell us what did you like and what you didn't like? Is there something that you want and we aren't providing?
-
-Anything you say will help us a lot.
-Thank you very much for your time and for reading this!
-
-Giovanni T. Parra.
-Websites for Trello
-            '''.format(name=user_id),
-            'h:Reply-To': 'websitesfortrello@boardthreads.com',
-            'o:deliverytime': deliverytime
-        }
-    )
-    if r.ok:
-        print ':: MODEL-UPDATES :: scheduled email to %s to %s' % (user_id, deliverytime)
-    else:
-        print r.text
 
 def initial_fetch(id, username=None, user_token=None):
     print ':: MODEL-UPDATES :: initial_fetch for', id
@@ -131,13 +97,9 @@ def initial_fetch(id, username=None, user_token=None):
                 c['checklists'] = {'checklists': c['checklists']}
 
                 # extract the card cover
-                cover = None
                 if 'idAttachmentCover' in c:
                     cover_id = c.pop('idAttachmentCover')
-                    covers = filter(lambda a: a['id'] == cover_id, c['attachments']['attachments'])
-                    if covers:
-                        cover = covers[0]['url']
-                c['cover'] = cover
+                    c['cover'] = extract_card_cover(cover_id, c['attachments']['attachments'])
 
                 card = Card.query.get(c['id'])
                 if card:

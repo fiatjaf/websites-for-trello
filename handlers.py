@@ -1,6 +1,7 @@
 from app import db
 from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi
+from helpers import extract_card_cover
 import requests
 import os
 
@@ -15,9 +16,37 @@ def createCard(data, **kw):
             name=data['card']['name'],
             list_id=data['list']['id']
         )
-
     card.pos = trello.cards.get_field('pos', card.id)['_value']
     card.desc = trello.cards.get_field('desc', card.id)['_value']
+
+    db.session.add(card)
+    db.session.commit()
+
+def copyCard(data, **kw):
+    card = Card.query.get(data['card']['id'])
+    if not card:
+        card = Card(
+            id=data['card']['id'],
+            shortLink=data['card']['shortLink'],
+            name=data['card']['name'],
+            list_id=data['list']['id']
+        )
+    # this card may be already full of attachments or checklists, we must fetch them all
+    c = trello.cards.get(card.id,
+                         attachments='true',
+                         attachment_fields='name,url,edgeColor,id',
+                         checklists='all', checklist_fields='name,pos',
+                         fields='pos,desc,due,closed,idLabels,idAttachmentCover')
+    card.pos = c['pos']
+    card.due = c['due']
+    card.desc = c['desc']
+    card.closed = c['closed']
+    card.labels = c.pop('idLabels')
+    card.attachments = {'attachments': c['attachments']}
+    card.checklists = {'checklists': c['checklists']}
+    if 'idAttachmentCover' in c:
+        cover_id = c.pop('idAttachmentCover')
+        card.cover = extract_card_cover(cover_id, card.attachments['attachments'])
 
     db.session.add(card)
     db.session.commit()
@@ -237,7 +266,11 @@ def removeLabelFromCard(data, **kw):
     label = Label.query.get(data['label']['id'])
 
     labels = set(card.labels or [])
-    labels.remove(label.id)
+    try:
+        labels.remove(label.id)
+    except KeyError:
+        print 'label wasn\'t present, so our job is done.'
+
     card.labels = list(labels)
     card.labels.changed()
 
@@ -316,6 +349,7 @@ def deleteComment(data, **kw):
     db.session.commit()
 
 def removeMemberFromBoard(data, **kw):
+    print data
     if os.environ['TRELLO_BOT_ID'] == data['member']['id']:
         board = Board.query.get(data['board']['id'])
         if board:

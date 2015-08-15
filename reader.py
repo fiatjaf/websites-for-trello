@@ -8,6 +8,7 @@ import requests
 import datetime
 import traceback
 import handlers as h
+import redis.exceptions as redis_exceptions
 from raygun4py import raygunprovider
 from board_management import board_setup, add_bot, remove_bot
 from initial_fetch import initial_fetch
@@ -22,6 +23,9 @@ starttime = datetime.datetime.now()
 
 def process_messages(n=10):
     r = requests.get(os.environ['WEBHOOK_URL'] + '/messages', params={'n': n})
+    if not r.ok:
+        print ':: MODEL-UPDATES :: %s response error from receive-webhooks.' % r.status_code
+        return
 
     messages = []
     try:
@@ -143,13 +147,25 @@ def process_message(payload):
         today = datetime.date.today()
         try:
             redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
-        except redis.exceptions.ResponseError:
+        except redis_exceptions.ResponseError as e:
             print ':: MODEL-UPDATES ::', e, ' -- couldn\'t INCR webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id'])
 
         # count up for this board. every x messages we do a initial-fetch
         counts[board_id] = counts.get(board_id, 0) + 1
-        if counts[board_id] % 70 == 0:
-            initial_fetch(board_id)
+        thiscount = counts[board_id]
+        exponent = 3
+        while True:
+            divisor = 2**exponent
+            print exponent, divisor
+            if exponent > 25:
+                break # just for safety
+            elif divisor == thiscount:
+                initial_fetch(board_id)
+                break
+            elif divisor > thiscount:
+                exponent += 1
+            elif divisor < thiscount:
+                break
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == 'forever':
