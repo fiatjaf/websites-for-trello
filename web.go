@@ -48,6 +48,7 @@ func main() {
 		}
 		err = rabbitSend(body)
 		if err != nil {
+			log.Print(err.Error())
 			http.Error(w, "Error handling message.", 500)
 			return
 		}
@@ -64,9 +65,9 @@ func main() {
 		source := r.FormValue("source")
 		target := r.FormValue("target")
 		webmention := struct {
-			Type   string `json: "type"`
-			Source string `json: "source"`
-			Target string `json: "target"`
+			Type   string `json:"type"`
+			Source string `json:"source"`
+			Target string `json:"target"`
 		}{
 			Type:   "webmentionReceived",
 			Source: source,
@@ -82,19 +83,27 @@ func main() {
 
 		err = rabbitSend(webmentionMessage)
 		if err != nil {
+			log.Print(err.Error())
 			http.Error(w, "Error handling message.", 500)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
 	})
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "5000"
+	}
+	log.Print(":: RECEIVE-WEBHOOKS :: listening at port " + port)
+	http.ListenAndServe(":"+os.Getenv("PORT"), r)
 }
 
 func rabbitSend(payload []byte) error {
 	data := struct {
-		Payload         string            `json: "payload"`
-		PayloadEncoding string            `json: "payload_encoding"`
-		RoutingKey      string            `json: "routing_key"`
-		Properties      map[string]string `json: "properties"`
+		Payload         string            `json:"payload"`
+		PayloadEncoding string            `json:"payload_encoding"`
+		RoutingKey      string            `json:"routing_key"`
+		Properties      map[string]string `json:"properties"`
 	}{
 		Payload:         string(payload),
 		PayloadEncoding: "string",
@@ -103,6 +112,8 @@ func rabbitSend(payload []byte) error {
 	}
 	jsondata, _ := json.Marshal(data)
 	jsondatabuffer := bytes.NewBuffer(jsondata)
+
+	log.Print(string(jsondata))
 
 	resp, err := http.Post(rabbitMQPublishURL, "application/json", jsondatabuffer)
 	if err != nil {
@@ -114,7 +125,7 @@ func rabbitSend(payload []byte) error {
 		return err
 	}
 	var reply struct {
-		Routed bool `json: "routed"`
+		Routed bool `json:"routed"`
 	}
 	err = json.Unmarshal(respstring, &reply)
 	if err != nil {
