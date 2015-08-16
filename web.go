@@ -1,0 +1,127 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/gorilla/mux"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+)
+
+var rabbitMQQueue string
+var rabbitMQPublishURL string
+
+func main() {
+	// setup globals
+	p, err := url.Parse(os.Getenv("CLOUDAMQP_URL"))
+	if err != nil {
+		log.Fatal("couldn't parse CLOUDAMQP_URL.")
+	}
+	rabbitMQPublishURL = fmt.Sprintf("https://%s@%s/api/exchanges%s/amq.default/publish", p.User, p.Host, p.Path)
+	rabbitMQQueue = "wft"
+	if os.Getenv("DEBUG") != "" {
+		rabbitMQQueue = "wft-test"
+	}
+
+	// router
+	r := mux.NewRouter()
+	r.HandleFunc("/board", func(w http.ResponseWriter, r *http.Request) {
+		// handling trello test request
+		if r.Method == "GET" {
+			log.Print(":: RECEIVE-WEBHOOKS :: trello checks this endpoint when creating a webhook.")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// handling trello POST
+		// body is json
+		defer r.Body.Close()
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Your request is wrong.", 400)
+			return
+		}
+		err = rabbitSend(body)
+		if err != nil {
+			http.Error(w, "Error handling message.", 500)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	r.HandleFunc("/webmention", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "Your request is wrong.", 400)
+			return
+		}
+
+		// webmention endpoint
+		// body is x-www-form-urlencoded
+		source := r.FormValue("source")
+		target := r.FormValue("target")
+		webmention := struct {
+			Type   string `json: "type"`
+			Source string `json: "source"`
+			Target string `json: "target"`
+		}{
+			Type:   "webmentionReceived",
+			Source: source,
+			Target: target,
+		}
+		if webmention.Source == "" || webmention.Target == "" {
+			http.Error(w, "Your request is missing things.", 400)
+			return
+		}
+
+		// make a json string
+		webmentionMessage, err := json.Marshal(webmention)
+
+		err = rabbitSend(webmentionMessage)
+		if err != nil {
+			http.Error(w, "Error handling message.", 500)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func rabbitSend(payload []byte) error {
+	data := struct {
+		Payload         string            `json: "payload"`
+		PayloadEncoding string            `json: "payload_encoding"`
+		RoutingKey      string            `json: "routing_key"`
+		Properties      map[string]string `json: "properties"`
+	}{
+		Payload:         string(payload),
+		PayloadEncoding: "string",
+		RoutingKey:      rabbitMQQueue,
+		Properties:      make(map[string]string),
+	}
+	jsondata, _ := json.Marshal(data)
+	jsondatabuffer := bytes.NewBuffer(jsondata)
+
+	resp, err := http.Post(rabbitMQPublishURL, "application/json", jsondatabuffer)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	respstring, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	var reply struct {
+		Routed bool `json: "routed"`
+	}
+	err = json.Unmarshal(respstring, &reply)
+	if err != nil {
+		return err
+	}
+	if !reply.Routed {
+		return errors.New("Message wasn't routed.")
+	}
+	return nil
+}
