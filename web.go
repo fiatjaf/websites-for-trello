@@ -40,6 +40,8 @@ func main() {
 
 		// handling trello POST
 		// body is json
+		log.Print(":: RECEIVE-WEBHOOKS :: got a trello message.")
+
 		defer r.Body.Close()
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -62,6 +64,8 @@ func main() {
 
 		// webmention endpoint
 		// body is x-www-form-urlencoded
+		log.Print(":: RECEIVE-WEBHOOKS :: got a webmention.")
+
 		source := r.FormValue("source")
 		target := r.FormValue("target")
 		webmention := struct {
@@ -112,8 +116,6 @@ func rabbitSend(payload []byte) error {
 	}
 	jsondata, _ := json.Marshal(data)
 	jsondatabuffer := bytes.NewBuffer(jsondata)
-
-	log.Print(string(jsondata))
 
 	resp, err := http.Post(rabbitMQPublishURL, "application/json", jsondatabuffer)
 	if err != nil {
