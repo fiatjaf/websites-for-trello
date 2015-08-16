@@ -1,9 +1,9 @@
 {{#Aggregator.Test}}
-  <header>
-    <h1>
-      <a href="/{{ Slug }}/">{{ Name }}</a>
-    </h1>
-  </header>
+<header>
+  <h1>
+    <a href="/{{ Slug }}/">{{ Name }}</a>
+  </h1>
+</header>
 {{/Aggregator.Test}}
 
 {{#Card}}
@@ -11,55 +11,52 @@
 
   <header>
     {{#HasCover}}<img src="{{ Cover }}">{{/HasCover}}
-
     {{^IsPage}}
-      <h1>
-        <a {{#ShowMF2}}class="p-name"{{/ShowMF2}} href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
-      </h1>
+    <h1>
+      <a {{#ShowMF2}}class="p-name"{{/ShowMF2}} href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
+    </h1>
 
-      <a {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
+    <a {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
 
-      <ul>
-        {{#GetLabels}}
-          <li><a href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
-        {{/GetLabels}}
-      </ul>
+    <ul>
+      {{#GetLabels}}
+      <li><a href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
+      {{/GetLabels}}
+    </ul>
     {{/IsPage}}
 
   </header>
   
-  <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>
-    {{{ DescRender }}}
-  </div>
+  <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>{{{ DescRender }}}</div>
 
 </article>
 
 {{#GetChecklists}}
-  <section>
-    <header>
-      <h1>{{ Name }}</h1>
-    </header>
-    <ul>
-      {{#CheckItems}}
-        <li>
-          <input type="checkbox" disabled {{#Complete}}checked{{/Complete}}>
-          {{{ NameRender }}}
-        </li>
-      {{/CheckItems}}
-    <ul>
-  </section>
+<section>
+  <header>
+    <h1>{{ Name }}</h1>
+  </header>
+  <ul>
+    {{#CheckItems}}
+    <li>
+      <input type="checkbox" disabled {{#Complete}}checked{{/Complete}}>
+      {{{ NameRender }}}
+    </li>
+    {{/CheckItems}}
+  <ul>
+</section>
 {{/GetChecklists}}
 
 {{#HasAttachments}}
-  <section>
-    <ul>
-      {{#GetAttachments}}
-        <li>
-          <a target="_blank" href="{{ Url }}">{{ Name }}</a>
-        </li>
-      {{/GetAttachments}}
-    </ul>
-  </section>
+<section>
+  <ul>
+    {{#GetAttachments}}
+    <li>
+      <a target="_blank" href="{{ Url }}">{{ Name }}</a>
+    </li>
+    {{/GetAttachments}}
+  </ul>
+</section>
 {{/HasAttachments}}
 
 {{/Card}}
@@ -68,10 +65,10 @@
 <section>
   <h1>Comments</h1>
   {% for comment in card.comments %}
-    <div>
-      <h1>{{ comment.author }} at {{ comment.date }}</h1>
-      {{ comment.text | markdown | safe }}
-    </div>
+  <div>
+    <h1>{{ comment.author }} at {{ comment.date }}</h1>
+    {{ comment.text | markdown | safe }}
+  </div>
   {% endfor %}
   <p>To comment, send a webmention to this page, or an email to <a href="mailto:webmention@questo.email">webmention@questo.email.com</a> with the URL of this page as the subject.</p>
 </section>
