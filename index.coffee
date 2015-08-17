@@ -2,8 +2,6 @@ require 'newrelic'
 
 pg             = require 'pg'
 url            = require 'url'
-redis          = require 'rsmq/node_modules/redis'
-RedisSMQ       = require 'rsmq'
 Promise        = require 'bluebird'
 NodeTrello     = require 'node-trello'
 extend         = require 'xtend'
@@ -14,55 +12,35 @@ bodyParser     = require 'body-parser'
 cors           = require 'cors'
 superagent     = (require 'superagent-promise')((require 'superagent'), Promise)
 
-p = url.parse process.env.CLOUDAMQP_URL
-rabbitMQPublishURL = "https://#{p.auth}@#{p.host}/api/exchanges#{p.pathname}/amq.default/publish"
-
 if process.env.DEBUG
   process.env.SITE_URL = 'http://' + process.env.DOMAIN
   process.env.API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
   port = process.env.API_URL.split(':').slice(-1)[0]
-  rsmq_ns = 'test-rsmq'
-  rabbitSend = (message) ->
-    superagent
-      .post(rabbitMQPublishURL)
-      .set('Content-Type': 'application/json')
-      .send(properties: {}, payload_encoding: 'string', routing_key: 'test-wft', payload: message)
-      .end()
-      .then((res) ->
-        if not res.body.routed
-          throw new Error('message not routed.')
-        return res
-      )
-      .catch(console.log.bind console, ':: RECEIVE-WEBHOOKS :: rabbitSend error:')
 else
   process.env.SITE_URL = 'http://' + process.env.DOMAIN
   process.env.API_URL = 'http://api.' + process.env.DOMAIN
   port = process.env.PORT
-  rsmq_ns = 'rsmq'
   raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
   raygun.user = (request) -> request.session.username
-  rabbitSend = (message) ->
-    superagent
-      .post(rabbitMQPublishURL)
-      .set('Content-Type': 'application/json')
-      .send(properties: {}, payload_encoding: 'string', routing_key: 'wft', payload: message)
-      .end()
-      .then((res) ->
-        if not res.body.routed
-          throw new Error('message not routed.')
-        return res
-      )
-      .catch(console.log.bind console, ':: RECEIVE-WEBHOOKS :: rabbitSend error:')
 
-r = redis.createClient process.env.REDIS_PORT, process.env.REDIS_HOST, {
-  auth_pass: process.env.REDIS_PASSWORD
-  enable_offline_queue: false
-}
-qname = 'webhooks'
-rsmq = new RedisSMQ
-  client: r
-  ns: rsmq_ns
-rsmq.sendMessageAsync = Promise.promisify rsmq.sendMessage
+p = url.parse process.env.CLOUDAMQP_URL
+rabbitMQPublishURL = "https://#{p.auth}@#{p.host}/api/exchanges#{p.pathname}/amq.default/publish"
+rabbitSend = (message, opts={}) ->
+  queue = switch opts.delayed
+    when true then 'delay.4min'
+    else 'wft'
+  queue = if process.env.DEBUG then queue + '-test' else queue
+  superagent
+    .post(rabbitMQPublishURL)
+    .set('Content-Type': 'application/json')
+    .send(properties: {}, payload_encoding: 'string', routing_key: queue, payload: message)
+    .end()
+    .then((res) ->
+      if not res.body.routed
+        throw new Error('message not routed.')
+      return res
+    )
+    .catch(console.log.bind console, ':: RECEIVE-WEBHOOKS :: rabbitSend error:')
 
 trello = Promise.promisifyAll new NodeTrello process.env.TRELLO_API_KEY
 oauth = new NodeTrello.OAuth(
@@ -186,10 +164,8 @@ setupBoard = (request, response, next) ->
     Promise.all [
       conn.queryAsync 'SELECT id, name, "shortLink", subdomain FROM boards WHERE id=$1', [id]
       trello.getAsync "/1/boards/#{id}/shortLink"
-      rsmq.sendMessageAsync { qname: qname, message: boardSetupPayload }
-      rsmq.sendMessageAsync { qname: qname, message: initialFetchPayload, delay: 240 }
       rabbitSend boardSetupPayload
-      rabbitSend initialFetchPayload
+      rabbitSend initialFetchPayload, delayed: true
     ]
   ).spread((qresult, shortLink) ->
     console.log ':: API :: boardSetup message sent:', boardSetupPayload
@@ -251,8 +227,7 @@ app.post '/board/:boardId/initial-fetch', userRequired, (request, response, next
     'type': 'initialFetch'
     'board_id': request.params.boardId
   }
-  rabbitSend(payload)
-  rsmq.sendMessageAsync({ qname: qname, message: payload }).then(-> response.sendStatus 202).catch(next)
+  rabbitSend(payload).then(-> response.sendStatus 202).catch(next)
 
 app.delete '/board/:boardId', userRequired, (request, response, next) ->
   release = null
@@ -277,7 +252,6 @@ WHERE user_id = $1
     response.sendStatus 200
 
     rabbitSend payload
-    rsmq.sendMessageAsync { qname: qname, message: payload }
   ).catch(next)
   .finally(->
     release()
