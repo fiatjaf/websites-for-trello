@@ -5,6 +5,7 @@ import (
 	"github.com/MindscapeHQ/raygun4go"
 	"github.com/carbocation/interpose"
 	"github.com/carbocation/interpose/adaptors"
+	"github.com/gorilla/feeds"
 	"github.com/gorilla/mux"
 	"github.com/hoisie/redis"
 	"github.com/jmoiron/sqlx"
@@ -36,8 +37,6 @@ func index(w http.ResponseWriter, r *http.Request) {
 	// ~
 
 	// pagination
-	context.Page = 1
-	context.HasPrev = false
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
@@ -53,41 +52,13 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 	// ~
 
-	ppp := context.Prefs.PostsPerPage()
-
-	// fetch home cards for home
-	var cards []Card
-	db.Select(&cards, `
-SELECT cards.slug,
-       cards.name,
-       coalesce(cards.cover, '') as cover,
-       cards.id,
-       due,
-       list_id
-FROM cards
-INNER JOIN lists ON lists.id = cards.list_id
-WHERE lists.board_id = $1
-  AND lists.visible
-  AND cards.visible
-ORDER BY cards.due DESC, cards.id DESC
-OFFSET $2
-LIMIT $3
-    `, context.Board.Id, ppp*(context.Page-1), ppp+1)
+	// fetch cards for home
+	err = completeWithIndexCards(&context)
 	if err != nil {
-		log.Print(err)
 		raygun.CreateError(err.Error())
 		http.Error(w, err.Error(), 500)
 		return
 	}
-
-	if len(cards) > ppp {
-		context.HasNext = true
-		cards = cards[:ppp]
-	} else {
-		context.HasNext = false
-	}
-
-	context.Cards = cards
 
 	fmt.Fprint(w,
 		renderOnTopOf(context,
@@ -95,6 +66,41 @@ LIMIT $3
 			"templates/base.html",
 		),
 	)
+}
+
+func feed(w http.ResponseWriter, r *http.Request) {
+	// fetch cards for home
+	err := completeWithIndexCards(&context)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// generate feed
+	feed := &feeds.Feed{
+		Title:       context.Board.Name,
+		Link:        &feeds.Link{Href: context.BaseURL.String()},
+		Description: context.Board.Desc,
+		Author:      &feeds.Author{context.Board.User_id, ""},
+		Created:     context.Cards[0].Date(),
+	}
+	feed.Items = []*feeds.Item{}
+	for _, card := range context.Cards {
+		feed.Items = append(feed.Items, &feeds.Item{
+			Id:          card.Id,
+			Title:       card.Name,
+			Link:        &feeds.Link{Href: context.BaseURL.String() + "/c/" + card.Id},
+			Description: card.Desc,
+			Created:     card.Date(),
+		})
+	}
+	rss, err := feed.ToRss()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	fmt.Fprint(w, rss)
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
@@ -620,6 +626,7 @@ func main() {
 	router.HandleFunc("/favicon.ico", favicon)
 	router.HandleFunc("/robots.txt", error404)
 	router.HandleFunc("/opensearch.xml", opensearch)
+	router.HandleFunc("/feed.xml", feed)
 
 	// > redirect from permalinks
 	router.HandleFunc("/c/{card-id-or-shortLink}/", cardRedirect)

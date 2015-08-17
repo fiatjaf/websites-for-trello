@@ -29,6 +29,7 @@ func renderMarkdown(md string) string {
 type BaseData struct {
 	error
 	Request          *http.Request
+	BaseURL          *url.URL
 	Board            Board
 	Lists            []List
 	Aggregator       Aggregator
@@ -113,6 +114,9 @@ func (prefs Preferences) PostsPerPage() int {
 	ppp, err := strconv.Atoi(prefs.PostsPerPageValue)
 	if err != nil {
 		return 7
+	}
+	if ppp > 15 {
+		return 15
 	}
 	return ppp
 }

@@ -32,6 +32,12 @@ func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
 	var identifier string
 	var board Board
 
+	// site root URL
+	rootURL := *r.URL
+	rootURL.Path = ""
+	rootURL.RawQuery = ""
+	rootURL.Fragment = ""
+
 	// board and author
 	if strings.HasSuffix(r.Host, settings.Domain) {
 		// subdomain
@@ -103,11 +109,17 @@ ORDER BY pos
 
 	return BaseData{
 		Request:  r,
+		BaseURL:  &rootURL,
 		Settings: settings,
 		Board:    board,
 		Lists:    lists,
 		Prefs:    prefs,
-		ShowMF2:  !strings.Contains(r.UserAgent(), "Mozilla"),
+
+		Page:    1,
+		HasPrev: false,
+		HasNext: false,
+
+		ShowMF2: !strings.Contains(r.UserAgent(), "Mozilla"),
 	}
 }
 
@@ -217,4 +229,40 @@ func search(query string, idBoard string) ([]Card, error) {
 	}
 
 	return filteredcards, nil
+}
+
+func completeWithIndexCards(context *BaseData) error {
+	ppp := context.Prefs.PostsPerPage()
+
+	var cards []Card
+	err := db.Select(&cards, `
+SELECT cards.slug,
+       cards.name,
+       coalesce(cards.cover, '') as cover,
+       cards.id,
+       due,
+       list_id
+FROM cards
+INNER JOIN lists ON lists.id = cards.list_id
+WHERE lists.board_id = $1
+  AND lists.visible
+  AND cards.visible
+ORDER BY cards.due DESC, cards.id DESC
+OFFSET $2
+LIMIT $3
+    `, context.Board.Id, ppp*(context.Page-1), ppp+1)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+
+	if len(cards) > ppp {
+		context.HasNext = true
+		cards = cards[:ppp]
+	} else {
+		context.HasNext = false
+	}
+
+	context.Cards = cards
+	return nil
 }

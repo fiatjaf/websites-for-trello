@@ -35,6 +35,10 @@
 			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
 		},
 		{
+			"ImportPath": "github.com/gorilla/feeds",
+			"Rev": "625d173520a311f958b5ee7a14e6c625a87a5e79"
+		},
+		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
 		},
@@ -55,15 +59,6 @@
 		{
 			"ImportPath": "github.com/kaeuferportal/stack2struct",
 			"Rev": "6838fbadc9188e5d5778b0c708da95d90653bda0"
-		},
-		{
-			"ImportPath": "github.com/kr/pretty",
-			"Comment": "go.weekly.2011-12-22-24-gf31442d",
-			"Rev": "f31442d60e51465c69811e2107ae978868dbea5c"
-		},
-		{
-			"ImportPath": "github.com/kr/text",
-			"Rev": "6807e777504f54ad073ecef66747de158294b639"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
