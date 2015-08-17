@@ -164,10 +164,9 @@ def removeChecklistFromCard(data, **kw):
     db.session.commit()
 
 def updateChecklist(data, **kw):
-    print 'updateChecklist:'
-    print data
-    print kw
-    card = Card.query.get(data['card']['id'])
+    card_id = trello.checklists.get(data['checklist']['id'], cards='all', card_fields=['id'], checkItems='none', fields='id')['cards']['id']
+
+    card = Card.query.get(card_id)
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     for attr in ('pos', 'name'):
         if attr in data['checklist']:
