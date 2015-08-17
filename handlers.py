@@ -164,6 +164,9 @@ def removeChecklistFromCard(data, **kw):
     db.session.commit()
 
 def updateChecklist(data, **kw):
+    print 'updateChecklist:'
+    print data
+    print kw
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     for attr in ('pos', 'name'):

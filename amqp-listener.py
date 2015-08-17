@@ -6,7 +6,6 @@ import time
 import json
 import signal
 import shelve
-import logging
 import requests
 import datetime
 import traceback
@@ -19,15 +18,13 @@ from webmention_handling import handle_webmention
 from models import Board
 from app import app, redis
 
-class GlobalTimeUp(Exception):
-    pass
-
-class LocalTimeUp(Exception):
+class LocalTimeUp(BaseException):
     pass
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
 counts = shelve.open(os.path.join(pwd, 'counts.store'))
+starttime = datetime.datetime.now()
 
 # open connection to cloudamqp
 params = pika.URLParameters(os.environ['CLOUDAMQP_URL'])
@@ -37,8 +34,7 @@ channel = connection.channel()
 channel.queue_declare(queue='wft', durable=True)
 
 def main():
-    # set up the alarm
-    start_global_alarm(170)
+    print ':: MODEL-UPDATES :: waiting for messages.'
 
     # start listening
     listen()
@@ -47,15 +43,14 @@ def listen():
     # this is where we actually start listening
     messages = []
     try:
-        print ':: MODEL-UPDATES :: waiting for messages.'
-
         # local alarm, 20 seconds
-        def proceed(signum, frame): raise LocalTimeUp('proceed.')
+        def proceed(signum, frame):
+            raise LocalTimeUp('proceed.')
         signal.signal(signal.SIGALRM, proceed)
-        signal.alarm(20)
+        signal.alarm(15)
 
         for method, properties, body in channel.consume(queue='wft'):
-            print ':: MODEL-UPDATES :: got a message. now we have %s.' % len(messages)
+            print ':: MODEL-UPDATES :: got a message. now we have %s.' % (len(messages) + 1)
             try:
                 messages.append((json.loads(body), method))
             except ValueError:
@@ -69,16 +64,16 @@ def listen():
     except LocalTimeUp:
         if messages:
             process_message_batch(messages)
-        listen()
-    except GlobalTimeUp:
-        print ':: MODEL-UPDATES :: end of time.'
-        channel.cancel()
-        if messages:
-            print ':: MODEL-UPDATES :: processing the messages we have here:'
-            process_message_batch(messages)
-        print ':: MODEL-UPDATES :: closing connection.'
-        connection.close()
-        sys.exit()
+
+        if (datetime.datetime.now() - starttime).seconds > 170:
+            # running for more than 170 seconds. stop.
+            print ':: MODEL-UPDATES :: end of time.'
+            channel.cancel()
+            connection.close()
+            sys.exit()
+        else:
+            # not running for enough time yet. restart.
+            listen()
 
 def process_message_batch(messages):
     sorted_messages = sorted(messages, key=lambda m: m[0].get('date'))
@@ -87,7 +82,8 @@ def process_message_batch(messages):
     #for i in range(len(sorted_messages)):
     #    print '\t{} | {} | {}'.format(payloads[i].get('date'), s[i].get('date'), s[i].get('type'))
 
-    for payload, method in sorted_messages:
+    for message, method in sorted_messages:
+        payload = message.get('action') or message
         with app.app_context():
             try:
                 process_message(payload)
@@ -193,7 +189,7 @@ def process_message(payload):
         exponent = 3
         while True:
             divisor = 2**exponent
-            print exponent, divisor
+            print '2 **',exponent, '|', divisor, '/', thiscount
             if exponent > 25:
                 break # just for safety
             elif divisor == thiscount:
@@ -203,13 +199,6 @@ def process_message(payload):
                 exponent += 1
             elif divisor < thiscount:
                 break
-
-def start_global_alarm(seconds):
-    def on_signal(signum, frame):
-        raise GlobalTimeUp("your time is over!")
-
-    signal.signal(signal.SIGALRM, on_signal)
-    signal.alarm(seconds)
 
 if __name__ == '__main__':
     main()
