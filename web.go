@@ -30,6 +30,10 @@ func main() {
 
 	// router
 	r := mux.NewRouter()
+	r.HandleFunc("/check", func(w http.ResponseWriter, r *http.Request) {
+		// a handler for telling CHECKs and external monitors that this app is ok
+		w.WriteHeader(http.StatusOK)
+	})
 	r.HandleFunc("/board", func(w http.ResponseWriter, r *http.Request) {
 		// handling trello test request
 		if r.Method == "GET" {
