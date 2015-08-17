@@ -44,8 +44,8 @@ else
   process.env.SITES_DOMAIN = process.env.DOMAIN
 
 # landing page modifications
-for node in document.querySelectorAll('[href^="#__"]')
-  node.href = node.href.replace /.*__API_URL__/, process.env.API_URL
+for node in document.querySelectorAll('[href^="#trello-login"]')
+  node.href = process.env.API_URL + '/account/setup/start'
 
 # humane.js notifications
 humane.timeout = 2500
@@ -77,7 +77,7 @@ handlers =
     ).then((res) ->
       if res.body and res.body.user
         if location.pathname == '/'
-          humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard."
+          humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard.", {timeout: 12000}
         else
           if State.get('user') != res.body.user
             ma('login', res.body.user)
@@ -89,8 +89,7 @@ handlers =
             router.redirect if res.body.activeboards.length then '#/' else '#/setup'
       else
         if location.pathname == '/account/'
-          humane.error 'You must login before accessing the dashboard.'
-          location.pathname = '/'
+          location.href = process.env.API_URL + '/account/setup/start'
     ).catch(console.log.bind console)
 
   setupBoard: (State, data) ->
