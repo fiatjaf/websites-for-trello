@@ -21,6 +21,9 @@ from app import app, redis
 class LocalTimeUp(BaseException):
     pass
 
+class MessageCount(BaseException):
+    pass
+
 pwd = os.path.dirname(os.path.realpath(__file__))
 raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
 counts = shelve.open(os.path.join(pwd, 'counts.store'))
@@ -59,9 +62,10 @@ def listen():
 
             if len(messages) == 10:
                 print ':: MODEL-UPDATES :: got 10, will process.'
-                process_message_batch(messages)
+                signal.alarm(0)
+                raise MessageCount
 
-    except LocalTimeUp:
+    except (LocalTimeUp, MessageCount):
         if messages:
             process_message_batch(messages)
 
