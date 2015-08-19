@@ -77,9 +77,12 @@ func (b RequestData) PrevPage() int {
 type Preferences struct {
 	Favicon           string
 	Domain            string
+	Header            string
+	Aside             string
 	Includes          []string
 	Nav               []Link
 	PostsPerPageValue string `json:"posts-per-page"`
+	ExcerptsValue     string `json:"excerpts"`
 }
 
 func (prefs Preferences) JS() []string {
@@ -119,6 +122,24 @@ func (prefs Preferences) PostsPerPage() int {
 		return 15
 	}
 	return ppp
+}
+
+func (prefs Preferences) Excerpts() int {
+	limit, err := strconv.Atoi(prefs.ExcerptsValue)
+	if err != nil {
+		return 0
+	}
+	if limit > 300 {
+		return 300
+	}
+	return limit
+}
+
+func (prefs Preferences) ShowExcerpts() bool {
+	if prefs.Excerpts() > 0 {
+		return true
+	}
+	return false
 }
 
 type SearchResults []Card
@@ -222,6 +243,7 @@ type Card struct {
 	Slug        string
 	Cover       string
 	Desc        string
+	Excerpt     string
 	Due         interface{}
 	List_id     string
 	Labels      types.JsonText
@@ -233,6 +255,13 @@ type Card struct {
 
 func (card Card) DescRender() string {
 	return renderMarkdown(card.Desc)
+}
+
+func (card Card) HasExcerpt() bool {
+	if strings.TrimSpace(card.Excerpt) == "" {
+		return false
+	}
+	return true
 }
 
 func (card Card) HasCover() bool {

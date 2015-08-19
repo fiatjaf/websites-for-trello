@@ -77,7 +77,7 @@ func feed(w http.ResponseWriter, r *http.Request) {
 			Id:          card.Id,
 			Title:       card.Name,
 			Link:        &feeds.Link{Href: requestData.BaseURL.String() + "/c/" + card.Id},
-			Description: card.Desc,
+			Description: card.Excerpt,
 			Created:     card.Date(),
 		})
 	}
@@ -128,17 +128,19 @@ func list(w http.ResponseWriter, r *http.Request) {
 (
   SELECT slug,
          name,
+         '' AS excerpt,
          null AS due,
          id,
          0 AS pos,
          '' AS cover
   FROM lists
-  WHERE board_id = $1
-    AND slug = $2
+  WHERE board_id = $2
+    AND slug = $3
     AND visible
 ) UNION ALL (
   SELECT cards.slug,
          cards.name,
+         substring(cards.desc from 0 for $1) AS excerpt,
          cards.due,
          cards.id,
          cards.pos,
@@ -146,16 +148,16 @@ func list(w http.ResponseWriter, r *http.Request) {
   FROM cards
   INNER JOIN lists
   ON lists.id = cards.list_id
-  WHERE board_id = $1
-    AND lists.slug = $2
+  WHERE board_id = $2
+    AND lists.slug = $3
     AND lists.visible
     AND cards.visible
   ORDER BY pos
-  OFFSET $3
-  LIMIT $4
+  OFFSET $4
+  LIMIT $5
 )
 ORDER BY pos
-    `, requestData.Board.Id, listSlug, ppp*(requestData.Page-1), ppp+1)
+    `, requestData.Prefs.Excerpts(), requestData.Board.Id, listSlug, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
@@ -239,16 +241,18 @@ func label(w http.ResponseWriter, r *http.Request) {
 (
   SELECT slug,
          name,
+         '' AS excerpt,
          null AS due,
          id,
          0 AS pos,
          '' AS cover
   FROM labels
-  WHERE board_id = $1
-    AND slug = $2
+  WHERE board_id = $2
+    AND slug = $3
 ) UNION ALL (
   SELECT cards.slug,
          cards.name,
+         substring(cards.desc from 0 for $1) AS excerpt,
          cards.due,
          cards.id,
          cards.pos,
@@ -256,15 +260,15 @@ func label(w http.ResponseWriter, r *http.Request) {
   FROM cards
   INNER JOIN labels
   ON labels.id = ANY(cards.labels)
-  WHERE board_id = $1
-    AND (labels.slug = $2 OR labels.id = $2)
+  WHERE board_id = $2
+    AND (labels.slug = $3 OR labels.id = $3)
     AND cards.visible
   ORDER BY pos
-  OFFSET $3
-  LIMIT $4
+  OFFSET $4
+  LIMIT $5
 )
 ORDER BY pos
-    `, requestData.Board.Id, labelSlug, ppp*(requestData.Page-1), ppp+1)
+    `, requestData.Prefs.Excerpts(), requestData.Board.Id, labelSlug, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter

@@ -238,19 +238,20 @@ func completeWithIndexCards(requestData *RequestData) error {
 	err := db.Select(&cards, `
 SELECT cards.slug,
        cards.name,
-       coalesce(cards.cover, '') as cover,
+       substring(cards.desc from 0 for $1) AS excerpt,
+       coalesce(cards.cover, '') AS cover,
        cards.id,
        due,
        list_id
 FROM cards
 INNER JOIN lists ON lists.id = cards.list_id
-WHERE lists.board_id = $1
+WHERE lists.board_id = $2
   AND lists.visible
   AND cards.visible
 ORDER BY cards.due DESC, cards.id DESC
-OFFSET $2
-LIMIT $3
-    `, requestData.Board.Id, ppp*(requestData.Page-1), ppp+1)
+OFFSET $3
+LIMIT $4
+    `, requestData.Prefs.Excerpts(), requestData.Board.Id, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		log.Print(err)
 		return err
