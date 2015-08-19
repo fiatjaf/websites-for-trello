@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-func countPageViews() {
+func countPageViews(requestData RequestData) {
 	now := time.Now().UTC()
-	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), context.Board.Id)
+	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), requestData.Board.Id)
 	rds.Incr(key)
 }
 
-func getBaseData(w http.ResponseWriter, r *http.Request) BaseData {
+func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -63,12 +63,12 @@ WHERE custom_domains.domain = $1`,
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
 			http.Error(w, "We don't have the site "+identifier+" here.", 404)
-			return BaseData{error: err}
+			return RequestData{error: err}
 		} else {
 			log.Print(err.Error())
 			raygun.CreateError(err.Error())
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
-			return BaseData{error: err}
+			return RequestData{error: err}
 		}
 	}
 
@@ -86,7 +86,7 @@ ORDER BY pos
 		log.Print(err)
 		raygun.CreateError(err.Error())
 		http.Error(w, "There was an error in the process of fetching data for "+identifier+" from Trello, or this process was aborted by the Board owner. If you are the Board owner, try to re-setup the same Board from our dashboard.", 500)
-		return BaseData{error: err}
+		return RequestData{error: err}
 	}
 
 	// prefs
@@ -96,7 +96,7 @@ ORDER BY pos
 		log.Print(err.Error())
 		raygun.CreateError(err.Error())
 		http.Error(w, "A strange error ocurred. If you are the Board owner for this site, please report it to us. It is probably an error with the _preferences List.", 500)
-		return BaseData{error: err}
+		return RequestData{error: err}
 	}
 	var prefs Preferences
 	err = jsonPrefs.Unmarshal(&prefs)
@@ -104,10 +104,10 @@ ORDER BY pos
 		log.Print(err.Error())
 		raygun.CreateError(err.Error())
 		http.Error(w, err.Error(), 500)
-		return BaseData{error: err}
+		return RequestData{error: err}
 	}
 
-	return BaseData{
+	return RequestData{
 		Request:  r,
 		BaseURL:  &rootURL,
 		Settings: settings,
@@ -123,7 +123,7 @@ ORDER BY pos
 	}
 }
 
-func getPageAt(path string) (Card, error) {
+func getPageAt(requestData RequestData, path string) (Card, error) {
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -153,7 +153,7 @@ INNER JOIN boards ON boards.id = lists.board_id
 WHERE boards.id = $1
   AND lists."pagesList"
   AND cards.name IN ($2, $3)
-`, context.Board.Id, path, pathAlt)
+`, requestData.Board.Id, path, pathAlt)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// this error doesn't matter, since in the majority of cases there will be no standalone page here anyway.
@@ -231,8 +231,8 @@ func search(query string, idBoard string) ([]Card, error) {
 	return filteredcards, nil
 }
 
-func completeWithIndexCards(context *BaseData) error {
-	ppp := context.Prefs.PostsPerPage()
+func completeWithIndexCards(requestData *RequestData) error {
+	ppp := requestData.Prefs.PostsPerPage()
 
 	var cards []Card
 	err := db.Select(&cards, `
@@ -250,19 +250,19 @@ WHERE lists.board_id = $1
 ORDER BY cards.due DESC, cards.id DESC
 OFFSET $2
 LIMIT $3
-    `, context.Board.Id, ppp*(context.Page-1), ppp+1)
+    `, requestData.Board.Id, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		log.Print(err)
 		return err
 	}
 
 	if len(cards) > ppp {
-		context.HasNext = true
+		requestData.HasNext = true
 		cards = cards[:ppp]
 	} else {
-		context.HasNext = false
+		requestData.HasNext = false
 	}
 
-	context.Cards = cards
+	requestData.Cards = cards
 	return nil
 }

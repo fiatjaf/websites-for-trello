@@ -4,9 +4,9 @@ import (
 	"github.com/jabley/mustache"
 )
 
-func renderOnTopOf(context BaseData, filenames ...string) string {
+func renderOnTopOf(requestData RequestData, filenames ...string) string {
 	for _, filename := range filenames {
-		context.Content = mustache.RenderFile(filename, context)
+		requestData.Content = mustache.RenderFile(filename, requestData)
 	}
-	return context.Content
+	return requestData.Content
 }

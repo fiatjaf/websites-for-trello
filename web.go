@@ -23,10 +23,10 @@ import (
 var db *sqlx.DB
 var rds redis.Client
 var settings Settings
-var context BaseData
 
 func index(w http.ResponseWriter, r *http.Request) {
-	countPageViews()
+	requestData := loadRequestData(r)
+	countPageViews(requestData)
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -45,15 +45,15 @@ func index(w http.ResponseWriter, r *http.Request) {
 			raygun.CreateError(err.Error())
 			page = 1
 		}
-		context.Page = page
-		if context.Page > 1 {
-			context.HasPrev = true
+		requestData.Page = page
+		if requestData.Page > 1 {
+			requestData.HasPrev = true
 		}
 	}
 	// ~
 
 	// fetch cards for home
-	err = completeWithIndexCards(&context)
+	err = completeWithIndexCards(&requestData)
 	if err != nil {
 		raygun.CreateError(err.Error())
 		http.Error(w, err.Error(), 500)
@@ -61,7 +61,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w,
-		renderOnTopOf(context,
+		renderOnTopOf(requestData,
 			"templates/list.html",
 			"templates/base.html",
 		),
@@ -69,8 +69,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func feed(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
 	// fetch cards for home
-	err := completeWithIndexCards(&context)
+	err := completeWithIndexCards(&requestData)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -78,18 +79,18 @@ func feed(w http.ResponseWriter, r *http.Request) {
 
 	// generate feed
 	feed := &feeds.Feed{
-		Title:       context.Board.Name,
-		Link:        &feeds.Link{Href: context.BaseURL.String()},
-		Description: context.Board.Desc,
-		Author:      &feeds.Author{context.Board.User_id, ""},
-		Created:     context.Cards[0].Date(),
+		Title:       requestData.Board.Name,
+		Link:        &feeds.Link{Href: requestData.BaseURL.String()},
+		Description: requestData.Board.Desc,
+		Author:      &feeds.Author{requestData.Board.User_id, ""},
+		Created:     requestData.Cards[0].Date(),
 	}
 	feed.Items = []*feeds.Item{}
-	for _, card := range context.Cards {
+	for _, card := range requestData.Cards {
 		feed.Items = append(feed.Items, &feeds.Item{
 			Id:          card.Id,
 			Title:       card.Name,
-			Link:        &feeds.Link{Href: context.BaseURL.String() + "/c/" + card.Id},
+			Link:        &feeds.Link{Href: requestData.BaseURL.String() + "/c/" + card.Id},
 			Description: card.Desc,
 			Created:     card.Date(),
 		})
@@ -104,7 +105,8 @@ func feed(w http.ResponseWriter, r *http.Request) {
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
-	countPageViews()
+	requestData := loadRequestData(r)
+	countPageViews(requestData)
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -115,8 +117,8 @@ func list(w http.ResponseWriter, r *http.Request) {
 	// ~
 
 	// pagination
-	context.Page = 1
-	context.HasPrev = false
+	requestData.Page = 1
+	requestData.HasPrev = false
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
@@ -124,14 +126,14 @@ func list(w http.ResponseWriter, r *http.Request) {
 			raygun.CreateError(err.Error())
 			page = 1
 		}
-		context.Page = page
-		if context.Page > 1 {
-			context.HasPrev = true
+		requestData.Page = page
+		if requestData.Page > 1 {
+			requestData.HasPrev = true
 		}
 	}
 	// ~
 
-	ppp := context.Prefs.PostsPerPage()
+	ppp := requestData.Prefs.PostsPerPage()
 	listSlug := mux.Vars(r)["list-slug"]
 
 	// fetch home cards for this list
@@ -167,7 +169,7 @@ func list(w http.ResponseWriter, r *http.Request) {
   LIMIT $4
 )
 ORDER BY pos
-    `, context.Board.Id, listSlug, ppp*(context.Page-1), ppp+1)
+    `, requestData.Board.Id, listSlug, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
@@ -196,17 +198,17 @@ ORDER BY pos
 	cards = cards[1:]
 
 	if len(cards) > ppp {
-		context.HasNext = true
+		requestData.HasNext = true
 		cards = cards[:ppp]
 	} else {
-		context.HasNext = false
+		requestData.HasNext = false
 	}
 
-	context.Aggregator = list
-	context.Cards = cards
+	requestData.Aggregator = list
+	requestData.Cards = cards
 
 	fmt.Fprint(w,
-		renderOnTopOf(context,
+		renderOnTopOf(requestData,
 			"templates/list.html",
 			"templates/base.html",
 		),
@@ -214,7 +216,8 @@ ORDER BY pos
 }
 
 func label(w http.ResponseWriter, r *http.Request) {
-	countPageViews()
+	requestData := loadRequestData(r)
+	countPageViews(requestData)
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -225,8 +228,8 @@ func label(w http.ResponseWriter, r *http.Request) {
 	// ~
 
 	// pagination
-	context.Page = 1
-	context.HasPrev = false
+	requestData.Page = 1
+	requestData.HasPrev = false
 	if val, ok := mux.Vars(r)["page"]; ok {
 		page, err := strconv.Atoi(val)
 		if err != nil || page < 0 {
@@ -234,14 +237,14 @@ func label(w http.ResponseWriter, r *http.Request) {
 			raygun.CreateError(err.Error())
 			page = 1
 		}
-		context.Page = page
-		if context.Page > 1 {
-			context.HasPrev = true
+		requestData.Page = page
+		if requestData.Page > 1 {
+			requestData.HasPrev = true
 		}
 	}
 	// ~
 
-	ppp := context.Prefs.PostsPerPage()
+	ppp := requestData.Prefs.PostsPerPage()
 	labelSlug := mux.Vars(r)["label-slug"]
 
 	// fetch home cards for this label
@@ -275,7 +278,7 @@ func label(w http.ResponseWriter, r *http.Request) {
   LIMIT $4
 )
 ORDER BY pos
-    `, context.Board.Id, labelSlug, ppp*(context.Page-1), ppp+1)
+    `, requestData.Board.Id, labelSlug, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
@@ -299,17 +302,17 @@ ORDER BY pos
 	cards = cards[1:]
 
 	if len(cards) > ppp {
-		context.HasNext = true
+		requestData.HasNext = true
 		cards = cards[:ppp]
 	} else {
-		context.HasNext = false
+		requestData.HasNext = false
 	}
 
-	context.Aggregator = label
-	context.Cards = cards
+	requestData.Aggregator = label
+	requestData.Cards = cards
 
 	fmt.Fprint(w,
-		renderOnTopOf(context,
+		renderOnTopOf(requestData,
 			"templates/list.html",
 			"templates/base.html",
 		),
@@ -372,7 +375,8 @@ WHERE id = $1
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
-	countPageViews()
+	requestData := loadRequestData(r)
+	countPageViews(requestData)
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -428,7 +432,7 @@ FROM (
   )
 ) AS u
 ORDER BY sort
-	`, context.Board.Id, listSlug, cardSlug)
+	`, requestData.Board.Id, listSlug, cardSlug)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
 			// don't report to raygun, we already know the error and it doesn't matter
@@ -454,11 +458,11 @@ ORDER BY sort
 		Name: cards[0].Name,
 		Slug: cards[0].Slug,
 	}
-	context.Aggregator = list
-	context.Card = cards[1]
+	requestData.Aggregator = list
+	requestData.Card = cards[1]
 
 	fmt.Fprint(w,
-		renderOnTopOf(context,
+		renderOnTopOf(requestData,
 			"templates/card.html",
 			"templates/base.html",
 		),
@@ -466,14 +470,25 @@ ORDER BY sort
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
+	countPageViews(requestData)
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
 	values := r.URL.Query()
 	query := values.Get("query")
 
-	context.SearchQuery = query
-	context.TypedSearchQuery = query != ""
-	context.SearchResults, _ = search(query, context.Board.Id)
+	requestData.SearchQuery = query
+	requestData.TypedSearchQuery = query != ""
+	requestData.SearchResults, _ = search(query, requestData.Board.Id)
 	fmt.Fprint(w,
-		renderOnTopOf(context,
+		renderOnTopOf(requestData,
 			"templates/search.html",
 			"templates/base.html",
 		),
@@ -518,6 +533,7 @@ WHERE "%s" = $1
 }
 
 func error404(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
 	w.WriteHeader(404)
 
 	query := strings.Join(filter(strings.Split(r.URL.Path, "/"), func(s string) bool {
@@ -528,12 +544,12 @@ func error404(w http.ResponseWriter, r *http.Request) {
 	}), " ")
 	query = strings.Join(strings.Split(query, "-"), " ")
 
-	context.SearchQuery = query
-	context.TypedSearchQuery = true
-	context.SearchResults, _ = search(query, context.Board.Id)
+	requestData.SearchQuery = query
+	requestData.TypedSearchQuery = true
+	requestData.SearchResults, _ = search(query, requestData.Board.Id)
 
 	fmt.Fprint(w,
-		renderOnTopOf(context,
+		renderOnTopOf(requestData,
 			"templates/search.html",
 			"templates/404.html",
 			"templates/base.html",
@@ -542,10 +558,12 @@ func error404(w http.ResponseWriter, r *http.Request) {
 }
 
 func opensearch(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, renderOnTopOf(context, "templates/opensearch.xml"))
+	requestData := loadRequestData(r)
+	fmt.Fprint(w, renderOnTopOf(requestData, "templates/opensearch.xml"))
 }
 
 func favicon(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
 	// raygun error reporting
 	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
 	if err != nil {
@@ -556,8 +574,8 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	// ~
 
 	var fav string
-	if context.Prefs.Favicon != "" {
-		fav = context.Prefs.Favicon
+	if requestData.Prefs.Favicon != "" {
+		fav = requestData.Prefs.Favicon
 	} else {
 		fav = "http://lorempixel.com/32/32/"
 	}
@@ -579,20 +597,22 @@ func main() {
 
 	// middleware
 	middle := interpose.New()
+	middle.Use(clearContextMiddleware)
 	middle.Use(adaptors.FromNegroni(cors.New(cors.Options{
 		// CORS
 		AllowedOrigins: []string{"*"},
 	})))
 
 	middle.Use(func(next http.Handler) http.Handler {
-		// fetch context
+		// fetch requestData
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			context = getBaseData(w, r)
+			requestData := getRequestData(w, r)
 			// when there is an error, abort and return
 			// (the http status and message should have been already set at getBaseData)
-			if context.error != nil {
+			if requestData.error != nil {
 				return
 			}
+			saveRequestData(r, requestData)
 			next.ServeHTTP(w, r)
 		})
 	})
@@ -600,14 +620,15 @@ func main() {
 	middle.Use(func(next http.Handler) http.Handler {
 		// try to return a standalone page
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			card, err := getPageAt(r.URL.Path)
+			requestData := loadRequestData(r)
+			card, err := getPageAt(requestData, r.URL.Path)
 			if err != nil {
 				next.ServeHTTP(w, r)
 			} else {
-				countPageViews()
-				context.Card = card
+				countPageViews(requestData)
+				requestData.Card = card
 				fmt.Fprint(w,
-					renderOnTopOf(context,
+					renderOnTopOf(requestData,
 						"templates/card.html",
 						"templates/base.html",
 					),

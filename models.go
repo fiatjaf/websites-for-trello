@@ -26,7 +26,7 @@ func renderMarkdown(md string) string {
 	return string(html)
 }
 
-type BaseData struct {
+type RequestData struct {
 	error
 	Request          *http.Request
 	BaseURL          *url.URL
@@ -47,7 +47,7 @@ type BaseData struct {
 	Content          string
 }
 
-func (b BaseData) NavItems() []Link {
+func (b RequestData) NavItems() []Link {
 	var lists []Link
 	var navItems []Link
 	for _, list := range b.Lists {
@@ -66,11 +66,11 @@ func (b BaseData) NavItems() []Link {
 	return navItems
 }
 
-func (b BaseData) NextPage() int {
+func (b RequestData) NextPage() int {
 	return b.Page + 1
 }
 
-func (b BaseData) PrevPage() int {
+func (b RequestData) PrevPage() int {
 	return b.Page - 1
 }
 
