@@ -5,7 +5,6 @@ import math
 import time
 import json
 import signal
-import shelve
 import requests
 import datetime
 import traceback
@@ -26,7 +25,6 @@ class MessageCount(BaseException):
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
-counts = shelve.open(os.path.join(pwd, 'counts.store'))
 starttime = datetime.datetime.now()
 
 # open connection to cloudamqp
@@ -103,7 +101,6 @@ def process_message(payload):
 
     if payload['type'] == 'boardSetup':
         board_id = str(payload['board_id'])
-        counts[board_id] = 0
 
         try:
             add_bot(payload['user_token'], payload['board_id'])
@@ -118,8 +115,6 @@ def process_message(payload):
             )
             traceback.print_exc(file=sys.stdout)
             print ':: MODEL-UPDATES :: payload:', payload
-
-        counts[board_id] = 0
 
     elif payload['type'] == 'initialFetch':
         try:
@@ -171,14 +166,17 @@ def process_message(payload):
         except:
             if not Board.query.get(payload['data']['board']['id']):
                 print ':: MODEL-UPDATES :: webhook for a board not registered anymore.'
-            raygun.set_user(payload['memberCreator']['username'])
-            raygun.send_exception(
-                exc_info=sys.exc_info(),
-                userCustomData=payload['data'],
-                tags=['webhook', payload['type']]
-            )
-            traceback.print_exc(file=sys.stdout)
-            print ':: MODEL-UPDATES :: payload:', payload
+            else:
+                raygun.set_user(payload['memberCreator']['username'])
+                raygun.send_exception(
+                    exc_info=sys.exc_info(),
+                    userCustomData=payload['data'],
+                    tags=['webhook', payload['type']]
+                )
+                traceback.print_exc(file=sys.stdout)
+                print ':: MODEL-UPDATES :: payload:', payload
+                print ':: MODEL-UPDATES :: since this error happened probably due to a mismatch between our database and the live trello board, we will trigger a initial_fetch for %s.' % payload['data']['board']['id']
+                initial_fetch(payload['data']['board']['id'])
 
         # count webhooks on redis
         today = datetime.date.today()
@@ -186,23 +184,6 @@ def process_message(payload):
             redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
         except redis_exceptions.ResponseError as e:
             print ':: MODEL-UPDATES ::', e, ' -- couldn\'t INCR webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id'])
-
-        # count up for this board. every x messages we do a initial-fetch
-        counts[board_id] = counts.get(board_id, 0) + 1
-        thiscount = counts[board_id]
-        exponent = 3
-        while True:
-            divisor = 2**exponent
-            print '2 **',exponent, '|', divisor, '/', thiscount
-            if exponent > 25:
-                break # just for safety
-            elif divisor == thiscount:
-                initial_fetch(board_id)
-                break
-            elif divisor > thiscount:
-                exponent += 1
-            elif divisor < thiscount:
-                break
 
 if __name__ == '__main__':
     main()

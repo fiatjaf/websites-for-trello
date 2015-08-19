@@ -63,7 +63,6 @@ def board_setup(id):
 
     # > add cards to lists
     special_cards = {
-        'instructions': None,
         'includes': None,
         'nav': None,
         'posts-per-page': None,
@@ -71,10 +70,10 @@ def board_setup(id):
         'favicon': None
     }
     defaults = {
-        'instructions': open(pwd + '/cards/instructions.md').read(),
-        'includes': open(pwd + '/cards/includes.md').read(),
-        'nav': open(pwd + '/cards/nav.md').read(),
+        'includes': 'See instructions for using this special card at http://docs.websitesfortrello.com/the-basics/customization-through-javascript-and-css/',
+        'nav': 'See instructions for customizing navigation at http://docs.websitesfortrello.com/the-basics/navigation/',
         'posts-per-page': '7',
+        'excerpts': '0',
         'domain': '',
         'favicon': 'http://lorempixel.com/32/32/'
     }
@@ -105,9 +104,12 @@ def board_setup(id):
             '[Change footer text -- edit here to choose the text](http://temperos.alhur.es/http://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/a77b24106a2fe33bd804b9f939e33b040aeae8bb/replace-footer-text.css?text=YOUR_FOOTER_TEXT)': 'false',
             '[Hide posts date](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/8dcf95329c21791dd327df47bb1e2a043453548f/hide-date.css)': 'false',
             '[Hide category title on article pages](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/dcb70e2adc030f21f58c644757877a07e01479b5/hide-category-header-on-article-pages.css)': 'true',
-            '[Show post excerpts on home page and category pages -- edit the number of characters and "read more" text](http://temperos.alhur.es/https://rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/6ccdca1b221b70f6abd87ef3875e469ec08c9a5e/show-excerpts.js?limit=200&read_more_text=(read+more...))': 'false',
             '[Turn Youtube links into embedded videos](https://cdn.rawgit.com/fiatjaf/24aee0052afc73035ee6/raw/2a892b56fe14e0b75452394148b2b29015a76ef7/youtube-embed.js)': 'true',
-            '[Add __Hypothes.is__ annotations](//hypothes.is/embed.js)': 'true'
+            '[Add __Hypothes.is__ annotations](//hypothes.is/embed.js)': 'true',
+            '[Use a font from Google Fonts in your article bodies -- click here and edit the name of the font](http://temperos.alhur.es/https://websitesfortrello.github.io/includes/text-font-from-google-fonts.js?FONT-NAME=replace+the+font+name+here+with+plus+signs+just+like+google+fonts+presents+them+to+you+when+you+choose+them)': 'false',
+            '[Open external links in new tabs](https://websitesfortrello.github.io/includes/open-links-in-new-page.js)': 'false',
+            '[Expand (or shrink) images to the full-width of the article](https://websitesfortrello.github.io/includes/expand-images-to-a-hundred-percent.css)': 'false',
+            '[Center images in articles](https://websitesfortrello.github.io/includes/center-images.css)': 'true',
         }
     }
 
@@ -173,7 +175,9 @@ def board_setup(id):
             break
     else:
         # didn't find /about, so create it
-        trello.cards.new('/about', default_lists['#pages'], desc=open(pwd + '/cards/about.md').read())
+        trello.cards.new('/about', default_lists['#pages'], desc='''# About me
+
+Lorem ipsum dolor sit amet, malorum quaestio ius ne, ad vulputate assueverit per. Est ea porro propriae sententiae, sed ea graecis offendit temporibus. Nusquam menandri indoctum eum at, mentitum signiferumque ea pri, cu duo fabellas deseruisse. Ne choro tantas habemus ius, ei cum illum volumus. No nominati laboramus per. Nec no dolore partiendo democritum.''')
 
     # > create webhook
     r = requests.put('https://api.trello.com/1/webhooks', params={
