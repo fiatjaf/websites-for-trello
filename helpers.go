@@ -43,19 +43,17 @@ func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
 		// subdomain
 		identifier = strings.Split(r.Host, ".")[0]
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc, users.id AS user_id, "avatarHash", "gravatarHash", users.bio
+SELECT boards.id, name, boards.desc, user_id
 FROM boards
-INNER JOIN users ON users.id = boards.user_id
 WHERE subdomain = lower($1)`,
 			identifier)
 	} else {
 		// domain
 		identifier = r.Host
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc, users.id AS user_id, "avatarHash", "gravatarHash", users.bio
+SELECT boards.id, name, boards.desc, user_id
 FROM boards
 INNER JOIN custom_domains ON custom_domains.board_id = boards.id
-INNER JOIN users ON users.id = boards.user_id
 WHERE custom_domains.domain = $1`,
 			identifier)
 	}

@@ -75,14 +75,21 @@ func (b RequestData) PrevPage() int {
 }
 
 type Preferences struct {
+	Header struct {
+		Text  string
+		Image string
+	}
+	Aside             string
 	Favicon           string
 	Domain            string
-	Header            string
-	Aside             string
 	Includes          []string
 	Nav               []Link
 	PostsPerPageValue string `json:"posts-per-page"`
 	ExcerptsValue     string `json:"excerpts"`
+}
+
+func (prefs Preferences) AsideRender() string {
+	return renderMarkdown(prefs.Aside)
 }
 
 func (prefs Preferences) JS() []string {
@@ -164,43 +171,11 @@ type Board struct {
 	Id   string
 	Name string
 	Desc string
-
-	/* mix with user */
-	User_id      string
-	Bio          string
-	AvatarHash   interface{} `db:"avatarHash"`
-	GravatarHash interface{} `db:"gravatarHash"`
+	User string `json:"user_id"`
 }
 
 func (o Board) DescRender() string {
 	return renderMarkdown(o.Desc)
-}
-
-func (o Board) BioRender() string {
-	return renderMarkdown(o.Bio)
-}
-
-func (o Board) GetAvatar() interface{} {
-	if o.AvatarHash != nil {
-		return "//trello-avatars.s3.amazonaws.com/" + string(o.AvatarHash.([]uint8)) + "/170.png"
-	} else if o.GravatarHash != nil {
-		return "//gravatar.com/avatar/" + string(o.GravatarHash.([]uint8))
-	}
-	return nil
-}
-
-func (o Board) HasUser() bool {
-	if o.User_id != "" {
-		return true
-	}
-	return false
-}
-
-func (o Board) UserHasBio() bool {
-	if o.Bio != "" {
-		return true
-	}
-	return false
 }
 
 type Aggregator interface {

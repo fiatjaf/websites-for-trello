@@ -68,7 +68,7 @@ func feed(w http.ResponseWriter, r *http.Request) {
 		Title:       requestData.Board.Name,
 		Link:        &feeds.Link{Href: requestData.BaseURL.String()},
 		Description: requestData.Board.Desc,
-		Author:      &feeds.Author{requestData.Board.User_id, ""},
+		Author:      &feeds.Author{requestData.Board.User, ""},
 		Created:     requestData.Cards[0].Date(),
 	}
 	feed.Items = []*feeds.Item{}
