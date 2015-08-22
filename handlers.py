@@ -2,6 +2,7 @@ from app import db
 from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi
 from helpers import extract_card_cover
+from initial_fetch import initial_fetch
 import requests
 import os
 
@@ -21,6 +22,8 @@ def createCard(data, **kw):
 
     db.session.add(card)
     db.session.commit()
+
+emailCard = createCard
 
 def copyCard(data, **kw):
     card = Card.query.get(data['card']['id'])
@@ -325,9 +328,18 @@ def moveListToBoard(data, **kw):
 
 def updateBoard(data, **kw):
     board = Board.query.get(data['board']['id'])
-    keychanged = data['old'].keys()[0]
-    setattr(board, keychanged, data['board'][keychanged])
-    db.session.add(board)
+
+    if 'closed' in data['old']:
+        if data['old']['closed'] == False and data['board']['closed'] == True:
+            # board closed, remove it from the database
+            db.session.delete(board)
+        elif data['old']['closed'] == True and data['board']['closed'] == False:
+            # board reopened, add it again to the database
+            initial_fetch(data['board']['id'], username=kw['payload']['memberCreator']['username'])
+    else:
+        keychanged = data['old'].keys()[0]
+        setattr(board, keychanged, data['board'][keychanged])
+        db.session.add(board)
     db.session.commit()
 
 def commentCard(data, **kw):
