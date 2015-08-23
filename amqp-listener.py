@@ -105,7 +105,7 @@ def process_message(payload):
         try:
             add_bot(payload['user_token'], payload['board_id'])
             initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
-            board_setup(payload['board_id'])
+            board_setup(payload['board_id'], username=payload['username'])
         except:
             raygun.set_user(payload['username'])
             raygun.send_exception(

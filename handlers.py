@@ -62,11 +62,9 @@ def updateCard(data, **kw):
             setattr(card, attr, data['card'][attr])
 
     if 'idAttachmentCover' in data['card']:
-        card.cover = None
-        for attachment in card.attachments['attachments']:
-            if attachment['id'] == data['card']['idAttachmentCover']:
-                card.cover = attachment['url']
-                break
+        cover_id = data['card'].pop('idAttachmentCover')
+        card.cover = extract_card_cover(cover_id, card.attachments['attachments'])
+
     if 'idList' in data['card']:
         card.list_id = data['card']['idList']
 
@@ -135,6 +133,8 @@ def addAttachmentToCard(data, **kw):
     if data['attachment']['id'] not in [a['id'] for a in card.attachments['attachments']]:
         card.attachments['attachments'].append(data['attachment'])
         card.attachments.changed()
+        cover_id = trello.cards.get_field('idAttachmentCover', data['card']['id'])['_value']
+        card.cover = extract_card_cover(cover_id, card.attachments['attachments'])
         db.session.add(card)
         db.session.commit()
 
@@ -151,7 +151,7 @@ def addChecklistToCard(data, **kw):
             'id': data['checklist']['id'],
             'name': data['checklist']['name'],
             'checkItems': trello.checklists.get_checkItem(data['checklist']['id'], fields='name,pos,state'),
-            'pos': trello.checklists.get_field('pos', data['checklist']['id'])
+            'pos': trello.checklists.get_field('pos', data['checklist']['id'])['_value']
         }
         card.checklists['checklists'].append(checklist)
         card.checklists.changed()

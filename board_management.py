@@ -26,7 +26,7 @@ def add_bot(user_token, id):
         print r.text
         raise Exception('could not add bot to board.')
 
-def board_setup(id):
+def board_setup(id, username=None):
     print ':: MODEL-UPDATES :: board_setup for', id
 
     # > from now on all actions performed by the bot
@@ -61,19 +61,33 @@ def board_setup(id):
         if not list_id:
             default_lists[name] = trello.boards.new_list(id, name)['id']
 
+    # get user info
+    if username:
+        user = trello.members.get(username, fields='username,gravatarHash,avatarHash,bio')
+        image = '//trello-avatars.s3.amazonaws.com/%s/170.png' % user['avatarHash'] if user.get('avatarHash') else '//gravatar.com/avatar/%s' % user['gravatarHash'] if user.get('gravatarHash') else None
+        imagemd = '![%s](%s)' % (username, image) if image else ''
+        aside_text = '%s\n\n# %s\n\n%s' % (imagemd, username, user.get('bio', 'Hello and welcome to this website.'))
+    else:
+        aside_text = 'Hello and welcome to this website.'
+
     # > add cards to lists
     special_cards = {
         'includes': None,
         'nav': None,
         'posts-per-page': None,
         'domain': None,
-        'favicon': None
+        'favicon': None,
+        'excerpts': None,
+        'aside': None,
+        'header': None,
     }
     defaults = {
         'includes': 'See instructions for using this special card at http://docs.websitesfortrello.com/the-basics/customization-through-javascript-and-css/',
         'nav': 'See instructions for customizing navigation at http://docs.websitesfortrello.com/the-basics/navigation/',
         'posts-per-page': '7',
         'excerpts': '0',
+        'aside': aside_text,
+        'header': '',
         'domain': '',
         'favicon': 'http://lorempixel.com/32/32/'
     }

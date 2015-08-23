@@ -17,7 +17,7 @@ def initial_fetch(id, username=None, user_token=None):
     # user (only if user_token is present -- i.e., the first fetch)
     if username and user_token:
         trello = TrelloApi(os.environ['TRELLO_API_KEY'], user_token)
-        u = trello.members.get(username, fields='username,email,fullName,bio,gravatarHash,avatarHash')
+        u = trello.members.get(username, fields='username,email')
         u['_id'] = u['id']
         u['id'] = u.pop('username')
 

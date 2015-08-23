@@ -18,17 +18,11 @@ class User(db.Model):
     # meta
     _id = db.Column(db.String(50))
     id = db.Column(db.String(50), primary_key=True)
-    token = db.Column(db.String(100))
-    custom_domain_enabled = db.Column(db.Boolean)
-    custom_domain_paypal_agreement_id = db.Column(db.String(50))
+    premium = db.Column(db.Boolean)
     boards = db.relationship('Board', backref='user', lazy='dynamic')
     # ~
 
     email = db.Column(db.Text)
-    fullName = db.Column(db.Text)
-    bio = db.Column(db.Text)
-    gravatarHash = db.Column(db.String(32))
-    avatarHash = db.Column(db.String(32))
     registered_on = db.Column(db.DateTime, default=db.func.now())
 
 class Board(db.Model):
