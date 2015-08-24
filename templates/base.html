@@ -17,6 +17,7 @@
 
 <body>
   <header role="banner">
+    {{#Prefs.HasHeaderImage}}<img src="{{ Prefs.Header.Image }}">{{/Prefs.HasHeaderImage}}
     <h1>
       <a href="/" title="{{ Board.Name }}">{{ Board.Name }}</a>
     </h1>

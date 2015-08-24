@@ -88,6 +88,13 @@ type Preferences struct {
 	ExcerptsValue     string `json:"excerpts"`
 }
 
+func (prefs Preferences) HasHeaderImage() bool {
+	if prefs.Header.Image != "" {
+		return true
+	}
+	return false
+}
+
 func (prefs Preferences) AsideRender() string {
 	return renderMarkdown(prefs.Aside)
 }
