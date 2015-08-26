@@ -8,27 +8,23 @@
 
 {{#Card}}
 <article {{#ShowMF2}}class="h-entry"{{/ShowMF2}}>
-
   <header>
     {{#HasCover}}<img src="{{ Cover }}">{{/HasCover}}
     {{^IsPage}}
     <h1>
       <a {{#ShowMF2}}class="p-name"{{/ShowMF2}} href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
     </h1>
-
-    <a {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
-
-    <ul>
-      {{#GetLabels}}
-      <li><a href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
-      {{/GetLabels}}
-    </ul>
+    <aside>
+      <a {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
+      <ul>
+        {{#GetLabels}}
+        <li><a href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
+        {{/GetLabels}}
+      </ul>
+    </aside>
     {{/IsPage}}
-
   </header>
-  
   <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>{{{ DescRender }}}</div>
-
 </article>
 
 {{#GetChecklists}}
@@ -51,9 +47,7 @@
 <section>
   <ul>
     {{#GetAttachments}}
-    <li>
-      <a target="_blank" href="{{ Url }}">{{ Name }}</a>
-    </li>
+    <li><a target="_blank" href="{{ Url }}">{{ Name }}</a></li>
     {{/GetAttachments}}
   </ul>
 </section>
