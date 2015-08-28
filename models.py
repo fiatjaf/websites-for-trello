@@ -19,7 +19,7 @@ class User(db.Model):
     _id = db.Column(db.String(50))
     id = db.Column(db.String(50), primary_key=True)
     premium = db.Column(db.Boolean)
-    boards = db.relationship('Board', backref='user', lazy='dynamic')
+    boards = db.relationship('Board', backref='user', lazy='dynamic', passive_deletes='all')
     # ~
 
     email = db.Column(db.Text)
@@ -34,8 +34,8 @@ class Board(db.Model):
     webhook = db.Column(db.String(50))
     user_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     subdomain = db.Column(db.Text, index=True, unique=True, nullable=False)
-    lists = db.relationship('List', backref='board', lazy='dynamic')
-    labels = db.relationship('Label', backref='board', lazy='dynamic')
+    lists = db.relationship('List', backref='board', lazy='dynamic', passive_deletes='all')
+    labels = db.relationship('Label', backref='board', lazy='dynamic', passive_deletes='all')
     # ~
 
     name = db.Column(db.Text, nullable=False)
@@ -52,7 +52,7 @@ class List(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     slug = db.Column(db.Text, index=True, nullable=False)
     board_id = db.Column(db.String(50), db.ForeignKey('boards.id', ondelete="CASCADE"), nullable=False)
-    cards = db.relationship('Card', backref='list', lazy='dynamic')
+    cards = db.relationship('Card', backref='list', lazy='dynamic', passive_deletes='all')
     # ~
 
     name = db.Column(db.Text, nullable=False)
@@ -74,7 +74,7 @@ class Card(db.Model):
     shortLink = db.Column(db.String(35), unique=True, nullable=False)
     slug = db.Column(db.Text, index=True, nullable=False)
     list_id = db.Column(db.String(50), db.ForeignKey('lists.id', ondelete="CASCADE"), nullable=False)
-    comments = db.relationship('Comment', backref='card', lazy='dynamic')
+    comments = db.relationship('Comment', backref='card', lazy='dynamic', passive_deletes='all')
     # ~
 
     name = db.Column(db.Text, index=True, nullable=False) # indexed because is used to filter standalone pages
@@ -129,6 +129,7 @@ class Comment(db.Model):
     raw = db.Column(db.Text)
 
     # automatically filled
+    body = db.Column(db.Text)
     source_url = db.Column(db.Text)
     source_display = db.Column(db.Text)
     author_name = db.Column(db.Text)

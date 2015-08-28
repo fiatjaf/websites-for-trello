@@ -38,9 +38,9 @@ def handle_webmention(source, target):
         return
 
     raw = ":paperclip: **[{author_name}]({author_url})**\n\n{body}\n\non [{date}]({source_url}) via _[{source_display}]({source_url})_".format(
-        author_name=webmention.author['name'],
+        author_name=webmention.author['name'].encode('utf-8'),
         author_url=webmention.author['url'],
-        body='\n'.join(map(lambda l: '> ' + l, webmention.body.split('\n'))),
+        body='\n'.join(map(lambda l: '> ' + l, webmention.body.encode('utf-8').split('\n'))),
         date=webmention.date,
         source_url=webmention.url,
         source_display=getattr(webmention, 'via') or url
@@ -59,4 +59,4 @@ def handle_webmention(source, target):
     else:
         # create comment
         trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
-        trello.cards.new_action_comment(card.id, raw)
+        trello.cards.new_action_comment(card.id, unicode(raw, 'utf-8'))

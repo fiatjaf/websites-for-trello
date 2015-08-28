@@ -18,6 +18,22 @@ def upgrade():
     op.add_column('users', sa.Column('premium', sa.Boolean(), nullable=True))
 
     op.execute('''
+CREATE OR REPLACE VIEW prefs_cards AS
+  SELECT
+    cards.name,
+    cards."desc",
+    cards.attachments,
+    cards.checklists,
+    boards.subdomain,
+    custom_domains.domain,
+    cards.cover
+   FROM cards
+     JOIN lists ON cards.list_id::text = lists.id::text AND lists.name = '_preferences'::text
+     JOIN boards ON lists.board_id::text = boards.id::text
+     LEFT JOIN custom_domains ON custom_domains.board_id::text = boards.id::text;
+    ''')
+
+    op.execute('''
 CREATE OR REPLACE VIEW custom_domains AS
   SELECT cards."desc" AS domain,
     boards.id AS board_id
@@ -75,7 +91,7 @@ FROM (
       UNION 
          (SELECT 'header' AS key,
                  row_to_json(h)::text AS value
-          FROM (SELECT "desc" AS text, cover AS image FROM cards WHERE name = 'header')h)
+          FROM (SELECT "desc" AS text, cover AS image FROM pcards WHERE name = 'header')h)
       UNION 
          (SELECT pcards.name AS key,
                  to_json(pcards.desc::text)::text AS value
