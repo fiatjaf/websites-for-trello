@@ -81,6 +81,7 @@ handlers =
         else
           if State.get('user') != res.body.user
             ma('login', res.body.user)
+            amplitude.setUserId res.body.user
           State.change
             boards: res.body.boards
             activeboards: res.body.activeboards
@@ -95,6 +96,7 @@ handlers =
   setupBoard: (State, data) ->
     self = @
     ma 'setup', data.name or data.id
+    amplitude.logEvent 'setup', data
     Promise.resolve().then(->
       if data.name
         # create
@@ -139,6 +141,7 @@ handlers =
 
   initialFetch: (State, data) ->
     ma 'initial-fetch', data.id
+    amplitude.logEvent 'initial-fetch', data
     Promise.resolve().then(->
       superagent
         .post(process.env.API_URL + '/board/' + data.id + '/initial-fetch')
@@ -153,6 +156,7 @@ handlers =
   deleteBoard: (State, data) ->
     self = @
     ma 'delete', data.id
+    amplitude.logEvent 'delete', data
     Promise.resolve().then(->
       superagent
         .del(process.env.API_URL + '/board/' + data.id)
@@ -169,6 +173,7 @@ handlers =
   changeSubdomain: (State, data) ->
     self = @
     ma 'subdomain', data.subdomain
+    amplitude.logEvent 'subdomain', data
     Promise.resolve().then(->
       superagent
         .put(process.env.API_URL + '/board/' + data.id + '/subdomain')
