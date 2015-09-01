@@ -172,7 +172,7 @@ ORDER BY pos
 		}
 	}
 
-	// we haven't found the requested list (when the list has 0 cards, we should have 1 here)
+	// we haven't found the requested list (when the list has 0 cards, we should get 1 here)
 	if len(cards) < 1 {
 		error404(w, r)
 		return
@@ -281,6 +281,12 @@ ORDER BY pos
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return
 		}
+	}
+
+	// we haven't found the requested label (when the label has 0 cards, we should get 1 here)
+	if len(cards) < 1 {
+		error404(w, r)
+		return
 	}
 
 	// the first row is a Label dressed as a Card
