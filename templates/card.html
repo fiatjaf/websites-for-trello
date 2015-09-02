@@ -28,7 +28,7 @@
 </article>
 
 {{#GetChecklists}}
-<section>
+<section class="checklists">
   <header>
     <h1>{{ Name }}</h1>
   </header>
@@ -44,7 +44,7 @@
 {{/GetChecklists}}
 
 {{#HasAttachments}}
-<section>
+<section class="attachments">
   <ul>
     {{#GetAttachments}}
     <li><a target="_blank" href="{{ Url }}">{{ Name }}</a></li>
