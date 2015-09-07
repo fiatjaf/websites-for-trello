@@ -17,8 +17,8 @@ if process.env.DEBUG
   process.env.API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
   port = process.env.API_URL.split(':').slice(-1)[0]
 else
-  process.env.SITE_URL = 'http://' + process.env.DOMAIN
-  process.env.API_URL = 'http://api.' + process.env.DOMAIN
+  process.env.SITE_URL = 'https://' + process.env.DOMAIN
+  process.env.API_URL = 'https://api.' + process.env.DOMAIN
   port = process.env.PORT
   raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
   raygun.user = (request) -> request.session.username
@@ -68,7 +68,7 @@ app.use cookieSession
   maxAge: 2505600000 # 29 days
   signed: true
 CORS = cors
-  origin: process.env.SITE_URL
+  origin: true
   credentials: true
 app.use CORS
 app.options '*', CORS
