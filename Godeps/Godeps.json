@@ -1,5 +1,5 @@
 {
-	"ImportPath": "receive-webhooks-go",
+	"ImportPath": "wft.recv-webhooks",
 	"GoVersion": "go1.4.2",
 	"Deps": [
 		{
@@ -9,6 +9,10 @@
 		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
+		},
+		{
+			"ImportPath": "github.com/hoisie/redis",
+			"Rev": "788f01e396a99c96c8f56338383926f16841ebae"
 		}
 	]
 }

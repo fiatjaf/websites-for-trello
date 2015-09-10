@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/hoisie/redis"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 
 var rabbitMQQueue string
 var rabbitMQPublishURL string
+var rds redis.Client
 
 func main() {
 	// setup globals
@@ -27,6 +29,11 @@ func main() {
 	if os.Getenv("DEBUG") != "" {
 		rabbitMQQueue = "wft-test"
 	}
+
+	// connect to redis
+	rds.Addr = os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT")
+	rds.Password = os.Getenv("REDIS_PASSWORD")
+	rds.MaxPoolSize = 2
 
 	// router
 	r := mux.NewRouter()
@@ -52,6 +59,24 @@ func main() {
 			http.Error(w, "Your request is wrong.", 400)
 			return
 		}
+
+		// if the board was reported as not existing, send a 410 so the webhooks stops showing
+		var data struct {
+			Model struct {
+				Id string `json:"id"`
+			} `json:"model"`
+		}
+		err = json.Unmarshal(body, &data)
+		if err == nil {
+			remove, err := rds.Srem("deleted-board", []byte(data.Model.Id))
+			if err == nil && remove { // if the redis has failed we will not delete anything.
+				log.Print(data.Model.Id + "is a deleted board. returning a 410 to delete this webhook.")
+				w.WriteHeader(http.StatusGone)
+				return
+			}
+		}
+
+		// dispatch message to rabbitmq
 		err = rabbitSend(body)
 		if err != nil {
 			log.Print(err.Error())

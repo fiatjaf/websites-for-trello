@@ -1,1 +1,1 @@
-web: receive-webhooks-go
+web: wft.recv-webhooks
