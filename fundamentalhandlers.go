@@ -249,6 +249,7 @@ func label(w http.ResponseWriter, r *http.Request) {
   FROM labels
   WHERE board_id = $2
     AND slug = $3
+    AND visible
 ) UNION ALL (
   SELECT cards.slug,
          cards.name,
@@ -263,6 +264,7 @@ func label(w http.ResponseWriter, r *http.Request) {
   WHERE board_id = $2
     AND (labels.slug = $3 OR labels.id = $3)
     AND cards.visible
+    AND labels.visible
   ORDER BY pos
   OFFSET $4
   LIMIT $5
@@ -359,7 +361,7 @@ FROM (
            cards.desc,
            cards.attachments,
            cards.checklists,
-           array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels))) AS labels,
+           array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
            1 AS sort,
            coalesce(cards.cover, '') AS cover
     FROM cards
