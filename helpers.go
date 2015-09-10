@@ -43,7 +43,7 @@ func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
 		// subdomain
 		identifier = strings.Split(r.Host, ".")[0]
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc, user_id
+SELECT boards.id, name, boards.desc
 FROM boards
 WHERE subdomain = lower($1)`,
 			identifier)

@@ -68,8 +68,8 @@ func feed(w http.ResponseWriter, r *http.Request) {
 		Title:       requestData.Board.Name,
 		Link:        &feeds.Link{Href: requestData.BaseURL.String()},
 		Description: requestData.Board.Desc,
-		Author:      &feeds.Author{requestData.Board.User, ""},
-		Created:     requestData.Cards[0].Date(),
+		//Author:      &feeds.Author{requestData.Board.User, ""},
+		Created: requestData.Cards[0].Date(),
 	}
 	feed.Items = []*feeds.Item{}
 	for _, card := range requestData.Cards {
@@ -336,7 +336,7 @@ func card(w http.ResponseWriter, r *http.Request) {
 	// fetch this card and its parent list
 	var cards []Card
 	err = db.Select(&cards, `
-SELECT slug, name, due, id, "desc", attachments, checklists, labels, cover
+SELECT slug, name, due, id, "desc", attachments, checklists, labels, users, cover
 FROM (
   (
     SELECT slug,
@@ -347,6 +347,7 @@ FROM (
            '""'::jsonb AS attachments,
            '""'::jsonb AS checklists,
            '""'::json AS labels,
+           '""'::json AS users,
            0 AS sort,
            '' AS cover
     FROM lists
@@ -362,6 +363,7 @@ FROM (
            cards.attachments,
            cards.checklists,
            array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
+           array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
            1 AS sort,
            coalesce(cards.cover, '') AS cover
     FROM cards

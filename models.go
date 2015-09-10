@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/jmoiron/sqlx/types"
 	"github.com/mitchellh/mapstructure"
 	"github.com/shurcooL/go/github_flavored_markdown"
@@ -178,7 +179,11 @@ type Board struct {
 	Id   string
 	Name string
 	Desc string
-	User string `json:"user_id"`
+}
+
+type User struct {
+	Id       string `db:"_id" json:"_id"`
+	Username string `db:"id" json:"id"`
 }
 
 func (o Board) DescRender() string {
@@ -228,6 +233,7 @@ type Card struct {
 	Excerpt     string
 	Due         interface{}
 	List_id     string
+	Users       types.JsonText
 	Labels      types.JsonText
 	Checklists  types.JsonText
 	Attachments types.JsonText
@@ -315,6 +321,26 @@ func (card Card) HasAttachments() bool {
 		return true
 	}
 	return false
+}
+
+func (card Card) AuthorHTML() string {
+	var users []User
+	err := json.Unmarshal(card.Users, &users)
+	if err != nil {
+		log.Print("Problem unmarshaling users JSON")
+		log.Print(err)
+		log.Print(string(card.Users))
+	}
+
+	if len(users) == 0 {
+		return ""
+	} else if len(users) == 1 {
+		return `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a></address>`
+	} else if len(users) == 2 {
+		return `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a> & <a href="https://trello.com/` + users[1].Id + `" "target="_blank">` + users[1].Username + `</a></address>`
+	} else {
+		return `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a> et al.</address>`
+	}
 }
 
 func (card Card) GetLabels() []Label {

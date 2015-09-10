@@ -15,10 +15,11 @@
       <a {{#ShowMF2}}class="p-name"{{/ShowMF2}} href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
     </h1>
     <aside>
-      <a {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
+      {{{AuthorHTML}}}
+      <a rel="bookmark" {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
       <ul>
         {{#GetLabels}}
-        <li><a href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
+        <li><a rel="tag" href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
         {{/GetLabels}}
       </ul>
     </aside>
