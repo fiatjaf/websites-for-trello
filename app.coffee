@@ -13,7 +13,7 @@ superagent = (require 'superagent-promise')((require 'superagent'), Promise)
  ul, li} = require 'virtual-elements'
 
 if process.env.DEBUG
-  process.env.API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
+  process.env.API_URL = '//' + process.env.DOMAIN.replace /0$/, 1
   process.env.SITES_DOMAIN = process.env.DOMAIN.replace /0$/, '3'
   `
   Function.prototype.bind = function (oThis) {
@@ -40,7 +40,7 @@ if process.env.DEBUG
   };
   `
 else
-  process.env.API_URL = 'http://api.' + process.env.DOMAIN
+  process.env.API_URL = '//api.' + process.env.DOMAIN
   process.env.SITES_DOMAIN = process.env.DOMAIN
 
 # landing page modifications
@@ -80,7 +80,6 @@ handlers =
           humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard.", {timeout: 12000}
         else
           if State.get('user') != res.body.user
-            ma('login', res.body.user)
             amplitude.setUserId res.body.user
           State.change
             boards: res.body.boards
@@ -95,7 +94,6 @@ handlers =
 
   setupBoard: (State, data) ->
     self = @
-    ma 'setup', data.name or data.id
     amplitude.logEvent 'setup', data
     Promise.resolve().then(->
       if data.name
@@ -129,18 +127,16 @@ handlers =
       op.attempt (currentAttempt) ->
         Promise.resolve().then(->
           superagent
-            .get("http://#{board.subdomain}.#{process.env.SITES_DOMAIN}/")
+            .get("//#{board.subdomain}.#{process.env.SITES_DOMAIN}/")
             .end()
         ).then(->
           humane.success "Success!"
           self.refresh State, true
           State.change 'setupDone.ready', true
-          ma 'setupdone', board.id
         ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
 
   initialFetch: (State, data) ->
-    ma 'initial-fetch', data.id
     amplitude.logEvent 'initial-fetch', data
     Promise.resolve().then(->
       superagent
@@ -155,7 +151,6 @@ handlers =
 
   deleteBoard: (State, data) ->
     self = @
-    ma 'delete', data.id
     amplitude.logEvent 'delete', data
     Promise.resolve().then(->
       superagent
@@ -172,7 +167,6 @@ handlers =
 
   changeSubdomain: (State, data) ->
     self = @
-    ma 'subdomain', data.subdomain
     amplitude.logEvent 'subdomain', data
     Promise.resolve().then(->
       superagent
@@ -181,7 +175,7 @@ handlers =
         .withCredentials()
         .end()
     ).then(->
-      humane.success "Changed subdomain to <b>#{data.subdomain}</b>. Board address is now <a href=\"http://#{data.subdomain}.websitesfortrello.com\">http://#{data.subdomain}.websitesfortrello.com/</a>."
+      humane.success "Changed subdomain to <b>#{data.subdomain}</b>. Board address is now <a href=\"//#{data.subdomain}.websitesfortrello.com\">http://#{data.subdomain}.websitesfortrello.com/</a>."
       self.refresh State
     ).catch(->
       humane.error "Couldn't change subdomain to <b>#{data.subdomain}</b>."
@@ -189,7 +183,6 @@ handlers =
     ).catch(console.log.bind console)
 
   logout: (State) ->
-    ma 'logout', State.get 'user'
     humane.log "Logging out..."
     Promise.resolve().then(->
       superagent
