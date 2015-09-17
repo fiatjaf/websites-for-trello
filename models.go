@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/jmoiron/sqlx/types"
-	"github.com/mitchellh/mapstructure"
 	"github.com/shurcooL/go/github_flavored_markdown"
 	"log"
 	"net/http"
@@ -282,35 +282,27 @@ func (card Card) IsoDate() string {
 }
 
 func (card Card) GetChecklists() []Checklist {
-	var dat map[string]interface{}
-	err := card.Checklists.Unmarshal(&dat)
-	if err != nil {
-		log.Print("Problem unmarshaling checklists JSON")
-		log.Print(err)
-		log.Print(string(card.Checklists[:]))
-	}
 	var checklists []Checklist
-	err = mapstructure.Decode(dat["checklists"], &checklists)
-	if err != nil {
-		log.Print("Problem converting checklists map to struct")
-		log.Print(err)
+	if !bytes.Equal(card.Checklists, nil) {
+		err := json.Unmarshal(card.Checklists, &checklists)
+		if err != nil {
+			log.Print("Problem unmarshaling checklists JSON")
+			log.Print(err)
+			log.Print(string(card.Checklists[:]))
+		}
 	}
 	return checklists
 }
 
 func (card Card) GetAttachments() []Attachment {
-	var dat map[string]interface{}
-	err := card.Attachments.Unmarshal(&dat)
-	if err != nil {
-		log.Print("Problem unmarshaling attachments JSON")
-		log.Print(err)
-		log.Print(string(card.Attachments[:]))
-	}
 	var attachments []Attachment
-	err = mapstructure.Decode(dat["attachments"], &attachments)
-	if err != nil {
-		log.Print("Problem converting attachments map to struct")
-		log.Print(err)
+	if !bytes.Equal(card.Attachments, nil) {
+		err := json.Unmarshal(card.Attachments, &attachments)
+		if err != nil {
+			log.Print("Problem unmarshaling attachments JSON")
+			log.Print(err)
+			log.Print(string(card.Attachments[:]))
+		}
 	}
 	return attachments
 }
@@ -325,11 +317,13 @@ func (card Card) HasAttachments() bool {
 
 func (card Card) AuthorHTML() string {
 	var users []User
-	err := json.Unmarshal(card.Users, &users)
-	if err != nil {
-		log.Print("Problem unmarshaling users JSON")
-		log.Print(err)
-		log.Print(string(card.Users))
+	if !bytes.Equal(card.Users, nil) {
+		err := json.Unmarshal(card.Users, &users)
+		if err != nil {
+			log.Print("Problem unmarshaling users JSON")
+			log.Print(err)
+			log.Print(string(card.Users))
+		}
 	}
 
 	if len(users) == 0 {
@@ -344,18 +338,14 @@ func (card Card) AuthorHTML() string {
 }
 
 func (card Card) GetLabels() []Label {
-	var dat []map[string]interface{}
-	err := card.Labels.Unmarshal(&dat)
-	if err != nil {
-		log.Print("Problem unmarshaling labels JSON")
-		log.Print(err)
-		log.Print(string(card.Labels[:]))
-	}
 	var labels []Label
-	err = mapstructure.Decode(dat, &labels)
-	if err != nil {
-		log.Print("Problem converting labels map to struct")
-		log.Print(err)
+	if !bytes.Equal(card.Labels, nil) {
+		err := json.Unmarshal(card.Labels, &labels)
+		if err != nil {
+			log.Print("Problem unmarshaling labels JSON")
+			log.Print(err)
+			log.Print(string(card.Labels[:]))
+		}
 	}
 	return labels
 }

@@ -70,10 +70,6 @@
 			"Rev": "fcd0f5074e55df204568c7419509fb59ddcad228"
 		},
 		{
-			"ImportPath": "github.com/mitchellh/mapstructure",
-			"Rev": "442e588f213303bec7936deba67901f8fc8f18b1"
-		},
-		{
 			"ImportPath": "github.com/rs/cors",
 			"Rev": "d3da3650fa15dea375e518f6dba0e3ba1a284433"
 		},

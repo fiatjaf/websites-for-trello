@@ -131,6 +131,8 @@ func list(w http.ResponseWriter, r *http.Request) {
          '' AS excerpt,
          null AS due,
          id,
+         '""'::json AS labels,
+         '""'::json AS users,
          0 AS pos,
          '' AS cover
   FROM lists
@@ -143,6 +145,8 @@ func list(w http.ResponseWriter, r *http.Request) {
          substring(cards.desc from 0 for $1) AS excerpt,
          cards.due,
          cards.id,
+         array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
+         array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
          cards.pos,
          coalesce(cards.cover, '') AS cover
   FROM cards
@@ -244,6 +248,7 @@ func label(w http.ResponseWriter, r *http.Request) {
          '' AS excerpt,
          null AS due,
          id,
+         '""'::json AS users,
          0 AS pos,
          '' AS cover
   FROM labels
@@ -256,6 +261,7 @@ func label(w http.ResponseWriter, r *http.Request) {
          substring(cards.desc from 0 for $1) AS excerpt,
          cards.due,
          cards.id,
+         array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
          cards.pos,
          coalesce(cards.cover, '') AS cover
   FROM cards
@@ -360,8 +366,8 @@ FROM (
            cards.due,
            cards.id,
            cards.desc,
-           cards.attachments,
-           cards.checklists,
+           cards.attachments->'attachments',
+           cards.checklists->'checklists',
            array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
            array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
            1 AS sort,

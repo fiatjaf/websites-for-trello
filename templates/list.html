@@ -15,7 +15,11 @@
           {{#HasCover}}<a rel="bookmark" href="/c/{{ Id }}/"><img src="{{ Cover }}"></a>{{/HasCover}}
           <h1><a rel="bookmark" href="/c/{{ Id }}/">{{ Name }}</a></h1>
           <aside>
+            {{{AuthorHTML}}}
             <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
+            {{#GetLabels}}
+            <li><a rel="tag" href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
+            {{/GetLabels}}
           </aside>
         </header>
         {{#Prefs.ShowExcerpts}}{{#HasExcerpt}}
