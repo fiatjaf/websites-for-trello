@@ -44,7 +44,7 @@ else
   process.env.SITES_DOMAIN = process.env.DOMAIN
 
 # landing page modifications
-for node in document.querySelectorAll('[href^="#trello-login"]')
+for node in document.querySelectorAll('[href$="#trello-login"]')
   node.href = process.env.API_URL + '/account/setup/start'
 
 # humane.js notifications

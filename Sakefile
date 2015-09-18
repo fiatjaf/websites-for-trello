@@ -61,6 +61,7 @@ s3:
     - assets/b.min.js.map
     - assets/*
     - account/*
+    - for-groups/*
     - prod-index.html
   formula: >
     s3cmd sync --acl-public --delete-removed --exclude-from .s3ignore . s3://websitesfortrello.com/
