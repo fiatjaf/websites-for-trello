@@ -85,6 +85,7 @@ class Card(db.Model):
     checklists = db.Column(MutableDict.as_mutable(JSONB), default={'checklists': []})
     attachments = db.Column(MutableDict.as_mutable(JSONB), default={'attachments': []})
     labels = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x label relationship with arrays
+    users = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x user relationship with arrays
     cover = db.Column(db.Text)
     closed = db.Column(db.Boolean, default=False)
     visible = db.Column(db.Boolean, index=True)
@@ -112,6 +113,7 @@ class Label(db.Model):
 
     name = db.Column(db.Text)
     color = db.Column(db.Text)
+    visible = db.Column(db.Boolean, index=True)
 
     @property
     def created_on(self):
@@ -172,6 +174,7 @@ def update_visibility(target, value, oldvalue, initiator):
 
 event.listen(Card.name, 'set', update_visibility)
 event.listen(List.name, 'set', update_visibility)
+event.listen(Label.name, 'set', update_visibility)
 
 def update_is_pages(target, value, oldvalue, initiator):
     target.pagesList = value.startswith('#')

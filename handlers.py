@@ -128,6 +128,54 @@ def convertToCardFromCheckItem(data, **kw):
     db.session.add(cardsource)
     db.session.commit()
 
+def addMemberToCard(data, **kw):
+    user = User.query.filter_by(_id=data['idMember']).first()
+    if not user:
+        # create user
+        user = User(
+            _id=kw['payload']['member']['id'],
+            id=kw['payload']['member']['username'],
+            email=None,
+            premium=False,
+        )
+        db.session.add(user)
+
+    # add user to card
+    card = Card.query.get(data['card']['id'])
+    users = set(card.users or [])
+    users.add(user._id)
+    card.users = list(users)
+    card.users.changed()
+
+    db.session.add(card)
+    db.session.commit()
+
+def removeMemberFromCard(data, **kw):
+    user = User.query.filter_by(_id=data['idMember']).first()
+    if not user:
+        # create user
+        user = User(
+            _id=kw['payload']['member']['id'],
+            id=kw['payload']['member']['username'],
+            email=None,
+            premium=False,
+        )
+        db.session.add(user)
+
+    # remove label from card
+    card = Card.query.get(data['card']['id'])
+    users = set(card.users or [])
+    try:
+        users.remove(user._id)
+    except KeyError:
+        print 'user wasn\'t present, so our job is done.'
+
+    card.users = list(users)
+    card.users.changed()
+
+    db.session.add(card)
+    db.session.commit()
+
 def addAttachmentToCard(data, **kw):
     card = Card.query.get(data['card']['id'])
     if data['attachment']['id'] not in [a['id'] for a in card.attachments['attachments']]:
@@ -363,8 +411,8 @@ def deleteComment(data, **kw):
     db.session.commit()
 
 def removeMemberFromBoard(data, **kw):
-    print data
-    if os.environ['TRELLO_BOT_ID'] == data['member']['id']:
+    payload = kw['payload']
+    if os.environ['TRELLO_BOT_ID'] == payload['member']['id']:
         board = Board.query.get(data['board']['id'])
         if board:
             db.session.delete(board)

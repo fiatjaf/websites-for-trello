@@ -27,13 +27,13 @@ def stats(year=datetime.date.today().year, month=datetime.date.today().month):
     for id in ids:
         boards.append((pv.get(id, 0), wh.get(id, 0), id))
 
-    print '%7s %24s %27s %5s %5s' % ('month', 'subdomain', 'user', 'PV', 'WH')
+    print '%7s %26s %27s %5s %5s' % ('month', 'subdomain', 'user', 'PV', 'WH')
     for pvv, whv, id in sorted(boards):
         board = Board.query.get(id)
         if board:
-            print '%2s/%s %24s %27s %5d %5d' % (month, year, board.subdomain, board.user_id, pvv, whv)
+            print '%2s/%s %26s %27s %5d %5d' % (month, year, board.subdomain, board.user_id, pvv, whv)
         else:
-            print '%2s/%s %52s %5d %5d' % (month, year, id, pvv, whv)
+            print '%2s/%s %54s %5d %5d' % (month, year, id, pvv, whv)
 
 # flask-migrate
 Migrate(app, db)

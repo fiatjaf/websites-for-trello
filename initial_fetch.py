@@ -21,7 +21,7 @@ def initial_fetch(id, username=None, user_token=None):
         u['_id'] = u['id']
         u['id'] = u.pop('username')
 
-        user = User.query.get(username)
+        user = User.query.filter_by(_id=u['_id']).first()
         if user:
             print ':: MODEL-UPDATES :: found, updating, user', u['id']
         else:

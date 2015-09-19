@@ -14,19 +14,21 @@ def schedule_welcome_email(user_id, user_email):
         data={
             'from': 'welcome@websitesfortrello.com',
             'to': user_email,
-            'subject': 'Feedback request from Websites for Trello',
+            'subject': 'Do you need help with Websites for Trello?',
             'text': '''
 hey {name},
 
 I've seen you tried http://websitesfortrello.com/ some time ago and created a website.
 
-Would you care to waste a little of your time to tell us what did you like and what you didn't like? Is there something that you want and we aren't providing?
+How is your experience going? Maybe have a question or suggestion? I'll be happy if I can help somehow.
 
-Anything you say will help us a lot.
-Thank you very much for your time and for reading this!
+If you like Trello as I do, perhaps you prefer to discuss issues and questions inside a Trello board. If that's the case, feel free to add me (fiatjaf) to the board powering your website so we can work together on getting your site in the shape you want it.
 
-Giovanni T. Parra.
-Websites for Trello
+Also, if you're more fan of talking than writing, we can schedule a Google Hangouts call for working together in setting up your site. Just say when you would be happy to do it!
+
+In any case, thank you for trying Websites for Trello and good luck!
+
+Giovanni T. Parra
             '''.format(name=user_id),
             'h:Reply-To': 'websitesfortrello@boardthreads.com',
             'o:deliverytime': deliverytime

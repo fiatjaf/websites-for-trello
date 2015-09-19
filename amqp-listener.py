@@ -166,6 +166,8 @@ def process_message(payload):
         except:
             if not Board.query.get(payload['data']['board']['id']):
                 print ':: MODEL-UPDATES :: webhook for a board not registered anymore.'
+                print ':: MODEL-UPDATES :: adding this board to the webhook deletion list.'
+                redis.sadd('deleted-board', payload['data']['board']['id'])
             else:
                 raygun.set_user(payload['memberCreator']['username'])
                 raygun.send_exception(
