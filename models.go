@@ -80,6 +80,11 @@ type Preferences struct {
 		Text  string
 		Image string
 	}
+	Comments struct {
+		Display     bool
+		Box         bool
+		Webmentions bool
+	}
 	Aside             string
 	Favicon           string
 	Domain            string
@@ -232,6 +237,7 @@ type Card struct {
 	Desc        string
 	Excerpt     string
 	Due         interface{}
+	Comments    []Comment
 	List_id     string
 	Users       types.JsonText
 	Labels      types.JsonText
@@ -257,28 +263,6 @@ func (card Card) HasCover() bool {
 		return false
 	}
 	return true
-}
-
-func (card Card) Date() time.Time {
-	if card.Due != nil {
-		return card.Due.(time.Time)
-	} else {
-		unix, err := strconv.ParseInt(card.Id[:8], 16, 0)
-		if err != nil {
-			return time.Now()
-		}
-		return time.Unix(unix, 0)
-	}
-}
-
-func (card Card) PrettyDate() string {
-	date := card.Date()
-	return date.Format("2 Jan 2006")
-}
-
-func (card Card) IsoDate() string {
-	date := card.Date()
-	return date.Format("2006-01-02T15:04:05.999")
 }
 
 func (card Card) GetChecklists() []Checklist {
@@ -373,7 +357,60 @@ type Attachment struct {
 	EdgeColor string
 }
 
-// mustache helpers
+type Comment struct {
+	Id            string
+	AuthorName    string `db:"author_name"`
+	AuthorURL     string `db:"author_url"`
+	Body          string
+	SourceDisplay string `db:"source_display"`
+	SourceURL     string `db:"source_url"`
+}
+
+func (comment Comment) BodyRender() string {
+	return renderMarkdown(comment.Body)
+}
+
+/* mustache helpers */
+func (comment Comment) Date() time.Time {
+	unix, err := strconv.ParseInt(comment.Id[:8], 16, 0)
+	if err != nil {
+		return time.Now()
+	}
+	return time.Unix(unix, 0)
+}
+
+func (comment Comment) PrettyDate() string {
+	date := comment.Date()
+	return date.Format("2 Jan 2006")
+}
+
+func (comment Comment) IsoDate() string {
+	date := comment.Date()
+	return date.Format("2006-01-02T15:04:05.999")
+}
+
+func (card Card) Date() time.Time {
+	if card.Due != nil {
+		return card.Due.(time.Time)
+	} else {
+		unix, err := strconv.ParseInt(card.Id[:8], 16, 0)
+		if err != nil {
+			return time.Now()
+		}
+		return time.Unix(unix, 0)
+	}
+}
+
+func (card Card) PrettyDate() string {
+	date := card.Date()
+	return date.Format("2 Jan 2006")
+}
+
+func (card Card) IsoDate() string {
+	date := card.Date()
+	return date.Format("2006-01-02T15:04:05.999")
+}
+
 func (o Label) Test() interface{} {
 	if o.Slug != "" {
 		return o

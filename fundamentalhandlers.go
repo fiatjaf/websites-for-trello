@@ -412,6 +412,19 @@ ORDER BY sort
 	requestData.Aggregator = list
 	requestData.Card = cards[1]
 
+	// comments
+	if requestData.Prefs.Comments.Display && !requestData.Card.IsPage {
+		var comments []Comment
+		err = db.Select(&comments, `
+SELECT id, author_url, author_name, body, source_display, source_url
+FROM comments
+WHERE card_id = $1
+  AND body IS NOT NULL
+ORDER BY id
+    `, requestData.Card.Id)
+		requestData.Card.Comments = comments
+	}
+
 	fmt.Fprint(w,
 		renderOnTopOf(requestData,
 			"templates/card.html",

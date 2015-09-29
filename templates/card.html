@@ -54,17 +54,22 @@
 </section>
 {{/HasAttachments}}
 
-{{/Card}}
-
-{{#Prefs.Comments}}
-<section>
-  <h1>Comments</h1>
-  {% for comment in card.comments %}
-  <div>
-    <h1>{{ comment.author }} at {{ comment.date }}</h1>
-    {{ comment.text | markdown | safe }}
-  </div>
-  {% endfor %}
-  <p>To comment, send a webmention to this page, or an email to <a href="mailto:webmention@questo.email">webmention@questo.email.com</a> with the URL of this page as the subject.</p>
+<section class="comments">
+  {{#Comments}}
+  <article id="{{ Id }}">
+    <header>
+      <a href="{{ AuthorURL }}"><img src="//webvatar.com/{{ AuthorURL }}"></a>
+      <h1><a href="{{ AuthorURL }}">{{ AuthorName }}</a></h1>
+      <aside>
+        <a href="#{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
+      </aside>
+    </header>
+    <div>{{{ BodyRender }}}</div>
+    <footer>
+      <a href="{{ SourceURL }}" target="_blank">{{ SourceDisplay }}</a>
+    </footer>
+  </article>
+  {{/Comments}}
 </section>
-{{/Prefs.Comments}}
+
+{{/Card}}
