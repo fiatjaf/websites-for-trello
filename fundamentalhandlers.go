@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/MindscapeHQ/raygun4go"
-	"github.com/gorilla/feeds"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -45,159 +44,6 @@ func index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/list.html",
-			"templates/base.html",
-		),
-	)
-}
-
-func feed(w http.ResponseWriter, r *http.Request) {
-	requestData := loadRequestData(r)
-	// fetch cards for home
-	err := completeWithIndexCards(&requestData)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	// generate feed
-	feed := &feeds.Feed{
-		Title:       requestData.Board.Name,
-		Link:        &feeds.Link{Href: requestData.BaseURL.String()},
-		Description: requestData.Board.Desc,
-		//Author:      &feeds.Author{requestData.Board.User, ""},
-		Created: requestData.Cards[0].Date(),
-	}
-	feed.Items = []*feeds.Item{}
-	for _, card := range requestData.Cards {
-		feed.Items = append(feed.Items, &feeds.Item{
-			Id:          card.Id,
-			Title:       card.Name,
-			Link:        &feeds.Link{Href: requestData.BaseURL.String() + "/c/" + card.Id},
-			Description: card.Excerpt,
-			Created:     card.Date(),
-		})
-	}
-	rss, err := feed.ToRss()
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	fmt.Fprint(w, rss)
-}
-
-func list(w http.ResponseWriter, r *http.Request) {
-	requestData := loadRequestData(r)
-	countPageViews(requestData)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
-	// pagination
-	requestData.Page = 1
-	requestData.HasPrev = false
-	if val, ok := mux.Vars(r)["page"]; ok {
-		page, err := strconv.Atoi(val)
-		if err != nil || page < 0 {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
-			page = 1
-		}
-		requestData.Page = page
-		if requestData.Page > 1 {
-			requestData.HasPrev = true
-		}
-	}
-	// ~
-
-	ppp := requestData.Prefs.PostsPerPage()
-	listSlug := mux.Vars(r)["list-slug"]
-
-	// fetch home cards for this list
-	var cards []Card
-	err = db.Select(&cards, `
-(
-  SELECT slug,
-         name,
-         '' AS excerpt,
-         null AS due,
-         id,
-         '""'::json AS labels,
-         '""'::json AS users,
-         0 AS pos,
-         '' AS cover
-  FROM lists
-  WHERE board_id = $2
-    AND slug = $3
-    AND visible
-) UNION ALL (
-  SELECT cards.slug,
-         cards.name,
-         substring(cards.desc from 0 for $1) AS excerpt,
-         cards.due,
-         cards.id,
-         array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
-         array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
-         cards.pos,
-         coalesce(cards.cover, '') AS cover
-  FROM cards
-  INNER JOIN lists
-  ON lists.id = cards.list_id
-  WHERE board_id = $2
-    AND lists.slug = $3
-    AND lists.visible
-    AND cards.visible
-  ORDER BY pos
-  OFFSET $4
-  LIMIT $5
-)
-ORDER BY pos
-    `, requestData.Prefs.Excerpts(), requestData.Board.Id, listSlug, ppp*(requestData.Page-1), ppp+1)
-	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			// don't report to raygun, we already know the error and it doesn't matter
-			log.Print("list not found.")
-			error404(w, r)
-			return
-		} else {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
-			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
-			return
-		}
-	}
-
-	// we haven't found the requested list (when the list has 0 cards, we should get 1 here)
-	if len(cards) < 1 {
-		error404(w, r)
-		return
-	}
-
-	// the first row is a List dressed as a Card
-	list := List{
-		Name: cards[0].Name,
-		Slug: cards[0].Slug,
-	}
-	cards = cards[1:]
-
-	if len(cards) > ppp {
-		requestData.HasNext = true
-		cards = cards[:ppp]
-	} else {
-		requestData.HasNext = false
-	}
-
-	requestData.Aggregator = list
-	requestData.Cards = cards
 
 	fmt.Fprint(w,
 		renderOnTopOf(requestData,
@@ -433,7 +279,7 @@ ORDER BY id
 	)
 }
 
-func handleSearch(w http.ResponseWriter, r *http.Request) {
+func list(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
 	countPageViews(requestData)
 	// raygun error reporting
@@ -445,15 +291,106 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	defer raygun.HandleError()
 	// ~
 
-	values := r.URL.Query()
-	query := values.Get("query")
+	// pagination
+	requestData.Page = 1
+	requestData.HasPrev = false
+	if val, ok := mux.Vars(r)["page"]; ok {
+		page, err := strconv.Atoi(val)
+		if err != nil || page < 0 {
+			log.Print(err.Error())
+			raygun.CreateError(err.Error())
+			page = 1
+		}
+		requestData.Page = page
+		if requestData.Page > 1 {
+			requestData.HasPrev = true
+		}
+	}
+	// ~
 
-	requestData.SearchQuery = query
-	requestData.TypedSearchQuery = query != ""
-	requestData.SearchResults, _ = search(query, requestData.Board.Id)
+	ppp := requestData.Prefs.PostsPerPage()
+	listSlug := mux.Vars(r)["list-slug"]
+
+	// fetch home cards for this list
+	var cards []Card
+	err = db.Select(&cards, `
+(
+  SELECT slug,
+         name,
+         '' AS excerpt,
+         null AS due,
+         id,
+         '""'::json AS labels,
+         '""'::json AS users,
+         0 AS pos,
+         '' AS cover
+  FROM lists
+  WHERE board_id = $2
+    AND slug = $3
+    AND visible
+) UNION ALL (
+  SELECT cards.slug,
+         cards.name,
+         substring(cards.desc from 0 for $1) AS excerpt,
+         cards.due,
+         cards.id,
+         array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
+         array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
+         cards.pos,
+         coalesce(cards.cover, '') AS cover
+  FROM cards
+  INNER JOIN lists
+  ON lists.id = cards.list_id
+  WHERE board_id = $2
+    AND lists.slug = $3
+    AND lists.visible
+    AND cards.visible
+  ORDER BY pos
+  OFFSET $4
+  LIMIT $5
+)
+ORDER BY pos
+    `, requestData.Prefs.Excerpts(), requestData.Board.Id, listSlug, ppp*(requestData.Page-1), ppp+1)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			// don't report to raygun, we already know the error and it doesn't matter
+			log.Print("list not found.")
+			error404(w, r)
+			return
+		} else {
+			log.Print(err.Error())
+			raygun.CreateError(err.Error())
+			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
+			return
+		}
+	}
+
+	// we haven't found the requested list (when the list has 0 cards, we should get 1 here)
+	if len(cards) < 1 {
+		error404(w, r)
+		return
+	}
+
+	// the first row is a List dressed as a Card
+	list := List{
+		Name: cards[0].Name,
+		Slug: cards[0].Slug,
+	}
+	cards = cards[1:]
+
+	if len(cards) > ppp {
+		requestData.HasNext = true
+		cards = cards[:ppp]
+	} else {
+		requestData.HasNext = false
+	}
+
+	requestData.Aggregator = list
+	requestData.Cards = cards
+
 	fmt.Fprint(w,
 		renderOnTopOf(requestData,
-			"templates/search.html",
+			"templates/list.html",
 			"templates/base.html",
 		),
 	)

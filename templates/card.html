@@ -25,7 +25,14 @@
     </aside>
     {{/IsPage}}
   </header>
-  <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>{{{ DescRender }}}</div>
+  <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>
+{{{ DescRender }}}
+
+{{#ShowMF2}}
+<a href="https://www.brid.gy/publish/facebook"></a>
+<a href="https://www.brid.gy/publish/twitter"></a>
+{{/ShowMF2}}
+  </div>
 </article>
 
 {{#GetChecklists}}

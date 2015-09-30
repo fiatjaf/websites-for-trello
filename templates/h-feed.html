@@ -1,0 +1,34 @@
+<!doctype html>
+
+<html class="h-feed">
+  <title class="p-name">{{ Board.Name }}</title>
+
+  <img class="u-photo" src>
+  <a class="u-url" href="">{{ Board.Name }}</a>
+
+  {{#Cards}}
+  <div class="h-entry">
+    {{#HasCover}}<img class="u-photo" src="{{ Cover }}">{{/HasCover}}
+    <h1 class="p-name">
+      <a class="u-url u-uid" href="/c/{{ Id }}">{{ Name }}</a>
+    </h1>
+    <time class="dt-published" datetime="{{ IsoDate }}"></time>
+    {{#GetLabels}}
+      <p class="p-category">{{{ NameOrSpaces }}}</p>
+    {{/GetLabels}}
+
+    {{#SyndicationTargets}}
+      <a class="u-syndication" rel="syndication" href="{{.}}"></a>
+    {{/SyndicationTargets}}
+
+    {{#GetAuthors}}
+      <a class="p-author" href="https://trello.com/{{ Username }}">{{ Username }}</a>
+    {{/GetAuthors}}
+    
+    <div class="p-summary">{{ Desc }}</div>
+    <div class="e-content">{{ DescRender }}</div>
+  </div>
+  {{/Cards}}
+
+  <p class="p-author">{{ Board.Name }}</p>
+</body>

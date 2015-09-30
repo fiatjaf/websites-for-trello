@@ -14,7 +14,9 @@ import (
 	"time"
 )
 
-var CardLinkMatcherExpression = "\\]\\(https?://trello.com/c/([^/]+)(/[\\w-]*)?\\)"
+const CARDLINKMATCHEREXPRESSION = "\\]\\(https?://trello.com/c/([^/]+)(/[\\w-]*)?\\)"
+const URLARRAYSTRINGSEPARATOR = "|,|"
+
 var CardLinkMatcher *regexp.Regexp
 
 func renderMarkdown(md string) string {
@@ -243,6 +245,7 @@ type Card struct {
 	Labels      types.JsonText
 	Checklists  types.JsonText
 	Attachments types.JsonText
+	Syndicated  string // string of |,|-separated URLs, "https://twitter.com/21a|,|https://facebook.com/234"
 	IsPage      bool
 	Color       string // THIS IS JUST FOR DISGUISING LABELS AS CARDS
 }
@@ -299,7 +302,7 @@ func (card Card) HasAttachments() bool {
 	return false
 }
 
-func (card Card) AuthorHTML() string {
+func (card Card) GetAuthors() []User {
 	var users []User
 	if !bytes.Equal(card.Users, nil) {
 		err := json.Unmarshal(card.Users, &users)
@@ -309,6 +312,11 @@ func (card Card) AuthorHTML() string {
 			log.Print(string(card.Users))
 		}
 	}
+	return users
+}
+
+func (card Card) AuthorHTML() string {
+	users := card.GetAuthors()
 
 	if len(users) == 0 {
 		return ""
@@ -332,6 +340,10 @@ func (card Card) GetLabels() []Label {
 		}
 	}
 	return labels
+}
+
+func (card Card) SyndicationTargets() []string {
+	return strings.Split(card.Syndicated, URLARRAYSTRINGSEPARATOR)
 }
 
 type Checklist struct {

@@ -30,7 +30,7 @@ func main() {
 	rds.Password = settings.RedisPassword
 	rds.MaxPoolSize = settings.RedisPoolSize
 
-	CardLinkMatcher = regexp.MustCompile(CardLinkMatcherExpression)
+	CardLinkMatcher = regexp.MustCompile(CARDLINKMATCHEREXPRESSION)
 
 	// middleware
 	middle := interpose.New()
@@ -85,6 +85,7 @@ func main() {
 	router.HandleFunc("/robots.txt", error404)
 	router.HandleFunc("/opensearch.xml", opensearch)
 	router.HandleFunc("/feed.xml", feed)
+	router.HandleFunc("/h-feed.html", hfeed)
 
 	// > redirect from permalinks
 	router.HandleFunc("/c/{card-id-or-shortLink}/", cardRedirect)

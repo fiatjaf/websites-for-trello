@@ -8,6 +8,7 @@
   <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
   {{/Prefs.Favicon}}
   <link type="application/rss+xml" title="{{ Board.Name }}" rel="alternate" href="/feed.xml">
+  <link type="text/html" rel="feed" href="/h-feed.html">
   <link href="//webhooks.websitesfortrello.com/webmention" rel="webmention">
   <link type="application/opensearchdescription+xml" rel="search" href="/opensearch.xml">
   <title>{{#Card.Test}}{{#IsPage}}{{ Card.PageTitle }}{{/IsPage}}{{^IsPage}}{{ Name }}{{/IsPage}} | {{/Card.Test}}{{^Card.Test}}{{#Aggregator.Test}}{{ Name }} | {{/Aggregator.Test}}{{/Card.Test}}{{ Board.Name }}</title>

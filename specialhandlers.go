@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/MindscapeHQ/raygun4go"
+	"github.com/gorilla/feeds"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -151,4 +152,87 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 		fav = "http://lorempixel.com/32/32/"
 	}
 	http.Redirect(w, r, fav, 301)
+}
+
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
+	countPageViews(requestData)
+	// raygun error reporting
+	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
+	if err != nil {
+		log.Print("unable to create Raygun client: ", err.Error())
+	}
+	raygun.Request(r)
+	defer raygun.HandleError()
+	// ~
+
+	values := r.URL.Query()
+	query := values.Get("query")
+
+	requestData.SearchQuery = query
+	requestData.TypedSearchQuery = query != ""
+	requestData.SearchResults, _ = search(query, requestData.Board.Id)
+	fmt.Fprint(w,
+		renderOnTopOf(requestData,
+			"templates/search.html",
+			"templates/base.html",
+		),
+	)
+}
+
+func feed(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
+	// fetch cards for home
+	err := completeWithIndexCards(&requestData)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// generate feed
+	feed := &feeds.Feed{
+		Title:       requestData.Board.Name,
+		Link:        &feeds.Link{Href: requestData.BaseURL.String()},
+		Description: requestData.Board.Desc,
+		Author:      &feeds.Author{requestData.Board.Name, ""},
+		Created:     requestData.Cards[0].Date(),
+	}
+	feed.Items = []*feeds.Item{}
+	for _, card := range requestData.Cards {
+		feed.Items = append(feed.Items, &feeds.Item{
+			Id:          card.Id,
+			Title:       card.Name,
+			Link:        &feeds.Link{Href: requestData.BaseURL.String() + "/c/" + card.Id},
+			Description: card.Excerpt,
+			Created:     card.Date(),
+		})
+	}
+	rss, err := feed.ToRss()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	fmt.Fprint(w, rss)
+}
+
+func hfeed(w http.ResponseWriter, r *http.Request) {
+	requestData := loadRequestData(r)
+
+	// fetch a lot of links for displaying here
+	// we have to manually modify preferences to ensure this.
+	requestData.Prefs.ExcerptsValue = "0"
+	requestData.Prefs.PostsPerPageValue = "25"
+
+	err := completeWithIndexCards(&requestData)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	fmt.Fprint(w,
+		renderOnTopOf(requestData,
+			"templates/h-feed.html",
+		),
+	)
 }
