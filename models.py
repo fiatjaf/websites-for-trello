@@ -10,7 +10,7 @@ from sqlalchemy import event
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from sqlalchemy.ext.mutable import MutableDict
-from mutablelist import MutableList
+from utils.mutablelist import MutableList
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -87,6 +87,7 @@ class Card(db.Model):
     labels = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x label relationship with arrays
     users = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # bizarre card x user relationship with arrays
     cover = db.Column(db.Text)
+    syndicated = db.Column(MutableList.as_mutable(ARRAY(db.Text, dimensions=1)), default=[]) # an array to store URLs of syndications (posting to Twitter, Facebook etc. with brid.gy)
     closed = db.Column(db.Boolean, default=False)
     visible = db.Column(db.Boolean, index=True)
     updated_on = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
@@ -184,13 +185,20 @@ event.listen(List.name, 'set', update_is_pages)
 def update_comment(target, value, oldvalue, initiator):
     raw = value
     if target.creator_id == os.environ['TRELLO_BOT_ID']:
-        rawlines = raw.splitlines()
-        target.body = '\n'.join(map(lambda l: l[2:], rawlines[2:-2]))
-        target.author_name = rawlines[0].split('**[')[1].split('](')[0]
-        target.author_url = rawlines[0].split('](')[1].split(')')[0]
-        target.source_display = rawlines[-1].split('via _[')[1].split('](')[0]
-        target.source_url = rawlines[-1].split('](')[1].split(')')[0]
+        # comment from wftbot
+        try:
+            # parse comment from webmention
+            rawlines = raw.splitlines()
+            target.body = '\n'.join(map(lambda l: l[2:], rawlines[2:-2])) + " "
+            target.author_name = rawlines[0].split('**[')[1].split('](')[0]
+            target.author_url = rawlines[0].split('](')[1].split(')')[0]
+            target.source_display = rawlines[-1].split('via _[')[1].split('](')[0]
+            target.source_url = rawlines[-1].split('](')[1].split(')')[0]
+        except IndexError:
+            # other special comments made by the bot, just leave it there, with a NULL body.
+            print 'comment made by wft that is not a webmention. ignore.'
     else:
+        # normal comment, use full text as body.
         target.body = raw
         target.author_name = requests.get('https://api.trello.com/1/members/'+target.creator_id+'/username').json()['_value']
         target.author_url = 'https://trello.com/' + target.creator_id

@@ -3,6 +3,7 @@ from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi
 from helpers import extract_card_cover
 from initial_fetch import initial_fetch
+from webmention_handling import publish_to_bridgy
 import requests
 import os
 
@@ -394,10 +395,21 @@ def commentCard(data, **kw):
     id = kw['payload']['id']
     comment = Comment.query.get(id)
     if not comment:
-        comment = Comment(id=id, card_id=data['card']['id'], creator_id=kw['payload']['memberCreator']['id'])
-        comment.raw = data['text']
-    db.session.add(comment)
-    db.session.commit()
+        command = data['text'].strip(' .,/.;]=-1234567890<>:?}+_)(*&$#@!"^~\'\n\t\r')
+        if command in ['facebook', 'twitter']:
+            # comment has the special meaning of saying "publish this for me!"
+            silo = command
+            publish_to_bridgy(silo, board_id=data['board']['id'], card_id=data['card']['id'])
+        else:
+            # add comment to database
+            comment = Comment(
+                id=id,
+                card_id=data['card']['id'],
+                creator_id=kw['payload']['memberCreator']['id']
+            )
+            comment.raw = data['text']
+            db.session.add(comment)
+            db.session.commit()
 
 def updateComment(data, **kw):
     comment = Comment.query.get(data['action']['id'])
