@@ -1,5 +1,3 @@
-require 'newrelic'
-
 pg             = require 'pg'
 url            = require 'url'
 Promise        = require 'bluebird'
