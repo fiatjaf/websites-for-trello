@@ -13,6 +13,7 @@ module.exports = (state, channels) ->
     'create': require './vrender-create'
     'manage': require './vrender-manage'
     'setupDone': require './vrender-setupdone'
+    'plan': require './vrender-plan'
   })[state.tab]
 
   (div className: "row section",
@@ -23,8 +24,11 @@ module.exports = (state, channels) ->
       (h1 {className: "center"}, state.user or '')
       (nav className: "center",
         (a
+          href: "#/plan"
+        , if state.premium then "Manage plan" else "Upgrade account")
+        (a
           href: "#/"
-        , "Manage account")
+        , "Manage boards")
         (a
           href: "#/setup"
         , "Use another board")

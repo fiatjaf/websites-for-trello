@@ -63,7 +63,8 @@ State = tl.StateFactory
   setupDone:
     board: null
     ready: false
-  tab: 'create' # or ['manage', 'setupDone']
+  history: []
+  tab: 'create' # or ['manage', 'setupDone', 'plan']
 
 handlers =
   refresh: (State, silent) ->
@@ -80,21 +81,39 @@ handlers =
           humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard.", {timeout: 12000}
         else
           if State.get('user') != res.body.user
-            amplitude.setUserId res.body.user
+            console.log 'track'
+            # amplitude.setUserId res.body.user
           State.change
             boards: res.body.boards
             activeboards: res.body.activeboards
             user: res.body.user
+            premium: res.body.premium
           if not silent
-            router.redirect if res.body.activeboards.length then '#/' else '#/setup'
+            toURL = if res.body.activeboards.length then '#/' else '#/setup'
+            if toURL != location.hash
+              router.redirect toURL
       else
         if location.pathname == '/account/'
           location.href = process.env.API_URL + '/account/setup/start'
     ).catch(console.log.bind console)
 
+  refreshHistory: (State) ->
+    Promise.resolve().then(->
+      superagent
+        .get(process.env.API_URL + '/account/info/money')
+        .withCredentials()
+        .type('json')
+        .accept('json')
+        .end()
+    ).then((res) ->
+      State.change
+        history: res.body.history
+        owe: res.body.owe
+    ).catch(console.log.bind console)
+
   setupBoard: (State, data) ->
     self = @
-    amplitude.logEvent 'setup', data
+    # amplitude.logEvent 'setup', data
     Promise.resolve().then(->
       if data.name
         # create
@@ -137,7 +156,7 @@ handlers =
     ).catch(console.log.bind console)
 
   initialFetch: (State, data) ->
-    amplitude.logEvent 'initial-fetch', data
+    # amplitude.logEvent 'initial-fetch', data
     Promise.resolve().then(->
       superagent
         .post(process.env.API_URL + '/board/' + data.id + '/initial-fetch')
@@ -151,7 +170,7 @@ handlers =
 
   deleteBoard: (State, data) ->
     self = @
-    amplitude.logEvent 'delete', data
+    # amplitude.logEvent 'delete', data
     Promise.resolve().then(->
       superagent
         .del(process.env.API_URL + '/board/' + data.id)
@@ -167,7 +186,7 @@ handlers =
 
   changeSubdomain: (State, data) ->
     self = @
-    amplitude.logEvent 'subdomain', data
+    # amplitude.logEvent 'subdomain', data
     Promise.resolve().then(->
       superagent
         .put(process.env.API_URL + '/board/' + data.id + '/subdomain')
@@ -193,17 +212,61 @@ handlers =
       location.pathname = '/'
     ).catch(console.log.bind console)
 
-# run this on startup
-handlers.refresh State
-# ~
+  togglePremium: (State, enable) ->
+    Promise.resolve().then(->
+      superagent
+        .put(process.env.API_URL + '/account/premium')
+        .send(enable: enable)
+        .withCredentials()
+        .end()
+    ).then(->
+      humane.success if enable then "You are now on the premium plan." else "You're not on the premium plan anymore."
+      handlers.refresh State, true
+      handlers.refreshHistory State
+    ).catch(console.log.bind console)
 
-if '/account/' == location.pathname
+  pay: (State, amount) ->
+    Promise.resolve().then(->
+      superagent
+        .post(process.env.API_URL + '/account/billing/pay')
+        .send(amount: amount)
+        .withCredentials()
+        .type('json')
+        .accept('json')
+        .end()
+    ).then((res) ->
+      location.href = res.body.url
+    ).catch(console.log.bind console)
+
+  paymentCompleted: (State, amount) ->
+    Promise.resolve().then(->
+      humane.success "You successfully paid <b>$#{amount}</b>."
+      router.redirect '#/plan'
+    ).catch(console.log.bind console)
+
+
+if '/account/' != location.pathname
+  # run this on landing page
+  handlers.refresh State
+else
   # setup router
   router
-    .addRoute '#/setup', -> State.change 'tab', 'create'
-    .addRoute '#/setup/again', -> State.change 'tab', 'create'
+    .addRoute '#/setup', ->
+      handlers.refresh State
+      State.change 'tab', 'create'
+    .addRoute '#/setup/again', ->
+      handlers.refresh State
+      State.change 'tab', 'create'
+    .addRoute '#/plan', ->
+      handlers.refresh State, true
+      handlers.refreshHistory State
+      State.change 'tab', 'plan'
+    .addRoute '#/paid/:amount', (req) ->
+      handlers.paymentCompleted State, req.params.amount
     .addRoute '#/logout', -> handlers.logout State
-    .addRoute '#/', -> State.change 'tab', 'manage'
+    .addRoute '#/', ->
+      handlers.refresh State
+      State.change 'tab', 'manage'
     .run('#/')
 
   app = document.createElement 'div'
