@@ -36,7 +36,6 @@ app.put '/premium', userRequired, (request, response, next) ->
     return response.sendStatus 204
 
   user = null
-  enable = request.body.enable
   conn = null
   release = null
   Promise.resolve().then(->
@@ -49,87 +48,36 @@ app.put '/premium', userRequired, (request, response, next) ->
     conn = db[0]
     release = db[1]
 
-    switch enable
+    switch request.body.enable
       when true
-        Promise.resolve().then(->
-          conn.queryAsync '''
+        conn.queryAsync '''
 INSERT INTO events (user_id, kind, date, cents, data) VALUES
 ($1, 'plan', now(), NULL, $2),
 ($1, 'bill', now() + interval '1 millisecond', $3, $4)
-          ''',
-            [
-              user._value or user
-              {
-                description: 'Premium plan enabled'
-                plan: 'premium'
-                enable: true
-              }
-              800
-              {description: "Bill for the month starting in #{(new Date).toISOString().split('T')[0]}"}
-            ]
-        )
+        ''',
+        [
+          user._value or user
+          {
+            description: 'Premium plan enabled'
+            plan: 'premium'
+            enable: true
+          }
+          800
+          {description: "Bill for the month starting in #{(new Date).toISOString().split('T')[0]}"}
+        ]
       when false
-        Promise.resolve().then(->
-          conn.queryAsync '''
-SELECT *
-FROM events
-WHERE user_id = $1
-ORDER BY date DESC
-LIMIT 2
-          ''', [user._value or user]
-        ).then((qres) ->
-          history =
-          if qres.rows.length == 2 and qres.rows[1].kind == 'plan' and qres.rows[0].kind == 'bill'
-            if qres.rows[1].date.toISOString.split('T')[0] == (new Date).toISOString().split('T')[0] and qres.rows[1].data.enable == true
-              # if the two last entries were made today and by pressing the
-              # 'enable premium' button, we remove them instead of creating a new
-              # 'disable' event.
-              conn.queryAsync '''
-DELETE FROM events WHERE id = $1 OR id = $2
-              ''', [qres.rows[0].id, qres.rows[1].id]
-            else
-              # if, however, they were created yesterday or before, we just
-              # change the value of the bill to reflect the proportion of days
-              conn.queryAsync '''
-BEGIN;
-UPDATE events SET cents = ($2/31)*(now()::date - date::date) WHERE id = $1;
-INSERT INTO events (user_id, kind, date, data) VALUES ($3, 'plan', now(), $4)
-COMMIT;
-              ''',
-              [
-                qres.rows[0].id
-                800
-                user._value or user
-                {
-                  description: 'Premium plan disabled'
-                  plan: 'premium'
-                  enable: false
-                }
-              ]
-          else
-            # if the person cancels after a month (after he has more than
-            # one sequential bills or interspersed payments or other event)
-            # just cancel the plan and ignore the other effects.
-            conn.queryAsync '''
+        conn.queryAsync '''
 INSERT INTO events (user_id, kind, date, data) VALUES ($1, 'plan', now(), $2)
-            ''',
-            [
-              user._value or user
-              {
-                description: 'Premium plan disabled'
-                plan: 'premium'
-                enable: false
-              }
-            ]
-        )
-  ).then(->
-    # finally remove the premium status of the user's account
-    conn.queryAsync('''
-UPDATE users
-SET premium = $2
-WHERE users.id = $1
-    ''', [user._value or user, enable])
-  ).then((qresult) -> response.send ok: true).catch(next).finally(-> release())
+        ''',
+        [
+          user._value or user
+          {
+            description: 'Premium plan disabled'
+            plan: 'premium'
+            enable: false
+          }
+        ]
+  ).then(-> response.send ok: true).catch(next).finally(-> release())
 
 app.get '/logout', (request, response) ->
   request.session = null

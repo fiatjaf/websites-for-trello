@@ -39,8 +39,8 @@ ORDER BY boards.name
                       ''', [user._value or user])
       conn.queryAsync('''
 SELECT premium
-FROM users
-WHERE users.id = $1
+FROM premium_accounts
+WHERE user_id = $1
                       ''', [user._value or user])
     ]
   ).spread((username, boards, bqresult, pqresult) ->
@@ -48,7 +48,7 @@ WHERE users.id = $1
 
     response.send
       user: username
-      premium: pqresult.rows[0].premium
+      premium: if pqresult.rows.length then pqresult.rows[0].premium else false
       boards: boards
       activeboards: bqresult.rows
   ).catch(next).finally(-> release())
@@ -73,18 +73,20 @@ SELECT
   data->>'description' AS description
 FROM events
 WHERE user_id = $1
-ORDER BY date DESC
+ORDER BY events.date DESC
       ''', [user._value or user]
       conn.queryAsync '''
-SELECT CASE WHEN kind = 'payment' THEN -cents ELSE cents END AS c
-FROM events
-WHERE user_id = $1
+SELECT sum(c) AS owe FROM (
+  SELECT CASE WHEN kind = 'payment' THEN -cents ELSE cents END AS c
+  FROM events
+  WHERE user_id = $1
+)a
       ''', [user._value or user]
     ]
   ).spread((hqres, oqres) ->
     response.send
       history: hqres.rows
-      owe: oqres.rows[0].cents
+      owe: oqres.rows[0].owe
   ).catch(next).finally(-> release())
 
 module.exports = app
