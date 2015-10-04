@@ -3,7 +3,6 @@ express        = require 'express'
 cookieSession  = require 'cookie-session'
 bodyParser     = require 'body-parser'
 cors           = require 'cors'
-superagent     = (require 'superagent-promise')((require 'superagent'), Promise)
 
 {
   raygun,
@@ -33,9 +32,9 @@ if raygun
     next(err)
 
 app.use (err, request, response) ->
-  response.sendStatus 500
   console.log ':: API :: error:', err
   console.log ':: API :: request:', request.originalUrl, request.body
+  response.sendStatus 500
 
 app.listen port, '0.0.0.0', ->
   console.log ':: API :: running at 0.0.0.0:' + port

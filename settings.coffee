@@ -9,10 +9,12 @@ superagent     = (require 'superagent-promise')((require 'superagent'), Promise)
 if process.env.DEBUG
   process.env.SITE_URL = 'http://' + process.env.DOMAIN
   process.env.API_URL = 'http://' + process.env.DOMAIN.replace /0$/, 1
+  process.env.SITES_DOMAIN = process.env.DOMAIN.replace /0$/, 3
   port = process.env.API_URL.split(':').slice(-1)[0]
 else
   process.env.SITE_URL = 'https://' + process.env.DOMAIN
   process.env.API_URL = 'https://api.' + process.env.DOMAIN
+  process.env.SITES_DOMAIN = process.env.DOMAIN
   port = process.env.PORT
   raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
   raygun.user = (request) -> request.session.username
@@ -71,3 +73,4 @@ module.exports =
   raygun: raygun
   rabbitSend: rabbitSend
   paypal: paypal
+  superagent: superagent

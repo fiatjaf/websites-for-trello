@@ -5,6 +5,7 @@ Promise       = require 'bluebird'
   trello,
   pg,
   rabbitSend,
+  superagent,
 } = require './settings'
 {
   userRequired
@@ -64,6 +65,19 @@ app.post '/setup', userRequired, (request, response, next) ->
     setupBoard request, response
   ).catch(next)
 app.put '/setup', userRequired, setupBoard
+
+app.get '/is-live/:subdomain', (request, response) ->
+  Promise.resolve().then(->
+    subdomain = request.params.subdomain
+    superagent
+      .head("http://#{subdomain}.#{process.env.SITES_DOMAIN}/")
+      .end()
+  ).then(->
+    response.sendStatus 200
+  ).catch((err) ->
+    console.log err
+    response.sendStatus 404
+  )
 
 app.put '/:boardId/subdomain', userRequired, (request, response, next) ->
   subdomain = request.body.value.toLowerCase()
