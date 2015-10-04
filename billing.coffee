@@ -14,8 +14,7 @@ Promise       = require 'bluebird'
 app = express()
 
 app.post '/pay', userRequired, (request, response, next) ->
-  amount = request.body.amount
-  console.log 'amount:', amount
+  request.session.amount = request.body.amount
 
   Promise.resolve().then(->
     paypal.payment.createAsync
@@ -32,7 +31,7 @@ app.post '/pay', userRequired, (request, response, next) ->
         soft_descriptor: 'Websites for Trello'
         amount: {
           currency: 'USD'
-          total: '8.00'
+          total: request.session.amount
         }
       }]
   ).then((payment) ->
@@ -64,10 +63,12 @@ app.get '/pay/callback', userRequired, (request, response, next) ->
         soft_descriptor: 'Websites for Trello'
         amount: {
           currency: 'USD'
-          total: '8.00'
+          total: request.session.amount
         }
       }]
   ).then((payment) ->
+    request.session.amount = null # just cleaning
+
     if payment.state != 'approved'
       return response.redirect process.env.API_URL + '/account/billing/pay/cancel'
 
