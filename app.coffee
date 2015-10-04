@@ -65,9 +65,10 @@ State = tl.StateFactory
     ready: false
   history: []
   tab: 'create' # or ['manage', 'setupDone', 'plan']
+  firstRefresh: true
 
 handlers =
-  refresh: (State, silent) ->
+  refresh: (State) ->
     Promise.resolve().then(->
       superagent
         .get(process.env.API_URL + '/account/info')
@@ -88,13 +89,15 @@ handlers =
             activeboards: res.body.activeboards
             user: res.body.user
             premium: res.body.premium
-          if not silent
+          if State.get('firstRefresh') and (location.hash == '#/' or location.hash == '#/setup')
             toURL = if res.body.activeboards.length then '#/' else '#/setup'
             if toURL != location.hash
               router.redirect toURL
       else
         if location.pathname == '/account/'
           location.href = process.env.API_URL + '/account/setup/start'
+
+      State.silentlyUpdate 'firstRefresh', false
     ).catch(console.log.bind console)
 
   refreshHistory: (State) ->
@@ -150,7 +153,7 @@ handlers =
             .end()
         ).then(->
           humane.success "Success!"
-          self.refresh State, true
+          self.refresh State
           State.change 'setupDone.ready', true
         ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
@@ -213,6 +216,9 @@ handlers =
     ).catch(console.log.bind console)
 
   togglePremium: (State, enable) ->
+    if enable == false and not confirm 'Really disable the premium plan?'
+      return
+
     Promise.resolve().then(->
       superagent
         .put(process.env.API_URL + '/account/premium')
@@ -221,7 +227,7 @@ handlers =
         .end()
     ).then(->
       humane.success if enable then "You are now on the premium plan." else "You're not on the premium plan anymore."
-      handlers.refresh State, true
+      handlers.refresh State
       handlers.refreshHistory State
     ).catch(console.log.bind console)
 
@@ -245,29 +251,28 @@ handlers =
     ).catch(console.log.bind console)
 
 
-if '/account/' != location.pathname
+if '/account/' != location.pathname.slice(0, 9)
   # run this on landing page
   handlers.refresh State
 else
   # setup router
+  handlers.refresh State
   router
     .addRoute '#/setup', ->
-      handlers.refresh State, true
       State.change 'tab', 'create'
     .addRoute '#/setup/again', ->
-      handlers.refresh State, true
       State.change 'tab', 'create'
     .addRoute '#/plan', ->
-      handlers.refresh State, true
       handlers.refreshHistory State
       State.change 'tab', 'plan'
     .addRoute '#/paid/:amount', (req) ->
       handlers.paymentCompleted State, req.params.amount
     .addRoute '#/logout', -> handlers.logout State
     .addRoute '#/', ->
-      handlers.refresh State
       State.change 'tab', 'manage'
-    .run('#/')
+    .errors 404, ->
+      router.redirect '#/'
+    .run(location.hash)
 
   app = document.createElement 'div'
   document.querySelector('body > .row').insertBefore(app, document.querySelector('body > .row > .container'))

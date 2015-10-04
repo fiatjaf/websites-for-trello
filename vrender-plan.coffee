@@ -1,4 +1,5 @@
-tl = require 'talio'
+tl    = require 'talio'
+Money = require 'math-money'
 
 {div, main, span, pre, nav, section,
  small, i, p, b, a, button, code,
@@ -9,15 +10,36 @@ tl = require 'talio'
  ul, li} = require 'virtual-elements'
 
 module.exports = (state, channels) ->
+  money = (ints) ->
+    pfed = Money.factory('$', { decimals: 2, prefix: '_' }).raw(ints).format()
+    return pfed.slice(2)
+
   (div className: "col-1-1",
     (div {},
+      (h2 {className: 'center'}, 'You are using a free account.')
+      (p {},
+        'Upgrade to gain access to '
+        (b {}, 'custom domains')
+        ' and up to '
+        (b {}, '25,000 page views')
+        '.'
+      )
+      (p {},
+        'You can enable the premium features without paying anything, test them as you wish and decide if you want to pay later. If you have any question, please use our contact form or email us on '
+        (b {}, 'websitesfortrello@boardthreads.com')
+        '.'
+      )
       (button
         'ev-click': tl.sendClick channels.togglePremium, true, {preventDefault: true}
-      , 'Enable premium account')
+        className: 'block'
+      ,
+        'Enable premium account'
+      )
     ) if not state.premium
     (div {},
-      (h2 {}, 'The premium plan is enabled for you.')
+      (h2 {className: 'center'}, 'You are using a premium account.')
       (button
+        className: 'block'
         'ev-click': tl.sendClick channels.togglePremium , false, {preventDefault: true}
       , 'Disable premium account')
 
@@ -25,13 +47,14 @@ module.exports = (state, channels) ->
         (div className: 'col-1-2',
           (p {},
             'You owe:'
-            (h1 {}, state.owe or '0.00')
+            (h1 {}, '$' + (if state.owe then money(state.owe) else '0.00'))
           )
         )
         (div className: 'col-1-2',
           (button
-            'ev-click': tl.sendClick channels.pay, '8.00', {preventDefault: true}
-          , 'Pay $8')
+            className: 'block'
+            'ev-click': tl.sendClick channels.pay, money(state.owe), {preventDefault: true}
+          , 'Pay with PayPal') if money(state.owe) != '0.00'
         )
       )
 
@@ -48,9 +71,11 @@ module.exports = (state, channels) ->
           (tr {},
             (td {}, row.date)
             (td {}, row.description)
-            (td {}, if row.kind == 'payment' then '-' + row.amount else row.amount)
+            (td {style: {'text-align': 'right'}},
+              if not row.cents then '' else if row.kind == 'payment' then '$ ' + money(-row.cents) else '$ ' + money(row.cents)
+            )
           ) for row in state.history
         )
-      )
+      ) if state.history.length > 0
     ) if state.premium
   )

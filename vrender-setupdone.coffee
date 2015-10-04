@@ -59,7 +59,7 @@ module.exports = (setupDoneState, channels) ->
       (p {},
         "To use your own domain in your site, just "
         (a
-          href: "#/"
+          href: "#/plan"
         , "upgrade your account")
         " for only "
         (span {className: "code"}, "$8.00 / month")
