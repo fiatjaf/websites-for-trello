@@ -146,7 +146,7 @@ handlers =
       op.attempt (currentAttempt) ->
         Promise.resolve().then(->
           superagent
-            .get("//#{board.subdomain}.#{process.env.SITES_DOMAIN}/")
+            .get(process.env.API_URL + '/board/is-live/' + board.subdomain)
             .end()
         ).then(->
           humane.success "Success!"
@@ -252,10 +252,10 @@ else
   # setup router
   router
     .addRoute '#/setup', ->
-      handlers.refresh State
+      handlers.refresh State, true
       State.change 'tab', 'create'
     .addRoute '#/setup/again', ->
-      handlers.refresh State
+      handlers.refresh State, true
       State.change 'tab', 'create'
     .addRoute '#/plan', ->
       handlers.refresh State, true
