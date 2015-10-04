@@ -69,30 +69,22 @@ app.get '/money', userRequired, (request, response, next) ->
 SELECT
   to_char(date, 'TMMonth DD, YYYY') AS date,
   kind,
-  left(cents, -2) || '.' || right(cents, -1) AS amount,
+  cents,
   data->>'description' AS description
-FROM (
-  SELECT date, kind, lpad(cents::text, 3, '0') AS cents, data
-  FROM events
-  WHERE user_id = $1
-  ORDER BY date DESC
-)a
+FROM events
+WHERE user_id = $1
+ORDER BY date DESC
       ''', [user._value or user]
       conn.queryAsync '''
-SELECT left(cents::text, -2) || '.' || right(cents::text, -1) AS owe
-FROM (
-  SELECT lpad(sum(c)::text, 3, '0') AS cents FROM (
-    SELECT CASE WHEN kind = 'payment' THEN -cents ELSE cents END AS c
-    FROM events
-    WHERE user_id = $1
-  )a
-)b;
+SELECT CASE WHEN kind = 'payment' THEN -cents ELSE cents END AS c
+FROM events
+WHERE user_id = $1
       ''', [user._value or user]
     ]
   ).spread((hqres, oqres) ->
     response.send
       history: hqres.rows
-      owe: oqres.rows[0].owe
+      owe: oqres.rows[0].cents
   ).catch(next).finally(-> release())
 
 module.exports = app

@@ -27,7 +27,7 @@ app.post '/pay', userRequired, (request, response, next) ->
           cancel_url: process.env.API_URL + '/account/billing/pay/cancel'
       }
       transactions: [{
-        description: '1 month worth of Websites for Trello'
+        description: "$#{request.session.amount} for Websites for Trello"
         soft_descriptor: 'Websites for Trello'
         amount: {
           currency: 'USD'
@@ -59,7 +59,7 @@ app.get '/pay/callback', userRequired, (request, response, next) ->
     paypal.payment.executeAsync paymentId,
       payer_id: payerId
       transactions: [{
-        description: '1 month worth of Websites for Trello'
+        description: "$#{request.session.amount} for Websites for Trello"
         soft_descriptor: 'Websites for Trello'
         amount: {
           currency: 'USD'
@@ -86,7 +86,7 @@ app.get '/pay/callback', userRequired, (request, response, next) ->
 
     conn.queryAsync '''
 INSERT INTO events (user_id, kind, date, cents, data)
-VALUES ($1, 'payment', $2, now(), $3)
+VALUES ($1, 'payment', now(), $2, $3)
     ''', [
       user._value or user
       payment.transactions.map((t) -> parseInt t.amount.total.replace('.', '')).reduce(((a, b) -> a + b), 0)
