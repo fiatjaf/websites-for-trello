@@ -85,10 +85,9 @@ app.get '/pay/callback', userRequired, (request, response, next) ->
 
     conn.queryAsync '''
 INSERT INTO events (user_id, kind, date, cents, data)
-VALUES ($1, 'payment', $2, $3, $4)
+VALUES ($1, 'payment', $2, now(), $3)
     ''', [
       user._value or user
-      payment.update_time
       payment.transactions.map((t) -> parseInt t.amount.total.replace('.', '')).reduce(((a, b) -> a + b), 0)
       {
         description: 'Paypal'
