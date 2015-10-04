@@ -20,10 +20,24 @@ class User(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     premium = db.Column(db.Boolean)
     boards = db.relationship('Board', backref='user', lazy='dynamic', passive_deletes='all')
+    events = db.relationship('Event', backref='user', lazy='dynamic')
     # ~
 
     email = db.Column(db.Text)
     registered_on = db.Column(db.DateTime, default=db.func.now())
+
+class Event(db.Model):
+    __tablename__ = 'events'
+
+    # meta
+    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    user_id = db.Column(db.String(50), db.ForeignKey('users.id'), nullable=False)
+    # ~
+
+    kind = db.Column(db.Text, index=True) # later convert this to enum: ['payment', 'bill', 'plan', ...]
+    date = db.Column(db.DateTime, default=db.func.now(), nullable=False)
+    cents = db.Column(db.Integer)
+    data = db.Column(MutableDict.as_mutable(JSONB), default={})
 
 class Board(db.Model):
     __tablename__ = 'boards'
@@ -31,7 +45,6 @@ class Board(db.Model):
     # meta
     id = db.Column(db.String(50), primary_key=True)
     shortLink = db.Column(db.String(35), unique=True)
-    webhook = db.Column(db.String(50))
     user_id = db.Column(db.String(50), db.ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     subdomain = db.Column(db.Text, index=True, unique=True, nullable=False)
     lists = db.relationship('List', backref='board', lazy='dynamic', passive_deletes='all')
