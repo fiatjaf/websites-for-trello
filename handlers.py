@@ -137,7 +137,6 @@ def addMemberToCard(data, **kw):
             _id=kw['payload']['member']['id'],
             id=kw['payload']['member']['username'],
             email=None,
-            premium=False,
         )
         db.session.add(user)
 
@@ -159,7 +158,6 @@ def removeMemberFromCard(data, **kw):
             _id=kw['payload']['member']['id'],
             id=kw['payload']['member']['username'],
             email=None,
-            premium=False,
         )
         db.session.add(user)
 

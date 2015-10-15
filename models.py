@@ -18,7 +18,6 @@ class User(db.Model):
     # meta
     _id = db.Column(db.String(50))
     id = db.Column(db.String(50), primary_key=True)
-    premium = db.Column(db.Boolean)
     boards = db.relationship('Board', backref='user', lazy='dynamic', passive_deletes='all')
     events = db.relationship('Event', backref='user', lazy='dynamic')
     # ~
