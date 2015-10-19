@@ -90,7 +90,7 @@ def process_message_batch(messages):
             try:
                 process_message(payload)
             except Exception:
-                print ':: MODEL-UPDATES :: payload:', payload
+                print ':: MODEL-UPDATES :: payload (batch level):', payload
                 traceback.print_exc(file=sys.stdout)
 
         # delete message frm rabbitmq
