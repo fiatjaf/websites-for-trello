@@ -17,13 +17,16 @@
     <aside>
       {{{AuthorHTML}}}
       <a rel="bookmark" {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
+    {{/IsPage}}
+    {{#IsPage}}
+    <aside>
+    {{/IsPage}}
       <ul>
         {{#GetLabels}}
         <li><a rel="tag" href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
         {{/GetLabels}}
       </ul>
     </aside>
-    {{/IsPage}}
   </header>
   <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>
 {{{ DescRender }}}
