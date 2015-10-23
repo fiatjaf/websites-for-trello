@@ -82,8 +82,8 @@ handlers =
           humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard.", {timeout: 12000}
         else
           if State.get('user') != res.body.user
-            console.log 'track'
-            # amplitude.setUserId res.body.user
+            ga 'send', 'event', 'user', 'login', res.body.user
+            ga 'set', 'userId', res.body.user
           State.change
             boards: res.body.boards
             activeboards: res.body.activeboards
@@ -116,9 +116,9 @@ handlers =
 
   setupBoard: (State, data) ->
     self = @
-    # amplitude.logEvent 'setup', data
     Promise.resolve().then(->
       if data.name
+        ga 'send', 'event', 'board', 'create', data.name
         # create
         superagent
           .post(process.env.API_URL + '/board/setup')
@@ -126,6 +126,7 @@ handlers =
           .withCredentials()
           .end()
       else if data.id
+        ga 'send', 'event', 'board', 'reuse', data.id
         # reuse
         superagent
           .put(process.env.API_URL + '/board/setup')
@@ -134,6 +135,8 @@ handlers =
           .end()
     ).then((res) ->
       board = res.body
+      ga 'send', 'event', 'board', 'setup-done', board.id
+
       State.change
         setupDone:
           board: board
@@ -152,14 +155,15 @@ handlers =
             .get(process.env.API_URL + '/board/is-live/' + board.subdomain)
             .end()
         ).then(->
-          humane.success "Success!"
           self.refresh State
+          ga 'send', 'event', 'board', 'setup-success', board.id
+          humane.success "Success!"
           State.change 'setupDone.ready', true
         ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
 
   initialFetch: (State, data) ->
-    # amplitude.logEvent 'initial-fetch', data
+    ga 'send', 'event', 'board', 'initial-fetch', data.id
     Promise.resolve().then(->
       superagent
         .post(process.env.API_URL + '/board/' + data.id + '/initial-fetch')
@@ -173,7 +177,7 @@ handlers =
 
   deleteBoard: (State, data) ->
     self = @
-    # amplitude.logEvent 'delete', data
+    ga 'send', 'event', 'board', 'delete', data.id
     Promise.resolve().then(->
       superagent
         .del(process.env.API_URL + '/board/' + data.id)
@@ -189,7 +193,7 @@ handlers =
 
   changeSubdomain: (State, data) ->
     self = @
-    # amplitude.logEvent 'subdomain', data
+    ga 'send', 'event', 'board', 'subdomain', data.id
     Promise.resolve().then(->
       superagent
         .put(process.env.API_URL + '/board/' + data.id + '/subdomain')
@@ -205,6 +209,7 @@ handlers =
     ).catch(console.log.bind console)
 
   logout: (State) ->
+    ga 'send', 'event', 'user', 'logout', State.get('user')
     humane.log "Logging out..."
     Promise.resolve().then(->
       superagent
@@ -226,12 +231,18 @@ handlers =
         .withCredentials()
         .end()
     ).then(->
-      humane.success if enable then "You are now on the premium plan." else "You're not on the premium plan anymore."
+      if enable == true
+        ga 'send', 'event', 'billing', 'premium', 'enable'
+        humane.success "You are now on the premium plan."
+      else if enable == false
+        ga 'send', 'event', 'billing', 'premium', 'disable'
+        humane.info "You're not on the premium plan anymore."
       handlers.refresh State
       handlers.refreshHistory State
     ).catch(console.log.bind console)
 
   pay: (State, amount) ->
+    ga 'send', 'event', 'billing', 'pay', '', amount
     Promise.resolve().then(->
       superagent
         .post(process.env.API_URL + '/account/billing/pay')
@@ -241,10 +252,12 @@ handlers =
         .accept('json')
         .end()
     ).then((res) ->
+      ga 'send', 'event', 'billing', 'paypal-redirecting', '', amount
       location.href = res.body.url
     ).catch(console.log.bind console)
 
   paymentCompleted: (State, amount) ->
+    ga 'send', 'event', 'billing', 'paid-success', '', amount
     Promise.resolve().then(->
       humane.success "You successfully paid <b>$#{amount}</b>."
       router.redirect '#/plan'
@@ -263,7 +276,8 @@ else
     .addRoute '#/setup/again', ->
       State.change 'tab', 'create'
     .addRoute '#/plan', ->
-      handlers.refreshHistory State
+      if State.get('premium')
+        handlers.refreshHistory State
       State.change 'tab', 'plan'
     .addRoute '#/paid/:amount', (req) ->
       handlers.paymentCompleted State, req.params.amount
