@@ -6,7 +6,7 @@ Promise       = require 'bluebird'
 
 app = express()
 
-app.put '/premium', userRequired, (r, w, next) ->
+app.put '/premium', userRequired, (r, w) ->
   # first we ask for the money
   paypal.authenticate
     RETURNURL: process.env.API_URL + '/account/billing/callback/success'
@@ -62,9 +62,9 @@ app.get '/callback/success', userRequired, (r, w) ->
 
       plan = if r.body.enable then 'premium' else null
       conn.queryAsync '''UPDATE users SET plan = $1 WHERE id = $2''', [plan, user._value or user]
-    ).then(-> w.send ok: true).catch(next).finally(-> release())
+    ).then(-> w.send ok: true).finally(-> release())
 
-app.get '/callback/fail', userRequired, (r, w, next) ->
+app.get '/callback/fail', userRequired, (r, w) ->
   w.send 'We couldn\'t complete your payment. Please message us on <b>websitesfortrello@boardthreads.com</b>'
 
 module.exports = app

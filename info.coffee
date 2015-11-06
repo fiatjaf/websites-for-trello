@@ -1,26 +1,21 @@
 express       = require 'express'
 Promise       = require 'bluebird'
 
-{
-  trello,
-  pg,
-} = require './settings'
-{
-  userRequired
-} = require './lib'
+{ trello, pg, } = require './settings'
+{ userRequired } = require './lib'
 
 app = express()
 
-app.get '/', (request, response, next) ->
-  if not request.session.token
-    return response.sendStatus 204
+app.get '/', (r, w) ->
+  if not r.session.token
+    return w.sendStatus 204
 
-  trello.token = request.session.token
+  trello.token = r.session.token
   release = null
 
   Promise.resolve().then(->
     Promise.all [
-      (request.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
+      (r.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
       pg.connectAsync process.env.DATABASE_URL
     ]
   ).spread((user, db) ->
@@ -39,13 +34,13 @@ ORDER BY boards.name
                       ''', [user._value or user])
     ]
   ).spread((username, boards, bqresult) ->
-    request.session.user = username
+    r.session.user = username
 
-    response.send
+    w.send
       user: username
       premium: bqresult.rows[0].plan == 'premium'
       boards: boards
       activeboards: bqresult.rows
-  ).catch(next).finally(-> release())
+  ).finally(-> release())
 
 module.exports = app

@@ -24,14 +24,16 @@ app.use '/account', require './account'
 app.use '/board', require './board'
 
 if raygun
-  app.use (err, request, response, next) ->
-    raygun.send err, {}, (->), request, ['API']
-    next(err)
-
-app.use (err, request, response) ->
-  console.log ':: API :: error:', err
-  console.log ':: API :: request:', request.originalUrl, request.body
-  response.sendStatus 500
+  app.use (err, r, w) ->
+    raygun.send err, {}, (->), r, ['API']
+    console.log ':: API :: error:', err
+    console.log ':: API :: r:', r.originalUrl, r.body
+    w.sendStatus 500
+else
+  app.use (err, r, w) ->
+    console.log ':: API :: error:', err
+    console.log ':: API :: r:', r.originalUrl, r.body
+    w.sendStatus 500
 
 app.listen port, '0.0.0.0', ->
   console.log ':: API :: running at 0.0.0.0:' + port

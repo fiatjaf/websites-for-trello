@@ -1,28 +1,21 @@
 express       = require 'express'
 Promise       = require 'bluebird'
 
-{
-  trello,
-  pg,
-  rabbitSend,
-  superagent,
-} = require './settings'
-{
-  userRequired
-} = require './lib'
+{ trello, pg, rabbitSend, superagent, } = require './settings'
+{ userRequired } = require './lib'
 
 app = express()
 
-setupBoard = (request, response, next) ->
-  {id} = request.body
-  trello.token = request.session.token
+setupBoard = (r, w) ->
+  {id} = r.body
+  trello.token = r.session.token
 
   release = null
   boardSetupPayload = JSON.stringify {
     'type': 'boardSetup'
     'board_id': id
-    'username': request.session.user
-    'user_token': request.session.token
+    'username': r.session.user
+    'user_token': r.session.token
   }
   initialFetchPayload = JSON.stringify {
     'type': 'initialFetch'
@@ -49,38 +42,38 @@ setupBoard = (request, response, next) ->
         id: id
         shortLink: shortLink._value
         subdomain: shortLink._value.toLowerCase()
-    response.send board
-  ).catch(next).finally(-> release())
+    w.send board
+  ).finally(-> release())
 
-app.post '/setup', userRequired, (request, response, next) ->
-  {name} = request.body
-  trello.token = request.session.token
+app.post '/setup', userRequired, (r, w) ->
+  {name} = r.body
+  trello.token = r.session.token
   Promise.resolve().then(->
     trello.postAsync "/1/boards", {
       name: name
     }
   ).then((board) ->
     console.log ':: API :: created board', name
-    request.body.id = board.id
-    setupBoard request, response
-  ).catch(next)
+    r.body.id = board.id
+    setupBoard r, w
+  )
 app.put '/setup', userRequired, setupBoard
 
-app.get '/is-live/:subdomain', (request, response) ->
+app.get '/is-live/:subdomain', (r, w) ->
   Promise.resolve().then(->
-    subdomain = request.params.subdomain
+    subdomain = r.params.subdomain
     superagent
       .head("http://#{subdomain}.#{process.env.SITES_DOMAIN}/")
       .end()
   ).then(->
-    response.sendStatus 200
+    w.sendStatus 200
   ).catch((err) ->
     console.log err
-    response.sendStatus 404
+    w.sendStatus 404
   )
 
-app.put '/:boardId/subdomain', userRequired, (request, response, next) ->
-  subdomain = request.body.value.toLowerCase()
+app.put '/:boardId/subdomain', userRequired, (r, w) ->
+  subdomain = r.body.value.toLowerCase()
   release = null
 
   Promise.resolve().then(->
@@ -97,25 +90,25 @@ SET subdomain = (CASE
   END)
 WHERE user_id = $2
 AND id = $3
-                    ''', [subdomain, request.session.user, request.params.boardId]
+                    ''', [subdomain, r.session.user, r.params.boardId]
   ).then(->
-    response.sendStatus 200
-  ).catch(next).finally(-> release())
+    w.sendStatus 200
+  ).finally(-> release())
 
-app.post '/:boardId/initial-fetch', userRequired, (request, response, next) ->
+app.post '/:boardId/initial-fetch', userRequired, (r, w) ->
   payload = JSON.stringify {
     'type': 'initialFetch'
-    'board_id': request.params.boardId
+    'board_id': r.params.boardId
   }
-  rabbitSend(payload).then(-> response.sendStatus 202).catch(next)
+  rabbitSend(payload).then(-> w.sendStatus 202)
 
-app.delete '/:boardId', userRequired, (request, response, next) ->
+app.delete '/:boardId', userRequired, (r, w) ->
   release = null
 
   payload = JSON.stringify {
     'type': 'boardDeleted'
-    'board_id': request.params.boardId
-    'user_token': request.session.token
+    'board_id': r.params.boardId
+    'user_token': r.session.token
   }
   Promise.resolve().then(->
     pg.connectAsync process.env.DATABASE_URL
@@ -127,12 +120,11 @@ app.delete '/:boardId', userRequired, (request, response, next) ->
 DELETE FROM boards
 WHERE user_id = $1
   AND id = $2
-                    ''', [request.session.user, request.params.boardId]
+    ''', [r.session.user, r.params.boardId]
   ).then(->
-    response.sendStatus 200
+    w.sendStatus 200
 
     rabbitSend payload
-  ).catch(next).finally(-> release())
-
+  ).finally(-> release())
 
 module.exports = app

@@ -1,8 +1,8 @@
 
 
-userRequired = (request, response, next) ->
-  if not request.session.user
-    return response.sendStatus 401
+userRequired = (r, w, next) ->
+  if not r.session.user
+    return w.sendStatus 401
   next()
 
 module.exports =
