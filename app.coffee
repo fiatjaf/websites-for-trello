@@ -100,20 +100,6 @@ handlers =
       State.silentlyUpdate 'firstRefresh', false
     ).catch(console.log.bind console)
 
-  refreshHistory: (State) ->
-    Promise.resolve().then(->
-      superagent
-        .get(process.env.API_URL + '/account/info/money')
-        .withCredentials()
-        .type('json')
-        .accept('json')
-        .end()
-    ).then((res) ->
-      State.change
-        history: res.body.history
-        owe: res.body.owe
-    ).catch(console.log.bind console)
-
   setupBoard: (State, data) ->
     self = @
     Promise.resolve().then(->
@@ -225,44 +211,29 @@ handlers =
       return
 
     Promise.resolve().then(->
+      if enable == true
+        ga 'send', 'event', 'billing', 'enable', 'premiumn'
+      else if enable == false
+        ga 'send', 'event', 'billing', 'disable', 'premium'
       superagent
-        .put(process.env.API_URL + '/account/premium')
+        .put(process.env.API_URL + '/account/billing/premium')
         .send(enable: enable)
         .withCredentials()
         .end()
-    ).then(->
-      if enable == true
-        ga 'send', 'event', 'billing', 'premium', 'enable'
-        humane.success "You are now on the premium plan."
-      else if enable == false
-        ga 'send', 'event', 'billing', 'premium', 'disable'
-        humane.info "You're not on the premium plan anymore."
-      handlers.refresh State
-      handlers.refreshHistory State
-    ).catch(console.log.bind console)
-
-  pay: (State, amount) ->
-    ga 'send', 'event', 'billing', 'pay', '', amount
-    Promise.resolve().then(->
-      superagent
-        .post(process.env.API_URL + '/account/billing/pay')
-        .send(amount: amount)
-        .withCredentials()
-        .type('json')
-        .accept('json')
-        .end()
     ).then((res) ->
-      ga 'send', 'event', 'billing', 'paypal-redirecting', '', amount
-      location.href = res.body.url
+      if enable == true
+        location.href = res.url
+      else if enable == false
+        humane.info "You're not on the premium plan anymore."
+        handlers.refresh State
     ).catch(console.log.bind console)
 
-  paymentCompleted: (State, amount) ->
-    ga 'send', 'event', 'billing', 'paid-success', '', amount
+  premiumSuccess: (State) ->
+    ga 'send', 'event', 'billing', 'success', 'premium'
     Promise.resolve().then(->
-      humane.success "You successfully paid <b>$#{amount}</b>."
+      humane.success "You are now on the premium plan!"
       router.redirect '#/plan'
     ).catch(console.log.bind console)
-
 
 if '/account/' != location.pathname.slice(0, 9)
   # run this on landing page
@@ -276,11 +247,9 @@ else
     .addRoute '#/setup/again', ->
       State.change 'tab', 'create'
     .addRoute '#/plan', ->
-      if State.get('premium')
-        handlers.refreshHistory State
       State.change 'tab', 'plan'
-    .addRoute '#/paid/:amount', (req) ->
-      handlers.paymentCompleted State, req.params.amount
+    .addRoute '#/upgrade/success', ->
+      handlers.premiumSuccess State
     .addRoute '#/logout', -> handlers.logout State
     .addRoute '#/', ->
       State.change 'tab', 'manage'

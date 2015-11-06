@@ -25,13 +25,14 @@ module.exports = (state, channels) ->
         '.'
       )
       (p {},
-        'You can enable the premium features without paying anything, test them as you wish and decide if you want to pay later. If you have any question, please use our contact form or email us on '
+        (b {}, '$8 for month')
+        ', unlimited websites (the pageviews count as a sum), unlimited subdomains. If you have any question please use our contact form or message us on '
         (b {}, 'websitesfortrello@boardthreads.com')
         '.'
       )
       (button
         'ev-click': tl.sendClick channels.togglePremium, true, {preventDefault: true}
-        className: 'block'
+        className: 'block button'
       ,
         'Enable premium account'
       )
@@ -42,40 +43,5 @@ module.exports = (state, channels) ->
         className: 'block'
         'ev-click': tl.sendClick channels.togglePremium , false, {preventDefault: true}
       , 'Disable premium account')
-
-      (div className: 'container',
-        (div className: 'col-1-2',
-          (p {},
-            'You owe:'
-            (h1 {}, '$' + (if state.owe then money(state.owe) else '0.00'))
-          )
-        )
-        (div className: 'col-1-2',
-          (button
-            className: 'block'
-            'ev-click': tl.sendClick channels.pay, money(state.owe), {preventDefault: true}
-          , 'Pay with PayPal') if money(state.owe) != '0.00'
-        )
-      )
-
-      (h2 {}, 'Billing history')
-      (table {},
-        (thead {},
-          (tr {},
-            (th {}, 'Date')
-            (th {}, 'Description')
-            (th {}, 'Amount')
-          )
-        )
-        (tbody {},
-          (tr {},
-            (td {}, row.date)
-            (td {}, row.description)
-            (td {style: {'text-align': 'right'}},
-              if not row.cents then '' else if row.kind == 'payment' then '$ ' + money(-row.cents) else '$ ' + money(row.cents)
-            )
-          ) for row in state.history
-        )
-      ) if state.history.length > 0
     ) if state.premium
   )
