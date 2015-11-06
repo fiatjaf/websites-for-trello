@@ -62,7 +62,9 @@ app.get '/callback/success', userRequired, (r, w) ->
 
       plan = if r.body.enable then 'premium' else null
       conn.queryAsync '''UPDATE users SET plan = $1 WHERE id = $2''', [plan, user._value or user]
-    ).then(-> w.send ok: true).finally(-> release())
+    ).then(->
+      w.redirect process.env.SITE_URL + '/account/#upgrade/success'
+    ).finally(-> release())
 
 app.get '/callback/fail', userRequired, (r, w) ->
   w.send 'We couldn\'t complete your payment. Please message us on <b>websitesfortrello@boardthreads.com</b>'
