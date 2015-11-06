@@ -4,10 +4,7 @@ cookieSession  = require 'cookie-session'
 bodyParser     = require 'body-parser'
 cors           = require 'cors'
 
-{
-  raygun,
-  port,
-} = require './settings'
+{ raygun, port } = require './settings'
 
 app = express()
 app.use bodyParser.json()

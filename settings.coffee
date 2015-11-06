@@ -1,6 +1,6 @@
 pg             = require 'pg'
 url            = require 'url'
-paypal         = require 'paypal-rest-sdk'
+Paypal         = require 'paypal-recurring2'
 Promise        = require 'bluebird'
 NodeTrello     = require 'node-trello'
 raygunProvider = require 'raygun'
@@ -19,10 +19,12 @@ else
   raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
   raygun.user = (request) -> request.session.username
 
-paypal.configure
-  'mode': process.env.PAYPAL_MODE
-  'client_id': process.env.PAYPAL_CLIENT_ID
-  'client_secret': process.env.PAYPAL_CLIENT_SECRET
+paypal = new Paypal
+  username: process.env.PAYPAL_API_NAME
+  password: process.env.PAYPAL_API_PASSWORD
+  signature: process.env.PAYPAL_API_SIGNATURE
+,
+  process.env.PAYPAL_MODE # 'production' or something else
 
 p = url.parse process.env.CLOUDAMQP_URL
 rabbitMQPublishURL = "https://#{p.auth}@#{p.host}/api/exchanges#{p.pathname}/amq.default/publish"
@@ -44,9 +46,6 @@ rabbitSend = (message, opts={}) ->
     .catch(console.log.bind console, ':: RECEIVE-WEBHOOKS :: rabbitSend error:')
 
 trello = Promise.promisifyAll new NodeTrello process.env.TRELLO_API_KEY
-
-Promise.promisifyAll paypal
-Promise.promisifyAll paypal.payment
 
 oauth = new NodeTrello.OAuth(
   process.env.TRELLO_API_KEY

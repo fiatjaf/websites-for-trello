@@ -1,104 +1,70 @@
-url           = require 'url'
-qs            = require 'qs'
 express       = require 'express'
 Promise       = require 'bluebird'
 
-{
-  pg,
-  paypal,
-} = require './settings'
-{
-  userRequired
-} = require './lib'
+{ raygun, pg, paypal } = require './settings'
+{ userRequired } = require './lib'
 
 app = express()
 
-app.post '/pay', userRequired, (request, response, next) ->
-  request.session.amount = request.body.amount
+app.put '/premium', userRequired, (r, w, next) ->
+  # first we ask for the money
+  paypal.authenticate
+    RETURNURL: process.env.API_URL + '/account/billing/callback/success'
+    CANCELURL: process.env.API_URL + '/account/billing/callback/fail'
+    PAYMENTREQUEST_0_AMT: 8
+    L_BILLINGAGREEMENTDESCRIPTION0: "Websites for Trello premium account"
+    BRANDNAME: 'Websites for Trello'
+    BUYEREMAILOPTINENABLE: 0
+  ,
+    (err, data, url) ->
+      if not err
+        if 'json' == r.accepts 'json'
+          w.send {url: redirect}
+        else
+          w.redirect redirect
+      else
+        raygun.send e, {}, (->), r
+        console.log err, data
 
-  Promise.resolve().then(->
-    paypal.payment.createAsync
-      intent: 'sale'
-      payer: {
-        payment_method: 'paypal'
-      }
-      redirect_urls: {
-          return_url: process.env.API_URL + '/account/billing/pay/callback'
-          cancel_url: process.env.API_URL + '/account/billing/pay/cancel'
-      }
-      transactions: [{
-        description: "$#{request.session.amount} for Websites for Trello"
-        soft_descriptor: 'Websites for Trello'
-        amount: {
-          currency: 'USD'
-          total: request.session.amount
-        }
-      }]
-  ).then((payment) ->
-    redirect = process.env.API_URL + '/account/billing/pay/cancel'
+app.get '/callback/success', userRequired, (r, w) ->
+  # first we verify the subscription
+  {token, PayerID} = r.query
 
-    if payment.state == 'created'
-      for link in payment.links
-        if link.rel == 'approval_url'
-          redirect = link.href
-          break
+  paypal.createSubscription token, PayerID,
+    AMT: 10
+    DESC: "Websites for Trello premium account"
+    BILLINGPERIOD: 'Month'
+    BILLINGFREQUENCY: 12
+    MAXFAILEDPAYMENTS: 3
+    AUTOBILLOUTAMT: 'AddToNextBilling'
+  , (err, data) ->
+    if err
+      raygun.send e, {}, (->), r
+      w.redirect process.env.API_URL + '/account/billing/callback/fail'
+      return
 
-    if 'json' == request.accepts 'json'
-      response.send {url: redirect}
-    else
-      response.redirect redirect
-  ).catch(next)
+    # now we activate the premium features on this account
+    if not r.session.token
+      return w.sendStatus 204
 
-app.get '/pay/callback', userRequired, (request, response, next) ->
-  q = qs.parse(url.parse(request.url).search.slice(1))
-  paymentId = q['paymentId']
-  payerId = q['PayerID']
+    user = null
+    conn = null
+    release = null
+    Promise.resolve().then(->
+      Promise.all [
+        (r.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
+        pg.connectAsync process.env.DATABASE_URL
+      ]
+    ).spread((u, db) ->
+      user = u
+      conn = db[0]
+      release = db[1]
 
-  release = null
-  Promise.resolve().then(->
-    paypal.payment.executeAsync paymentId,
-      payer_id: payerId
-      transactions: [{
-        description: "$#{request.session.amount} for Websites for Trello"
-        soft_descriptor: 'Websites for Trello'
-        amount: {
-          currency: 'USD'
-          total: request.session.amount
-        }
-      }]
-  ).then((payment) ->
-    request.session.amount = null # just cleaning
+      plan = if r.body.enable then 'premium' else null
+      conn.queryAsync '''UPDATE users SET plan = $1 WHERE id = $2''', [plan, user._value or user]
+    ).then(-> w.send ok: true).catch(next).finally(-> release())
 
-    if payment.state != 'approved'
-      return response.redirect process.env.API_URL + '/account/billing/pay/cancel'
-
-    response.redirect process.env.SITE_URL + '/account/#/paid'
-
-    # save payment as event
-    Promise.all [
-      payment
-      (request.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
-      pg.connectAsync process.env.DATABASE_URL
-    ]
-  ).spread((payment, user, db) ->
-    conn = db[0]
-    release = db[1]
-
-    conn.queryAsync '''
-INSERT INTO events (user_id, kind, date, cents, data)
-VALUES ($1, 'payment', now(), $2, $3)
-    ''', [
-      user._value or user
-      payment.transactions.map((t) -> parseInt t.amount.total.replace('.', '')).reduce(((a, b) -> a + b), 0)
-      {
-        description: 'Paypal'
-        transactions: payment.transactions
-        payer: payment.payer
-      }
-    ]
-  ).then(release).catch(next)
-
-app.get '/pay/cancel', userRequired, (request, response, next) ->
-  response.send 'We couldn\'t complete your payment.'
+app.get '/callback/fail', userRequired, (r, w, next) ->
+  w.send 'We couldn\'t complete your payment. Please message us on <b>websitesfortrello@boardthreads.com</b>'
 
 module.exports = app
