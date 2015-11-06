@@ -23,7 +23,7 @@ app.put '/premium', userRequired, (r, w) ->
         else
           w.redirect redirect
       else
-        raygun.send e, {}, (->), r
+        raygun.send err, {}, (->), r
         console.log err, data
 
 app.get '/callback/success', userRequired, (r, w) ->
@@ -39,7 +39,7 @@ app.get '/callback/success', userRequired, (r, w) ->
     AUTOBILLOUTAMT: 'AddToNextBilling'
   , (err, data) ->
     if err
-      raygun.send e, {}, (->), r
+      raygun.send err, {}, (->), r
       w.redirect process.env.API_URL + '/account/billing/callback/fail'
       return
 
