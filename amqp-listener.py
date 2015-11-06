@@ -129,7 +129,6 @@ def process_message(payload):
 
     elif payload['type'] == 'boardDeleted':
         board_id = str(payload['board_id'])
-        del counts[board_id]
 
         try:
             remove_bot(payload['board_id'])
