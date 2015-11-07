@@ -3,6 +3,7 @@ CREATE TABLE users (
     id character varying(50) PRIMARY KEY,
     email text,
     plan text,
+    "paypalProfileId" text,
     registered_on timestamp without time zone,
 );
 
