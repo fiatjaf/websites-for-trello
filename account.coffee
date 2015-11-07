@@ -27,7 +27,11 @@ app.get '/setup/end', (r, w) ->
     return w.redirect process.env.SITE_URL if err
     delete r.session.bag
     r.session.token = data.oauth_access_token
-    w.redirect process.env.SITE_URL + '/account'
+    trello.token = r.session.token
+    trello.getAsync("/1/token/#{trello.token}/member/username")
+    .then (v) ->
+      r.session.user = v._value
+      w.redirect process.env.SITE_URL + '/account'
 
 app.get '/logout', (r, w) ->
   r.session = null

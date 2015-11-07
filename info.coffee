@@ -15,7 +15,7 @@ app.get '/', (r, w) ->
 
   Promise.resolve().then(->
     Promise.all [
-      (r.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
+      r.session.user
       pg.connectAsync process.env.DATABASE_URL
     ]
   ).spread((user, db) ->
@@ -23,22 +23,21 @@ app.get '/', (r, w) ->
     release = db[1]
 
     Promise.all [
-      (user._value or user)
-      trello.getAsync "/1/members/#{user._value or user}/boards", {filter: 'open'}
+      user
+      trello.getAsync "/1/members/#{user}/boards", {filter: 'open'}
       conn.queryAsync('''
 SELECT boards.id, boards.name, subdomain, "shortLink", users.plan AS plan
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
 WHERE users.id = $1
 ORDER BY boards.name
-                      ''', [user._value or user])
+      ''', [user])
+      conn.queryAsync('SELECT plan FROM users WHERE id = $1', [user])
     ]
-  ).spread((username, boards, bqresult) ->
-    r.session.user = username
-
+  ).spread((username, boards, bqresult, pqresult) ->
     w.send
       user: username
-      premium: bqresult.rows[0].plan == 'premium'
+      premium: pqresult[0].plan == 'premium'
       boards: boards
       activeboards: bqresult.rows
   ).finally(-> release())

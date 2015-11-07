@@ -29,6 +29,7 @@ app.put '/premium', userRequired, (r, w) ->
 app.get '/callback/success', userRequired, (r, w) ->
   # first we verify the subscription
   {token, PayerID} = r.query
+  trello.token = r.session.token
 
   paypal.createSubscription token, PayerID,
     AMT: 10
@@ -52,7 +53,7 @@ app.get '/callback/success', userRequired, (r, w) ->
     release = null
     Promise.resolve().then(->
       Promise.all [
-        (r.session.user or trello.getAsync "/1/token/#{trello.token}/member/username")
+        r.session.user
         pg.connectAsync process.env.DATABASE_URL
       ]
     ).spread((u, db) ->
@@ -63,7 +64,7 @@ app.get '/callback/success', userRequired, (r, w) ->
       plan = if r.body.enable then 'premium' else null
       conn.queryAsync '''
 UPDATE users SET plan = $1, "paypalProfileId" = $2 WHERE id = $3
-      ''', [plan, data.PROFILEID,user._value or user]
+      ''', [plan, data.PROFILEID, user]
     ).then(->
       w.redirect process.env.SITE_URL + '/account/#upgrade/success'
     ).finally(-> release())

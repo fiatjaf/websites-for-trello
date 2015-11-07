@@ -90,7 +90,7 @@ SET subdomain = (CASE
   END)
 WHERE user_id = $2
 AND id = $3
-                    ''', [subdomain, r.session.user, r.params.boardId]
+    ''', [subdomain, r.session.user, r.params.boardId]
   ).then(->
     w.sendStatus 200
   ).finally(-> release())
