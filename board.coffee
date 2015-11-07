@@ -68,7 +68,6 @@ app.get '/is-live/:subdomain', (r, w) ->
   ).then(->
     w.sendStatus 200
   ).catch((err) ->
-    console.log err
     w.sendStatus 404
   )
 

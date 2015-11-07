@@ -6,7 +6,7 @@ Promise       = require 'bluebird'
 
 app = express()
 
-app.put '/premium', userRequired, (r, w) ->
+app.post '/premium', userRequired, (r, w) ->
   # first we ask for the money
   paypal.authenticate
     RETURNURL: process.env.API_URL + '/account/billing/callback/success'
@@ -19,12 +19,12 @@ app.put '/premium', userRequired, (r, w) ->
     (err, data, url) ->
       if not err
         if 'json' == r.accepts 'json'
-          w.send {url: redirect}
+          w.send {url: url}
         else
-          w.redirect redirect
+          w.redirect url
       else
         raygun.send err, {}, (->), r
-        console.log err, data
+        console.log ':: API :: paypal authentication error', err.stack or err, data
 
 app.get '/callback/success', userRequired, (r, w) ->
   # first we verify the subscription
@@ -32,7 +32,7 @@ app.get '/callback/success', userRequired, (r, w) ->
   trello.token = r.session.token
 
   paypal.createSubscription token, PayerID,
-    AMT: 10
+    AMT: 8
     DESC: "Websites for Trello premium account"
     BILLINGPERIOD: 'Month'
     BILLINGFREQUENCY: 12

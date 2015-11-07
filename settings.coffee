@@ -24,7 +24,7 @@ paypal = new Paypal
   password: process.env.PAYPAL_API_PASSWORD
   signature: process.env.PAYPAL_API_SIGNATURE
 ,
-  process.env.PAYPAL_MODE # 'production' or something else
+  process.env.PAYPAL_PRODUCTION == 'true'
 
 p = url.parse process.env.CLOUDAMQP_URL
 rabbitMQPublishURL = "https://#{p.auth}@#{p.host}/api/exchanges#{p.pathname}/amq.default/publish"
