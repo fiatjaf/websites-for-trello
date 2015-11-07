@@ -61,7 +61,9 @@ app.get '/callback/success', userRequired, (r, w) ->
       release = db[1]
 
       plan = if r.body.enable then 'premium' else null
-      conn.queryAsync '''UPDATE users SET plan = $1 WHERE id = $2''', [plan, user._value or user]
+      conn.queryAsync '''
+UPDATE users SET plan = $1, "paypalProfileId" = $2 WHERE id = $3
+      ''', [plan, data.PROFILEID,user._value or user]
     ).then(->
       w.redirect process.env.SITE_URL + '/account/#upgrade/success'
     ).finally(-> release())
