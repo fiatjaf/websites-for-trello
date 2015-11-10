@@ -52,19 +52,15 @@ app.get '/callback/success', userRequired, (r, w) ->
     conn = null
     release = null
     Promise.resolve().then(->
-      Promise.all [
-        r.session.user
-        pg.connectAsync process.env.DATABASE_URL
-      ]
-    ).spread((u, db) ->
-      user = u
+      pg.connectAsync process.env.DATABASE_URL
+    ).then((db) ->
       conn = db[0]
       release = db[1]
 
       plan = if r.body.enable then 'premium' else null
       conn.queryAsync '''
-UPDATE users SET plan = $1, "paypalProfileId" = $2 WHERE id = $3
-      ''', [plan, data.PROFILEID, user]
+UPDATE users SET plan = $1, "paypalProfileId" = $2 WHERE _id = $3
+      ''', [plan, data.PROFILEID, r.session.userid]
     ).then(->
       w.redirect process.env.SITE_URL + '/account/#upgrade/success'
     ).finally(-> release())

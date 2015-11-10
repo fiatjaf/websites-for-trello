@@ -28,9 +28,10 @@ app.get '/setup/end', (r, w) ->
     delete r.session.bag
     r.session.token = data.oauth_access_token
     trello.token = r.session.token
-    trello.getAsync("/1/token/#{trello.token}/member/username")
-    .then (v) ->
-      r.session.user = v._value
+    trello.getAsync("/1/token/#{trello.token}/member", fields: 'id,username')
+    .then (u) ->
+      r.session.userid = u.id
+      r.session.user = u.username
       w.redirect process.env.SITE_URL + '/account'
 
 app.get '/logout', (r, w) ->
