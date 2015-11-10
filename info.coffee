@@ -22,7 +22,7 @@ app.get '/', (r, w) ->
     Promise.all [
       trello.getAsync "/1/members/#{r.session.userid}/boards", {filter: 'open'}
       conn.queryAsync('''
-SELECT boards.id, boards.name, subdomain, "shortLink", users.plan AS plan
+SELECT boards.id, boards.name, subdomain, "shortLink"
 FROM boards
 INNER JOIN users ON users.id = boards.user_id
 WHERE users._id = $1

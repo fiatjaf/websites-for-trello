@@ -17,7 +17,7 @@ else
   process.env.SITES_DOMAIN = process.env.DOMAIN
   port = process.env.PORT
   raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
-  raygun.user = (request) -> request.session.user
+  raygun.user = (request) -> if request.session then request.session.user else null
 
 paypal = new Paypal
   username: process.env.PAYPAL_API_NAME
