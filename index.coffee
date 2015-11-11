@@ -24,13 +24,13 @@ app.use '/account', require './account'
 app.use '/board', require './board'
 
 if raygun
-  app.use (err, r, w) ->
+  app.use (err, r, w, next) ->
     raygun.send err, {}, (->), r, ['API']
     console.log ':: API :: error:', err
     console.log ':: API :: r:', r.originalUrl, r.body
     w.sendStatus 500
 else
-  app.use (err, r, w) ->
+  app.use (err, r, w, next) ->
     console.log ':: API :: error:', err
     console.log ':: API :: r:', r.originalUrl, r.body
     w.sendStatus 500
