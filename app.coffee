@@ -216,13 +216,13 @@ handlers =
       else if enable == false
         ga 'send', 'event', 'billing', 'disable', 'premium'
       superagent
-        .put(process.env.API_URL + '/account/billing/premium')
+        .post(process.env.API_URL + '/account/billing/premium')
         .send(enable: enable)
         .withCredentials()
         .end()
     ).then((res) ->
       if enable == true
-        location.href = res.url
+        location.href = res.body.url
       else if enable == false
         humane.info "You're not on the premium plan anymore."
         handlers.refresh State
