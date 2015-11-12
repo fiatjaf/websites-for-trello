@@ -26,6 +26,9 @@ body {
 
 li li { line-height: 1.9em; }
 nav a { padding: 0 9px; }
+img { max-width: 100%; }
+dt { margin-top: 9px; }
+dd ul { margin-top: 2px; }
 
 body#card {
   background: $accent-blue;
@@ -43,7 +46,7 @@ body#card {
   text-align: center;
   margin-bottom: 3em;
   h1 {
-    font-size: 1.2em;
+    font-size: 1.7em;
   }
   img {
     max-width: 70px;

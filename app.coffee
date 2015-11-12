@@ -78,7 +78,7 @@ handlers =
         .end()
     ).then((res) ->
       if res.body and res.body.user
-        if location.pathname == '/'
+        unless location.pathname.match /\/account\//
           humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard.", {timeout: 12000}
         else
           if State.get('user') != res.body.user
