@@ -64,7 +64,7 @@ app.get '/callback/success', userRequired, (r, w) ->
     AMT: 8
     DESC: "Websites for Trello premium account (user ##{r.session.userid})"
     BILLINGPERIOD: 'Month'
-    BILLINGFREQUENCY: 12
+    BILLINGFREQUENCY: 1
     MAXFAILEDPAYMENTS: 3
     AUTOBILLOUTAMT: 'AddToNextBilling'
   , (err, data) ->
