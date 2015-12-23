@@ -7,7 +7,7 @@ Promise       = require 'bluebird'
 app = express()
 
 setupBoard = (r, w) ->
-  {id} = r.body
+  {id, isNew} = r.body
   trello.token = r.session.token
 
   release = null
@@ -16,6 +16,7 @@ setupBoard = (r, w) ->
     'board_id': id
     'username': r.session.user
     'user_token': r.session.token
+    'is_new': isNew or false
   }
   initialFetchPayload = JSON.stringify {
     'type': 'initialFetch'
@@ -55,6 +56,7 @@ app.post '/setup', userRequired, (r, w) ->
   ).then((board) ->
     console.log ':: API :: created board', name
     r.body.id = board.id
+    r.body.isNew = true
     setupBoard r, w
   )
 app.put '/setup', userRequired, setupBoard

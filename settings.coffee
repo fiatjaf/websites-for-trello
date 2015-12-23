@@ -68,7 +68,7 @@ module.exports =
   pg: pg
   oauth: oauth
   trello: trello
-  port: port
+  port: port or '5000'
   raygun: raygun
   rabbitSend: rabbitSend
   paypal: paypal
