@@ -1,4 +1,4 @@
-from trello import TrelloApi
+from trello import TrelloApi # type: ignore
 import requests
 import sys
 import os
@@ -11,7 +11,7 @@ def remove_bot(id):
         'token': os.environ['TRELLO_BOT_TOKEN']
     })
     if not r.ok:
-        print r.text
+        print(r.text)
         raise Exception('could not remove bot from board.')
 
 def add_bot(user_token, id):
@@ -23,17 +23,17 @@ def add_bot(user_token, id):
         'type': 'normal'
     })
     if not r.ok:
-        print r.text
+        print(r.text)
         raise Exception('could not add bot to board.')
 
 def board_setup(id, username=None):
-    print ':: MODEL-UPDATES :: board_setup for', id
+    print(':: MODEL-UPDATES :: board_setup for ', id)
 
     # > from now on all actions performed by the bot
     trello = TrelloApi(os.environ['TRELLO_BOT_API_KEY'], os.environ['TRELLO_BOT_TOKEN'])
 
     # > change description
-    trello.boards.update_desc(id, 'This is a website and also a Trello board, and vice-versa!')
+    trello.boards.update_desc(id, 'This is your board description. You can change it on Trello!')
 
     # > add default lists
     default_lists = {
@@ -115,15 +115,16 @@ def board_setup(id, username=None):
             '[Hide author information](//websitesfortrello.github.io/includes/hide-author.css)': 'false',
             '[Customize each page individually by including CSS and JS attachments on each card](//websitesfortrello.github.io/includes/per-card-includes.js)': 'false',
 
-            '[Add __Google Analytics__ -- edit here to add your code](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/add-google-analytics.js?code=YOUR_GOOGLE_ANALYTICS_TRACKING_CODE)': 'false',
-            '[Add __Disqus__ -- edit here to add your shortname](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/add-disqus.js?shortname=YOUR_DISQUS_SHORTNAME)': 'false',
+            '[Add __Google Analytics__ -- add your code by editing this item (click here) -->](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/add-google-analytics.js?code=YOUR_GOOGLE_ANALYTICS_TRACKING_CODE)': 'false',
+            '[Add __Disqus__ -- set your shortname by clicking at the side of this item -->](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/add-disqus.js?shortname=YOUR_DISQUS_SHORTNAME)': 'false',
             '[Show image attachments as actual images instead of links](//websitesfortrello.github.io/includes/show-attachments-as-images.js)': 'false',
-            '[Change footer text -- edit here to choose the text](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/replace-footer-text.css?text=YOUR_FOOTER_TEXT)': 'false',
+            '[Change footer text -- edit the text by clicking here at the side -->](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/replace-footer-text.css?text=YOUR_FOOTER_TEXT)': 'false',
+            '[Change title text -- edit the text by clicking here at the side -->](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/replace-title-text.css?text=YOUR_TITLE_TEXT)': 'false',
             '[Hide posts date](//websitesfortrello.github.io/includes/hide-date.css)': 'false',
             '[Hide category title on article pages](//websitesfortrello.github.io/includes/hide-category-header-on-article-pages.css)': 'true',
             '[Turn Youtube links into embedded videos](//websitesfortrello.github.io/includes/youtube-embed.js)': 'true',
             '[Add __Hypothes.is__ annotations](//hypothes.is/embed.js)': 'true',
-            '[Use a font from Google Fonts in your article bodies -- click here and edit the name of the font](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/text-font-from-google-fonts.js?FONT-NAME=replace+the+font+name+here+with+plus+signs+just+like+google+fonts+presents+them+to+you+when+you+choose+them)': 'false',
+            '[Use a font from Google Fonts in your article bodies -- choose font by editing this checkbox -->](https://temperos.alhur.es/http://websitesfortrello.github.io/includes/text-font-from-google-fonts.js?FONT-NAME=replace+the+font+name+here+with+plus+signs+just+like+google+fonts+presents+them+to+you+when+you+choose+them)': 'false',
             '[Open external links in new tabs](//websitesfortrello.github.io/includes/open-links-in-new-page.js)': 'false',
             '[Expand (or shrink) images to the full-width of the article](//websitesfortrello.github.io/includes/expand-images-to-a-hundred-percent.css)': 'false',
             '[Center images in articles](//websitesfortrello.github.io/includes/center-images.css)': 'true',
@@ -206,10 +207,10 @@ Lorem ipsum dolor sit amet, malorum quaestio ius ne, ad vulputate assueverit per
         'idModel': id
     }) 
     if not r.ok:
-        print r.text
+        print(r.text)
         raise Exception('could not add webhook')
 
-    print ':: MODEL-UPDATES :: board_setup finished for', id
+    print(':: MODEL-UPDATES :: board_setup finished for', id)
 
 if __name__ == '__main__':
     import app

@@ -214,13 +214,25 @@ def removeChecklistFromCard(data, **kw):
     db.session.commit()
 
 def updateChecklist(data, **kw):
-    card_id = trello.checklists.get(data['checklist']['id'], cards='all', card_fields=['id'], checkItems='none', fields='id')['cards']['id']
-
+    cl = trello.checklists.get(data['checklist']['id'],
+        fields='id',
+        cards='all', card_fields=['id'],
+        checkItems='all', checkItem_fields='name,pos,state'
+    )
+    # find card
+    card_id = cl['cards'][0]['id']
     card = Card.query.get(card_id)
+
+    # find checklist
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
+
+    # update checklist attributes
     for attr in ('pos', 'name'):
         if attr in data['checklist']:
             checklist[attr] = data['checklist'][attr]
+
+    # update all checkitems
+    checklist['checkItems'] = cl['checkItems']
 
     card.checklists.changed()
     db.session.add(card)
@@ -229,6 +241,9 @@ def updateChecklist(data, **kw):
 def createCheckItem(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
+
+    # update all (we must do this as a fallback because Trello doesn't notify us when a checkitem is moved)
+    checklist['checkItems'] = trello.checklists.get_checkItem(data['checklist']['id'], fields='name,pos,state')
 
     for checkItem in checklist['checkItems']:
         if checkItem['id'] == data['checkItem']['id']:
@@ -247,6 +262,9 @@ def updateCheckItemStateOnCard(data, **kw):
     checkItem = filter(lambda chi: chi['id'] == data['checkItem']['id'], checklist['checkItems'])[0]
     checkItem['state'] = data['checkItem']['state']
 
+    # update all (we must do this as a fallback because Trello doesn't notify us when a checkitem is moved)
+    checklist['checkItems'] = trello.checklists.get_checkItem(data['checklist']['id'], fields='name,pos,state')
+
     card.checklists.changed()
     db.session.add(card)
     db.session.commit()
@@ -255,6 +273,9 @@ def deleteCheckItem(data, **kw):
     card = Card.query.get(data['card']['id'])
     checklist = filter(lambda chk: chk['id'] == data['checklist']['id'], card.checklists['checklists'])[0]
     checklist['checkItems'] = [chi for chi in checklist['checkItems'] if chi['id'] != data['checkItem']['id']]
+
+    # update all (we must do this as a fallback because Trello doesn't notify us when a checkitem is moved)
+    checklist['checkItems'] = trello.checklists.get_checkItem(data['checklist']['id'], fields='name,pos,state')
 
     card.checklists.changed()
     db.session.add(card)
@@ -267,6 +288,9 @@ def updateCheckItem(data, **kw):
     for attr in ('name', 'pos'):
         if attr in data['checkItem']:
             checkItem[attr] = data['checkItem'][attr]
+
+    # update all (we must do this as a fallback because Trello doesn't notify us when a checkitem is moved)
+    checklist['checkItems'] = trello.checklists.get_checkItem(data['checklist']['id'], fields='name,pos,state')
 
     card.checklists.changed()
     db.session.add(card)

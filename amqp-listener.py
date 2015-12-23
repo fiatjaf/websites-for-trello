@@ -35,7 +35,7 @@ channel = connection.channel()
 channel.queue_declare(queue='wft', durable=True)
 
 def main():
-    print ':: MODEL-UPDATES :: waiting for messages.'
+    print(':: MODEL-UPDATES :: waiting for messages.')
 
     # start listening
     listen()
@@ -51,15 +51,15 @@ def listen():
         signal.alarm(15)
 
         for method, properties, body in channel.consume(queue='wft'):
-            print ':: MODEL-UPDATES :: got a message. now we have %s.' % (len(messages) + 1)
+            print(':: MODEL-UPDATES :: got a message. now we have %s.') % (len(messages) + 1)
             try:
                 messages.append((json.loads(body), method))
             except ValueError:
-                print ':: MODEL-UPDATES :: non-json message:', body
+                print(':: MODEL-UPDATES :: non-json message:'), body
                 channel.basic_ack(delivery_tag=method.delivery_tag)
 
             if len(messages) == 10:
-                print ':: MODEL-UPDATES :: got 10, will process.'
+                print(':: MODEL-UPDATES :: got 10, will process.')
                 signal.alarm(0)
                 raise MessageCount
 
@@ -69,7 +69,7 @@ def listen():
 
         if (datetime.datetime.now() - starttime).seconds > 170:
             # running for more than 170 seconds. stop.
-            print ':: MODEL-UPDATES :: end of time.'
+            print(':: MODEL-UPDATES :: end of time.')
             channel.cancel()
             connection.close()
             sys.exit()
@@ -80,7 +80,7 @@ def listen():
 def process_message_batch(messages):
     sorted_messages = sorted(messages, key=lambda m: m[0].get('date'))
 
-    #print ':: MODEL-UPDATES :: sorted/unsorted/type'
+    #print(':: MODEL-UPDATES :: sorted/unsorted/type')
     #for i in range(len(sorted_messages)):
     #    print '\t{} | {} | {}'.format(payloads[i].get('date'), s[i].get('date'), s[i].get('type'))
 
@@ -90,14 +90,14 @@ def process_message_batch(messages):
             try:
                 process_message(payload)
             except Exception:
-                print ':: MODEL-UPDATES :: payload (batch level):', payload
+                print(':: MODEL-UPDATES :: payload (batch level):'), payload
                 traceback.print_exc(file=sys.stdout)
 
         # delete message frm rabbitmq
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
 def process_message(payload):
-    print ':: MODEL-UPDATES :: processing', payload.get('date'), payload.get('type')
+    print(':: MODEL-UPDATES :: processing {} {}'.format(payload.get('date'), payload.get('type')))
 
     if payload['type'] == 'boardSetup':
         board_id = str(payload['board_id'])
@@ -114,7 +114,7 @@ def process_message(payload):
                 tags=['boardSetup']
             )
             traceback.print_exc(file=sys.stdout)
-            print ':: MODEL-UPDATES :: payload:', payload
+            print(':: MODEL-UPDATES :: payload:'), payload
 
     elif payload['type'] == 'initialFetch':
         try:
@@ -140,7 +140,7 @@ def process_message(payload):
                 tags=['boardDeleted']
             )
             traceback.print_exc(file=sys.stdout)
-            print ':: MODEL-UPDATES :: payload:', payload
+            print(':: MODEL-UPDATES :: payload:'), payload
 
     elif payload['type'] == 'webmentionReceived':
         try:
@@ -152,7 +152,7 @@ def process_message(payload):
                 tags=['webmentionReceived']
             )
             traceback.print_exc(file=sys.stdout)
-            print ':: MODEL-UPDATES :: payload:', payload
+            print(':: MODEL-UPDATES :: payload:'), payload
 
     else:
         board_id = str(payload['data']['board']['id'])
@@ -163,9 +163,10 @@ def process_message(payload):
         except AttributeError:
             return
         except:
+            print('verify if this is a webhook for a board that was deleted: (payload: {})'.format(json.dumps(payload)))
             if not Board.query.get(payload['data']['board']['id']):
-                print ':: MODEL-UPDATES :: webhook for a board not registered anymore.'
-                print ':: MODEL-UPDATES :: adding this board to the webhook deletion list.'
+                print(':: MODEL-UPDATES :: webhook for a board not registered anymore.')
+                print(':: MODEL-UPDATES :: adding this board to the webhook deletion list.')
                 redis.sadd('deleted-board', payload['data']['board']['id'])
             else:
                 raygun.set_user(payload['memberCreator']['username'])
@@ -175,8 +176,8 @@ def process_message(payload):
                     tags=['webhook', payload['type']]
                 )
                 traceback.print_exc(file=sys.stdout)
-                print ':: MODEL-UPDATES :: payload:', payload
-                print ':: MODEL-UPDATES :: since this error happened probably due to a mismatch between our database and the live trello board, we will trigger a initial_fetch for %s.' % payload['data']['board']['id']
+                print(':: MODEL-UPDATES :: payload:'), payload
+                print(':: MODEL-UPDATES :: since this error happened probably due to a mismatch between our database and the live trello board, we will trigger a initial_fetch for %s.' % payload['data']['board']['id'])
                 initial_fetch(payload['data']['board']['id'])
 
         # count webhooks on redis
@@ -184,7 +185,7 @@ def process_message(payload):
         try:
             redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
         except redis_exceptions.ResponseError as e:
-            print ':: MODEL-UPDATES ::', e, ' -- couldn\'t INCR webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id'])
+            print(':: MODEL-UPDATES ::', e, ') -- couldn\'t INCR webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
 
 if __name__ == '__main__':
     main()

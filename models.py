@@ -19,25 +19,12 @@ class User(db.Model):
     _id = db.Column(db.String(50))
     id = db.Column(db.String(50), primary_key=True)
     plan = db.Column(db.Text)
+    paypalProfileId = db.Column(db.Text)
     boards = db.relationship('Board', backref='user', lazy='dynamic', passive_deletes='all')
-    events = db.relationship('Event', backref='user', lazy='dynamic')
     # ~
 
     email = db.Column(db.Text)
     registered_on = db.Column(db.DateTime, default=db.func.now())
-
-class Event(db.Model):
-    __tablename__ = 'events'
-
-    # meta
-    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    user_id = db.Column(db.String(50), db.ForeignKey('users.id'), nullable=False)
-    # ~
-
-    kind = db.Column(db.Text, index=True) # later convert this to enum: ['payment', 'bill', 'plan', ...]
-    date = db.Column(db.DateTime, default=db.func.now(), nullable=False)
-    cents = db.Column(db.Integer)
-    data = db.Column(MutableDict.as_mutable(JSONB), default={})
 
 class Board(db.Model):
     __tablename__ = 'boards'
@@ -209,7 +196,7 @@ def update_comment(target, value, oldvalue, initiator):
             target.source_url = rawlines[-1].split('](')[1].split(')')[0]
         except IndexError:
             # other special comments made by the bot, just leave it there, with a NULL body.
-            print 'comment made by wft that is not a webmention. ignore.'
+            print('comment made by wft that is not a webmention. ignore.')
     else:
         # normal comment, use full text as body.
         target.body = raw
