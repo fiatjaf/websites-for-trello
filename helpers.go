@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/MindscapeHQ/raygun4go"
-	"github.com/jmoiron/sqlx/types"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/MindscapeHQ/raygun4go"
+	"github.com/jmoiron/sqlx/types"
 )
 
 func countPageViews(requestData RequestData) {
@@ -140,10 +141,10 @@ func getPageAt(requestData RequestData, path string) (Card, error) {
 	err = db.Get(&card, `
 SELECT cards.slug,
        cards.name,
-       coalesce(cards."pageTitle", '') as "pageTitle",
+       coalesce(cards."pageTitle", '') AS "pageTitle",
        cards.desc,
-       cards.attachments,
-       cards.checklists,
+       cards.attachments->'attachments' AS attachments,
+       cards.checklists->'checklists' AS checklists,
        coalesce(cards.cover, '') AS cover
 FROM cards
 INNER JOIN lists ON lists.id = cards.list_id
