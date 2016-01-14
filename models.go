@@ -3,15 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/jmoiron/sqlx/types"
-	"github.com/shurcooL/go/github_flavored_markdown"
 	"log"
-	"net/http"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jmoiron/sqlx/types"
+	"github.com/shurcooL/go/github_flavored_markdown"
 )
 
 const CARDLINKMATCHEREXPRESSION = "\\]\\(https?://trello.com/c/([^/]+)(/[\\w-]*)?\\)"
@@ -265,7 +264,14 @@ func (card Card) HasCover() bool {
 	if card.Cover == "" {
 		return false
 	}
-	return true
+	/* cover must be in the attachments array */
+	for _, attachment := range card.GetAttachments() {
+		if attachment.Url == card.Cover {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (card Card) GetChecklists() []Checklist {
