@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/MindscapeHQ/raygun4go"
-	"github.com/gorilla/feeds"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/MindscapeHQ/raygun4go"
+	"github.com/gorilla/feeds"
+	"github.com/gorilla/mux"
 )
 
 func cardRedirect(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +150,7 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	if requestData.Prefs.Favicon != "" {
 		fav = requestData.Prefs.Favicon
 	} else {
-		fav = "http://lorempixel.com/32/32/"
+		fav = "https://avatars3.githubusercontent.com/u/13661927?v=3&s=200"
 	}
 	http.Redirect(w, r, fav, 301)
 }
