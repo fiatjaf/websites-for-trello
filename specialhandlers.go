@@ -190,6 +190,11 @@ func feed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(requestData.Cards) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	// generate feed
 	feed := &feeds.Feed{
 		Title:       requestData.Board.Name,
