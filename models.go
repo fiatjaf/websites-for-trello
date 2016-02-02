@@ -126,13 +126,12 @@ func (card Card) HasExcerpt() bool {
 }
 
 func (card Card) HasCover() bool {
-	if card.Cover == "" {
-		return false
-	}
-	/* cover must be in the attachments array */
-	for _, attachment := range card.GetAttachments() {
-		if attachment.Url == card.Cover {
-			return true
+	if card.Cover != "" {
+		/* cover must be in the attachments array */
+		for _, attachment := range card.GetAttachments() {
+			if attachment.Url == card.Cover {
+				return true
+			}
 		}
 	}
 

@@ -238,11 +238,12 @@ func completeWithIndexCards(requestData *RequestData) error {
 SELECT cards.slug,
        cards.name,
        substring(cards.desc from 0 for $1) AS excerpt,
-       coalesce(cards.cover, '') AS cover,
        array_to_string(array_prepend('https://trello.com/c/' || cards.id, syndicated), $5) AS syndicated,
        cards.id,
        CASE WHEN due IS NOT NULL THEN due ELSE (to_timestamp(hex_to_int(left(cards.id, 8)))) END AS due,
-       list_id
+       list_id,
+       coalesce(cards.cover, '') AS cover,
+       cards.attachments->'attachments' AS attachments
 FROM cards
 INNER JOIN lists ON lists.id = cards.list_id
 WHERE lists.board_id = $2

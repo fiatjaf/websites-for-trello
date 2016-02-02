@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/MindscapeHQ/raygun4go"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/MindscapeHQ/raygun4go"
+	"github.com/gorilla/mux"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +97,8 @@ func label(w http.ResponseWriter, r *http.Request) {
          id,
          '""'::json AS users,
          0 AS pos,
-         '' AS cover
+         '' AS cover,
+         '""'::jsonb AS attachments
   FROM labels
   WHERE board_id = $2
     AND slug = $3
@@ -109,7 +111,8 @@ func label(w http.ResponseWriter, r *http.Request) {
          cards.id,
          array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
          cards.pos,
-         coalesce(cards.cover, '') AS cover
+         coalesce(cards.cover, '') AS cover,
+         cards.attachments->'attachments' AS attachments
   FROM cards
   INNER JOIN labels
   ON labels.id = ANY(cards.labels)
@@ -212,8 +215,8 @@ FROM (
            cards.due,
            cards.id,
            cards.desc,
-           cards.attachments->'attachments',
-           cards.checklists->'checklists',
+           cards.attachments->'attachments' AS attachments,
+           cards.checklists->'checklists' AS checklists,
            array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
            array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
            1 AS sort,
@@ -323,7 +326,8 @@ func list(w http.ResponseWriter, r *http.Request) {
          '""'::json AS labels,
          '""'::json AS users,
          0 AS pos,
-         '' AS cover
+         '' AS cover,
+         '""'::jsonb AS attachments
   FROM lists
   WHERE board_id = $2
     AND slug = $3
@@ -337,7 +341,8 @@ func list(w http.ResponseWriter, r *http.Request) {
          array_to_json(array(SELECT row_to_json(l) FROM labels AS l WHERE l.id = ANY(cards.labels) AND l.visible)) AS labels,
          array_to_json(array(SELECT row_to_json(u) FROM users AS u WHERE u._id = ANY(cards.users))) AS users,
          cards.pos,
-         coalesce(cards.cover, '') AS cover
+         coalesce(cards.cover, '') AS cover,
+         cards.attachments->'attachments' AS attachments
   FROM cards
   INNER JOIN lists
   ON lists.id = cards.list_id
