@@ -41,7 +41,7 @@ if process.env.DEBUG
   `
 else
   process.env.API_URL = '//api.' + process.env.DOMAIN
-  process.env.SITES_DOMAIN = process.env.DOMAIN
+  process.env.SITES_DOMAIN = process.env.SITES_DOMAIN or process.env.DOMAIN
 
 # landing page modifications
 for node in document.querySelectorAll('[href$="#trello-login"]')
@@ -188,7 +188,7 @@ handlers =
         .withCredentials()
         .end()
     ).then(->
-      humane.success "Changed subdomain to <b>#{data.subdomain}</b>. Board address is now <a href=\"//#{data.subdomain}.websitesfortrello.com\">http://#{data.subdomain}.websitesfortrello.com/</a>."
+      humane.success "Changed subdomain to <b>#{data.subdomain}</b>. Board address is now <a href=\"//#{data.subdomain}.#{process.env.SITES_DOMAIN}\">http://#{data.subdomain}.#{process.env.SITES_DOMAIN}/</a>."
       self.refresh State
     ).catch(->
       humane.error "Couldn't change subdomain to <b>#{data.subdomain}</b>."

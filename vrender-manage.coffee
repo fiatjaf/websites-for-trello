@@ -25,7 +25,7 @@ module.exports = (state, channels) ->
             (li {},
               (a
                 target: "_blank"
-                href: "http://#{ab.subdomain}.websitesfortrello.com/"
+                href: "http://#{ab.subdomain}.#{process.env.SITES_DOMAIN}/"
               , "Visit site")
             )
             (li {},
@@ -49,7 +49,7 @@ module.exports = (state, channels) ->
                     defaultValue: ab.subdomain
                     style: {"width":"148px","text-align":"right"}
                   )
-                  ".websitesfortrello.com/ "
+                  ".#{process.env.SITES_DOMAIN}/ "
                 )
                 (button {}, "change")
               )

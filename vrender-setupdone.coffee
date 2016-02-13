@@ -42,7 +42,7 @@ module.exports = (setupDoneState, channels) ->
           href: "https://trello.com/b/#{board.shortLink}"
         , "Trello board")
         " to edit its contents and preferences. To change the subdomain where your website is hosted (under "
-        (span {className: "code"}, ".websitesfortrello.com")
+        (span {className: "code"}, ".#{process.env.SITES_DOMAIN}")
         ") visit your "
         (a
           href: "#/"
