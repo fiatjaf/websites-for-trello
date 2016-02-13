@@ -14,7 +14,7 @@ if process.env.DEBUG
 else
   process.env.SITE_URL = 'https://' + process.env.DOMAIN
   process.env.API_URL = 'https://api.' + process.env.DOMAIN
-  process.env.SITES_DOMAIN = process.env.DOMAIN
+  process.env.SITES_DOMAIN = process.env.SITES_DOMAIN or process.env.DOMAIN
   port = process.env.PORT
   raygun = new raygunProvider.Client().init(apiKey: process.env.RAYGUN_API_KEY)
   raygun.user = (request) -> if request.session then request.session.user else null
