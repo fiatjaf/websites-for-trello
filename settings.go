@@ -8,6 +8,7 @@ import (
 
 type Settings struct {
 	Domain          string
+	SitesDomain     string
 	Port            string
 	DatabaseURL     string
 	RaygunAPIKey    string
@@ -37,6 +38,7 @@ func LoadSettings() Settings {
 
 	return Settings{
 		Domain:          domain,
+		SitesDomain:     os.Getenv("SITES_DOMAIN"),
 		Port:            port,
 		DatabaseURL:     os.Getenv("DATABASE_URL"),
 		RaygunAPIKey:    os.Getenv("RAYGUN_API_KEY"),

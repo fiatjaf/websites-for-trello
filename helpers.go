@@ -40,7 +40,7 @@ func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
 	rootURL.Fragment = ""
 
 	// board and author
-	if strings.HasSuffix(r.Host, settings.Domain) {
+	if strings.HasSuffix(r.Host, settings.SitesDomain) || strings.HasSuffix(r.Host, settings.Domain) {
 		// subdomain
 		identifier = strings.Split(r.Host, ".")[0]
 		err = db.Get(&board, `
