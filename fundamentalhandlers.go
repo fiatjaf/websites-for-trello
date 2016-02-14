@@ -209,6 +209,7 @@ FROM (
     WHERE board_id = $1
       AND slug = $2
       AND visible
+    LIMIT 1
   ) UNION ALL (
     SELECT cards.slug,
            cards.name,
