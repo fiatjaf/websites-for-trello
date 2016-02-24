@@ -84,7 +84,6 @@ handlers =
           if State.get('user') != res.body.user
             ga 'send', 'event', 'user', 'login', res.body.user
             ga 'set', 'userId', res.body.user
-            (window.JacoRecorder || {identify: ->}).identify(res.body.user)
           State.change
             boards: res.body.boards
             activeboards: res.body.activeboards
