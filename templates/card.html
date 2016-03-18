@@ -9,7 +9,7 @@
 {{#Card}}
 <article {{#ShowMF2}}class="h-entry"{{/ShowMF2}}>
   <header>
-    {{#HasCover}}<img src="{{ Cover }}">{{/HasCover}}
+    {{#HasCover}}<img src=data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== class=lazyload data-src="{{ Cover }}">{{/HasCover}}
     {{^IsPage}}
     <h1>
       <a {{#ShowMF2}}class="p-name"{{/ShowMF2}} href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
@@ -68,7 +68,7 @@
   {{#Comments}}
   <article id="{{ Id }}">
     <header>
-      <a href="{{ AuthorURL }}"><img src="//webvatar.com/{{ AuthorURL }}"></a>
+      <a href="{{ AuthorURL }}"><img src=data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== class=lazyload data-src="//webvatar.com/{{ AuthorURL }}"></a>
       <h1><a href="{{ AuthorURL }}">{{ AuthorName }}</a></h1>
       <aside>
         <a href="#{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
