@@ -13,7 +13,10 @@
   <link type="application/opensearchdescription+xml" rel="search" href="/opensearch.xml">
   <title>{{#Card.Test}}{{#IsPage}}{{ Card.PageTitle }}{{/IsPage}}{{^IsPage}}{{ Name }}{{/IsPage}} | {{/Card.Test}}{{^Card.Test}}{{#Aggregator.Test}}{{ Name }} | {{/Aggregator.Test}}{{/Card.Test}}{{ Board.Name }}</title>
   {{#Board.Desc}}<meta name="description" content="{{ Board.Desc }}">{{/Board.Desc}}
-  {{#Prefs.CSS}}<link rel="stylesheet" href="{{ . }}">{{/Prefs.CSS}}
+  <script src="//cdn.jsdelivr.net/loadcss/0.1.7/loadCSS.min.js"></script>
+  <script>l = loadCSS;
+  {{#Prefs.CSS}}l('{{ . }}');
+  {{/Prefs.CSS}}</script>
 </head>
 
 <body>
