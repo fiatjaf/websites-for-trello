@@ -17,8 +17,12 @@
   <script>l = loadCSS;
   {{#Prefs.CSS}}l('{{ . }}');
   {{/Prefs.CSS}}</script>
+  <noscript>
+  {{#Prefs.CSS}}<link rel="stylesheet" href="{{ . }}" />{{/Prefs.CSS}}
+  </noscript>
   <script src="//cdnjs.cloudflare.com/ajax/libs/lazysizes/1.4.0/lazysizes.min.js"></script>
-  <script>lazySizesConfig.loadedClass = '';</script>
+  <script>z=lazySizesConfig; z.lazyClass='x';z.loadingClass='y';z.loadedClass='z';</script>
+  <style>.x,.y{width:200px;height:200px;opacity:0}.z{opacity:1;transition:opacity 800ms}</style>
 </head>
 
 <body>
