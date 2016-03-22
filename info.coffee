@@ -33,7 +33,7 @@ ORDER BY boards.name
   ).spread((boards, bqresult, pqresult) ->
     w.send
       user: r.session.user
-      premium: pqresult.rows[0].plan == 'premium'
+      premium: if pqresult.rows.length then pqresult.rows[0].plan == 'premium' else false
       boards: boards
       activeboards: bqresult.rows
   ).finally(-> release())
