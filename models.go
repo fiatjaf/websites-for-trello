@@ -148,7 +148,13 @@ func (card Card) GetChecklists() []Checklist {
 			log.Print(string(card.Checklists[:]))
 		}
 	}
-	return checklists
+	visibleChecklists := checklists[:0]
+	for _, c := range checklists {
+		if !strings.HasPrefix(c.Name, "_") {
+			visibleChecklists = append(visibleChecklists, c)
+		}
+	}
+	return visibleChecklists
 }
 
 func (card Card) GetAttachments() []Attachment {
