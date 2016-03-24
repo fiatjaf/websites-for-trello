@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/hoisie/redis"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+
+	"github.com/gorilla/mux"
+	"github.com/hoisie/redis"
 )
 
 var rabbitMQQueue string
@@ -51,11 +52,10 @@ func main() {
 
 		// handling trello POST
 		// body is json
-		log.Print(":: RECEIVE-WEBHOOKS :: got a trello message.")
-
 		defer r.Body.Close()
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
+			log.Print(":: RECEIVE-WEBHOOKS :: failed to handle webhook: " + err.Error())
 			http.Error(w, "Your request is wrong.", 400)
 			return
 		}
@@ -70,7 +70,7 @@ func main() {
 		if err == nil {
 			remove, err := rds.Srem("deleted-board", []byte(data.Model.Id))
 			if err == nil && remove { // if the redis has failed we will not delete anything.
-				log.Print(data.Model.Id + "is a deleted board. returning a 410 to delete this webhook.")
+				log.Print(data.Model.Id + " is a deleted board. returning a 410 to delete this webhook.")
 				w.WriteHeader(http.StatusGone)
 				return
 			}
