@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx/types"
 	"github.com/shurcooL/go/github_flavored_markdown"
 )
@@ -143,9 +143,10 @@ func (card Card) GetChecklists() []Checklist {
 	if !bytes.Equal(card.Checklists, nil) {
 		err := json.Unmarshal(card.Checklists, &checklists)
 		if err != nil {
-			log.Print("Problem unmarshaling checklists JSON")
-			log.Print(err)
-			log.Print(string(card.Checklists[:]))
+			log.WithFields(log.Fields{
+				"err":  err.Error(),
+				"json": string(card.Checklists[:]),
+			}).Warn("Problem unmarshaling checklists JSON")
 		}
 	}
 	visibleChecklists := checklists[:0]
@@ -162,9 +163,10 @@ func (card Card) GetAttachments() []Attachment {
 	if !bytes.Equal(card.Attachments, nil) {
 		err := json.Unmarshal(card.Attachments, &attachments)
 		if err != nil {
-			log.Print("Problem unmarshaling attachments JSON")
-			log.Print(err)
-			log.Print(string(card.Attachments[:]))
+			log.WithFields(log.Fields{
+				"err":  err.Error(),
+				"json": string(card.Attachments[:]),
+			}).Warn("Problem unmarshaling attachments JSON")
 		}
 	}
 	return attachments
@@ -183,9 +185,10 @@ func (card Card) GetAuthors() []User {
 	if !bytes.Equal(card.Users, nil) {
 		err := json.Unmarshal(card.Users, &users)
 		if err != nil {
-			log.Print("Problem unmarshaling users JSON")
-			log.Print(err)
-			log.Print(string(card.Users))
+			log.WithFields(log.Fields{
+				"err":  err.Error(),
+				"json": string(card.Users[:]),
+			}).Warn("Problem unmarshaling authors JSON")
 		}
 	}
 	return users
@@ -210,9 +213,10 @@ func (card Card) GetLabels() []Label {
 	if !bytes.Equal(card.Labels, nil) {
 		err := json.Unmarshal(card.Labels, &labels)
 		if err != nil {
-			log.Print("Problem unmarshaling labels JSON")
-			log.Print(err)
-			log.Print(string(card.Labels[:]))
+			log.WithFields(log.Fields{
+				"err":  err.Error(),
+				"json": string(card.Labels[:]),
+			}).Warn("Problem unmarshaling labels JSON")
 		}
 	}
 	return labels

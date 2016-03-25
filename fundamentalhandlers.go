@@ -2,46 +2,23 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/MindscapeHQ/raygun4go"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
 	countPageViews(requestData)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
-	// pagination
-	if val, ok := mux.Vars(r)["page"]; ok {
-		page, err := strconv.Atoi(val)
-		if err != nil || page < 0 {
-			log.Print(err.Error())
-			log.Print(val + " is not a page number.")
-			raygun.CreateError(err.Error())
-			page = 1
-		}
-		requestData.Page = page
-		if requestData.Page > 1 {
-			requestData.HasPrev = true
-		}
-	}
 	// ~
 
 	// fetch cards for home
-	err = completeWithIndexCards(&requestData)
+	err := completeWithIndexCards(&requestData)
 	if err != nil {
-		raygun.CreateError(err.Error())
+		log.WithFields(log.Fields{
+			"context": requestData,
+		}).Error("error getting index cards")
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -57,38 +34,13 @@ func index(w http.ResponseWriter, r *http.Request) {
 func label(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
 	countPageViews(requestData)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
-	// pagination
-	requestData.Page = 1
-	requestData.HasPrev = false
-	if val, ok := mux.Vars(r)["page"]; ok {
-		page, err := strconv.Atoi(val)
-		if err != nil || page < 0 {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
-			page = 1
-		}
-		requestData.Page = page
-		if requestData.Page > 1 {
-			requestData.HasPrev = true
-		}
-	}
-	// ~
 
 	ppp := requestData.Prefs.PostsPerPage()
 	labelSlug := mux.Vars(r)["label-slug"]
 
 	// fetch home cards for this label
 	var cards []Card
-	err = db.Select(&cards, `
+	err := db.Select(&cards, `
 (
   SELECT slug,
          name,
@@ -128,13 +80,18 @@ ORDER BY pos
     `, requestData.Prefs.Excerpts(), requestData.Board.Id, labelSlug, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			// don't report to raygun, we already know the error and it doesn't matter
-			log.Print("label not found.")
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"label": labelSlug,
+			}).Info("label not found.")
 			error404(w, r)
 			return
 		} else {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"label": labelSlug,
+				"err":   err.Error(),
+			}).Error("unknown error fetching label.")
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return
 		}
@@ -157,8 +114,6 @@ ORDER BY pos
 	if len(cards) > ppp {
 		requestData.HasNext = true
 		cards = cards[:ppp]
-	} else {
-		requestData.HasNext = false
 	}
 
 	requestData.Aggregator = label
@@ -175,14 +130,6 @@ ORDER BY pos
 func card(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
 	countPageViews(requestData)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
 
 	vars := mux.Vars(r)
 	listSlug := vars["list-slug"]
@@ -190,7 +137,7 @@ func card(w http.ResponseWriter, r *http.Request) {
 
 	// fetch this card and its parent list
 	var cards []Card
-	err = db.Select(&cards, `
+	err := db.Select(&cards, `
 SELECT slug, name, due, id, "desc", attachments, checklists, labels, users, cover
 FROM (
   (
@@ -236,13 +183,20 @@ ORDER BY sort
 	`, requestData.Board.Id, listSlug, cardSlug)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			// don't report to raygun, we already know the error and it doesn't matter
-			log.Print("card not found.")
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"list":  listSlug,
+				"card":  cardSlug,
+			}).Info("card not found.")
 			error404(w, r)
 			return
 		} else {
-			raygun.CreateError(err.Error())
-			log.Print(err.Error())
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"list":  listSlug,
+				"card":  cardSlug,
+				"err":   err.Error(),
+			}).Error("unknown error fetching card.")
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return
 		}
@@ -265,13 +219,25 @@ ORDER BY sort
 	// comments
 	if requestData.Prefs.Comments.Display && !requestData.Card.IsPage {
 		var comments []Comment
-		err = db.Select(&comments, `
+		err := db.Select(&comments, `
 SELECT id, author_url, author_name, body, source_display, source_url
 FROM comments
 WHERE card_id = $1
   AND body IS NOT NULL
 ORDER BY id
     `, requestData.Card.Id)
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				log.WithFields(log.Fields{
+					"card": requestData.Card.Id,
+				}).Info("no comments were found")
+			} else {
+				log.WithFields(log.Fields{
+					"card": requestData.Card.Id,
+					"err":  err.Error(),
+				}).Error("unknown error fetching comments.")
+			}
+		}
 		requestData.Card.Comments = comments
 	}
 
@@ -286,38 +252,13 @@ ORDER BY id
 func list(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
 	countPageViews(requestData)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
-	// pagination
-	requestData.Page = 1
-	requestData.HasPrev = false
-	if val, ok := mux.Vars(r)["page"]; ok {
-		page, err := strconv.Atoi(val)
-		if err != nil || page < 0 {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
-			page = 1
-		}
-		requestData.Page = page
-		if requestData.Page > 1 {
-			requestData.HasPrev = true
-		}
-	}
-	// ~
 
 	ppp := requestData.Prefs.PostsPerPage()
 	listSlug := mux.Vars(r)["list-slug"]
 
 	// fetch home cards for this list
 	var cards []Card
-	err = db.Select(&cards, `
+	err := db.Select(&cards, `
 (
   SELECT slug,
          name,
@@ -359,13 +300,18 @@ ORDER BY pos
     `, requestData.Prefs.Excerpts(), requestData.Board.Id, listSlug, ppp*(requestData.Page-1), ppp+1)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			// don't report to raygun, we already know the error and it doesn't matter
-			log.Print("list not found.")
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"list":  listSlug,
+			}).Info("list not found.")
 			error404(w, r)
 			return
 		} else {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"list":  listSlug,
+				"err":   err.Error(),
+			}).Error("unknown error fetching list.")
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return
 		}
@@ -387,8 +333,6 @@ ORDER BY pos
 	if len(cards) > ppp {
 		requestData.HasNext = true
 		cards = cards[:ppp]
-	} else {
-		requestData.HasNext = false
 	}
 
 	requestData.Aggregator = list

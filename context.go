@@ -34,7 +34,6 @@ func clearContextMiddleware(next http.Handler) http.Handler {
 type RequestData struct {
 	error
 	Request          *http.Request
-	BaseURL          *url.URL
 	Board            Board
 	Lists            []List
 	Aggregator       Aggregator

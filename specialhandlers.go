@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
-	"github.com/MindscapeHQ/raygun4go"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/feeds"
 	"github.com/gorilla/mux"
 )
@@ -60,7 +59,10 @@ FROM lists
 WHERE id = $1
     `, id)
 	if err != nil {
-		log.Print("list not found.")
+		log.WithFields(log.Fields{
+			"listId": id,
+			"err":    err.Error(),
+		}).Warn("couldn't redirect to list")
 		error404(w, r)
 		return
 	}
@@ -137,14 +139,6 @@ func opensearch(w http.ResponseWriter, r *http.Request) {
 
 func favicon(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
 
 	var fav string
 	if requestData.Prefs.Favicon != "" {
@@ -158,14 +152,6 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 func handleSearch(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
 	countPageViews(requestData)
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
 
 	values := r.URL.Query()
 	query := values.Get("query")
@@ -183,14 +169,32 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 
 func feed(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
-	// fetch cards for home
-	err := completeWithIndexCards(&requestData)
+
+	var cards []Card
+	err := db.Select(&cards, `
+SELECT cards.slug,
+       cards.name,
+       cards.desc,
+       cards.id,
+       CASE WHEN due IS NOT NULL THEN due ELSE (to_timestamp(hex_to_int(left(cards.id, 8)))) END AS due,
+       list_id,
+       coalesce(cards.cover, '') AS cover,
+       cards.attachments->'attachments' AS attachments
+FROM cards
+INNER JOIN lists ON lists.id = cards.list_id
+WHERE lists.board_id = $1
+  AND lists.visible
+  AND cards.visible
+ORDER BY due DESC
+LIMIT 30
+    `, requestData.Board.Id)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		log.Print(err)
+		w.WriteHeader(500)
 		return
 	}
 
-	if len(requestData.Cards) == 0 {
+	if len(cards) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -198,18 +202,18 @@ func feed(w http.ResponseWriter, r *http.Request) {
 	// generate feed
 	feed := &feeds.Feed{
 		Title:       requestData.Board.Name,
-		Link:        &feeds.Link{Href: requestData.BaseURL.String()},
+		Link:        &feeds.Link{Href: "http://" + r.Host + "/"},
 		Description: requestData.Board.Desc,
-		Author:      &feeds.Author{requestData.Board.Name, ""},
-		Created:     requestData.Cards[0].Date(),
+		Author:      &feeds.Author{Name: requestData.Board.Name, Email: "websitesfortrello@boardthreads.com"},
+		Created:     cards[0].Date(),
 	}
 	feed.Items = []*feeds.Item{}
-	for _, card := range requestData.Cards {
+	for _, card := range cards {
 		feed.Items = append(feed.Items, &feeds.Item{
-			Id:          card.Id,
+			Id:          "http://" + r.Host + "/c/" + card.Id,
 			Title:       card.Name,
-			Link:        &feeds.Link{Href: requestData.BaseURL.String() + "/c/" + card.Id},
-			Description: card.Excerpt,
+			Link:        &feeds.Link{Href: "http://" + r.Host + "/c/" + card.Id},
+			Description: card.DescRender(),
 			Created:     card.Date(),
 		})
 	}

@@ -4,42 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/MindscapeHQ/raygun4go"
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx/types"
 )
 
-func countPageViews(requestData RequestData) {
-	now := time.Now().UTC()
-	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), requestData.Board.Id)
-	rds.Incr(key)
-}
-
 func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	raygun.Request(r)
-	defer raygun.HandleError()
-	// ~
-
 	var identifier string
 	var board Board
 
-	// site root URL
-	rootURL := *r.URL
-	rootURL.Path = ""
-	rootURL.RawQuery = ""
-	rootURL.Fragment = ""
-
 	// board and author
+	var err error
 	if strings.HasSuffix(r.Host, settings.SitesDomain) || strings.HasSuffix(r.Host, settings.Domain) {
 		// subdomain
 		identifier = strings.Split(r.Host, ".")[0]
@@ -60,12 +41,13 @@ WHERE custom_domains.domain = $1`,
 	}
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			// don't report to raygun, we already know the error and it doesn't matter
 			http.Error(w, "We don't have the site "+identifier+" here.", 404)
 			return RequestData{error: err}
 		} else {
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
+			log.WithFields(log.Fields{
+				"identifier": identifier,
+				"err":        err.Error(),
+			}).Error("error serving site")
 			http.Error(w, "An unknown error has ocurred, we are sorry.", 500)
 			return RequestData{error: err}
 		}
@@ -82,8 +64,10 @@ WHERE board_id = $1
 ORDER BY pos
     `, board.Id)
 	if err != nil {
-		log.Print(err)
-		raygun.CreateError(err.Error())
+		log.WithFields(log.Fields{
+			"identifier": identifier,
+			"err":        err.Error(),
+		}).Error("error fetching data for site")
 		http.Error(w, "There was an error in the process of fetching data for "+identifier+" from Trello, or this process was aborted by the Board owner. If you are the Board owner, try to re-setup the same Board from our dashboard.", 500)
 		return RequestData{error: err}
 	}
@@ -92,30 +76,51 @@ ORDER BY pos
 	var jsonPrefs types.JsonText
 	err = db.Get(&jsonPrefs, "SELECT preferences($1)", identifier)
 	if err != nil {
-		log.Print(err.Error())
-		raygun.CreateError(err.Error())
+		log.WithFields(log.Fields{
+			"identifier": identifier,
+			"err":        err.Error(),
+		}).Error("error fetching preferences")
 		http.Error(w, "A strange error ocurred. If you are the Board owner for this site, please report it to us. It is probably an error with the _preferences List.", 500)
 		return RequestData{error: err}
 	}
 	var prefs Preferences
 	err = jsonPrefs.Unmarshal(&prefs)
 	if err != nil {
-		log.Print(err.Error())
-		raygun.CreateError(err.Error())
+		log.WithFields(log.Fields{
+			"identifier": identifier,
+			"json":       string(jsonPrefs[:]),
+			"err":        err.Error(),
+		}).Error("error unmarshaling preferences")
 		http.Error(w, err.Error(), 500)
 		return RequestData{error: err}
 	}
 
+	// pagination
+	page := 1
+	hasPrev := false
+	if val, ok := mux.Vars(r)["page"]; ok {
+		p, err := strconv.Atoi(val)
+		if err != nil || page < 0 {
+			log.WithFields(log.Fields{
+				"page": val,
+				"err":  err,
+			}).Warn("not a page number")
+		}
+		page = p
+	}
+	if page > 1 {
+		hasPrev = true
+	}
+
 	return RequestData{
 		Request:  r,
-		BaseURL:  &rootURL,
 		Settings: settings,
 		Board:    board,
 		Lists:    lists,
 		Prefs:    prefs,
 
-		Page:    1,
-		HasPrev: false,
+		Page:    page,
+		HasPrev: hasPrev,
 		HasNext: false,
 
 		ShowMF2: !strings.Contains(r.UserAgent(), "Mozilla"),
@@ -123,14 +128,6 @@ ORDER BY pos
 }
 
 func getPageAt(requestData RequestData, path string) (Card, error) {
-	// raygun error reporting
-	raygun, err := raygun4go.New("trellocms", settings.RaygunAPIKey)
-	if err != nil {
-		log.Print("unable to create Raygun client: ", err.Error())
-	}
-	defer raygun.HandleError()
-	// ~
-
 	pathAlt := strings.TrimSuffix(path, "/")
 	if path == pathAlt {
 		pathAlt = path + "/"
@@ -138,7 +135,7 @@ func getPageAt(requestData RequestData, path string) (Card, error) {
 
 	// fetch card from standalone pages
 	var card Card
-	err = db.Get(&card, `
+	err := db.Get(&card, `
 SELECT cards.slug,
        cards.name,
        coalesce(cards."pageTitle", '') AS "pageTitle",
@@ -158,9 +155,12 @@ WHERE boards.id = $1
 			// this error doesn't matter, since in the majority of cases there will be no standalone page here anyway.
 			return card, err
 		} else {
-			// unknown error. report to raygun and proceed as if nothing was found
-			log.Print(err.Error())
-			raygun.CreateError(err.Error())
+			// unknown error. report and proceed as if nothing was found
+			log.WithFields(log.Fields{
+				"board": requestData.Board.Id,
+				"path":  path,
+				"err":   err.Error(),
+			}).Error("error fetching page at path")
 			return card, err
 		}
 	}
@@ -254,7 +254,6 @@ OFFSET $3
 LIMIT $4
     `, requestData.Prefs.Excerpts(), requestData.Board.Id, ppp*(requestData.Page-1), ppp+1, URLARRAYSTRINGSEPARATOR)
 	if err != nil {
-		log.Print(err)
 		return err
 	}
 
@@ -267,4 +266,10 @@ LIMIT $4
 
 	requestData.Cards = cards
 	return nil
+}
+
+func countPageViews(requestData RequestData) {
+	now := time.Now().UTC()
+	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), requestData.Board.Id)
+	rds.Incr(key)
 }

@@ -11,7 +11,6 @@ type Settings struct {
 	SitesDomain     string
 	Port            string
 	DatabaseURL     string
-	RaygunAPIKey    string
 	RedisAddr       string
 	RedisPassword   string
 	RedisPoolSize   int
@@ -41,7 +40,6 @@ func LoadSettings() Settings {
 		SitesDomain:     os.Getenv("SITES_DOMAIN"),
 		Port:            port,
 		DatabaseURL:     os.Getenv("DATABASE_URL"),
-		RaygunAPIKey:    os.Getenv("RAYGUN_API_KEY"),
 		RedisAddr:       os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
 		RedisPassword:   os.Getenv("REDIS_PASSWORD"),
 		RedisPoolSize:   redisPoolSize,
