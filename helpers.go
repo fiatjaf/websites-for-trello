@@ -13,6 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx/types"
+	"github.com/shurcooL/github_flavored_markdown"
 )
 
 func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
@@ -272,4 +273,24 @@ func countPageViews(requestData RequestData) {
 	now := time.Now().UTC()
 	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), requestData.Board.Id)
 	rds.Incr(key)
+}
+
+/* template methods */
+func markdown(md string) string {
+	mdBytes := []byte(md)
+	mdBytes = CardLinkMatcher.ReplaceAllFunc(mdBytes, func(match []byte) []byte {
+		shortLink := append(CardLinkMatcher.FindSubmatch(match)[1], ")"...)
+		return append([]byte("](/c/"), shortLink...)
+	})
+	html := github_flavored_markdown.Markdown(mdBytes)
+	return string(html)
+}
+
+func cdnurl(url string) string {
+	v := strings.Replace(url, "trello-attachments.s3.amazonaws.com", "trello-attachments-alhuressoftware.netdna-ssl.com", 1)
+	v = strings.Replace(v, "websitesfortrello.github.io", "wft-github-alhuressoftware.netdna-ssl.com", 1)
+	if v != url {
+		v = strings.Replace(v, "http://", "https://", 1)
+	}
+	return v
 }

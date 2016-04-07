@@ -1,40 +1,50 @@
-{{#Aggregator.Test}}
+{{ define "list" }}
+
+{{ template "head" . }}
+
+{{ with .Aggregator }}
 <header>
   <h1>
-    <a href="/{{ Slug }}/">{{ Name }}</a>
+    <a href="/{{ .Slug }}/">{{ .Name }}</a>
   </h1>
 </header>
-{{/Aggregator.Test}}
+{{ end }}
 
 <section>
   <ul>
-    {{#Cards}}
+    {{ range .Cards }}
     <li>
       <article>
         <header>
-          {{#HasCover}}<a rel="bookmark" href="/c/{{ Id }}/"><noscript><img src="{{ Cover }}" /></noscript><img class=x data-src="{{ Cover }}"></a>{{/HasCover}}
-          <h1><a rel="bookmark" href="/c/{{ Id }}/">{{ Name }}</a></h1>
+          {{ if .ValidCover }}<a rel="bookmark" href="/c/{{ .Id }}/"><noscript><img src="{{ cdnurl .Cover }}" /></noscript><img class=x data-src="{{ cdnurl .Cover }}"></a>{{ end }}
+          <h1><a rel="bookmark" href="/c/{{ .Id }}/">{{ .Name }}</a></h1>
           <aside>
-            {{{AuthorHTML}}}
-            <time datetime="{{ IsoDate }}">{{ PrettyDate }}</time>
-            {{#GetLabels}}
-            <li><a rel="tag" href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
-            {{/GetLabels}}
+            {{ .AuthorHTML }}
+            <time datetime="{{ .IsoDate }}">{{ .PrettyDate }}</time>
+            <ul>
+            {{ range .GetLabels }}
+              <li><a rel="tag" href="/tag/{{ .SlugOrId }}/" class="{{ .Color }}">{{ .NameOrSpaces }}</a></li>
+            {{ end }}
+            </ul>
           </aside>
         </header>
-        {{#Prefs.ShowExcerpts}}{{#HasExcerpt}}
-        <div>{{{ Excerpt }}} <a href="/c/{{ Id }}">(read more...)</a></div>
-        {{/HasExcerpt}}{{/Prefs.ShowExcerpts}}
+        {{ if and $.Prefs.ShowExcerpts .Excerpt }}
+        <div>{{ .Excerpt }} <a href="/c/{{ .Id }}">(read more...)</a></div>
+        {{ end }}
       </article>
     </li>
-    {{/Cards}}
+    {{ end }}
   </ul>
 </section>
 <footer>
   <nav>
     <ul>
-      <li><a {{#HasPrev}} rel="prev" href="{{#Aggregator.Test}}/{{ Aggregator.Slug }}{{/Aggregator.Test}}/p/{{ PrevPage }}/"{{/HasPrev}}>⇚</a></li>
-      <li><a {{#HasNext}} rel="next" href="{{#Aggregator.Test}}/{{ Aggregator.Slug }}{{/Aggregator.Test}}/p/{{ NextPage }}/"{{/HasNext}}>⇛</a></li>
+      <li><a {{ if .HasPrev }} rel="prev" href="{{ if .Aggregator }}/{{ .Aggregator.Slug }}/p/{{ .PrevPage }}{{ else }}/p/{{ .PrevPage }}/{{ end }}"{{ end }}>⇚</a></li>
+      <li><a {{ if .HasNext }} rel="next" href="{{ if .Aggregator }}/{{ .Aggregator.Slug }}/p/{{ .NextPage }}{{ else }}/p/{{ .NextPage }}/{{ end }}"{{ end }}>⇚</a></li>
     </ul>
   </nav>
 </footer>
+
+{{ template "foot" . }}
+
+{{ end }}

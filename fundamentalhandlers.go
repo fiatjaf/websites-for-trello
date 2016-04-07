@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
@@ -23,12 +22,10 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/list.html",
-			"templates/base.html",
-		),
-	)
+	err = render.ExecuteTemplate(w, "list", requestData)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func label(w http.ResponseWriter, r *http.Request) {
@@ -119,12 +116,7 @@ ORDER BY pos
 	requestData.Aggregator = label
 	requestData.Cards = cards
 
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/list.html",
-			"templates/base.html",
-		),
-	)
+	render.ExecuteTemplate(w, "list", requestData)
 }
 
 func card(w http.ResponseWriter, r *http.Request) {
@@ -241,12 +233,10 @@ ORDER BY id
 		requestData.Card.Comments = comments
 	}
 
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/card.html",
-			"templates/base.html",
-		),
-	)
+	err = render.ExecuteTemplate(w, "card", requestData)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func list(w http.ResponseWriter, r *http.Request) {
@@ -338,10 +328,5 @@ ORDER BY pos
 	requestData.Aggregator = list
 	requestData.Cards = cards
 
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/list.html",
-			"templates/base.html",
-		),
-	)
+	render.ExecuteTemplate(w, "list", requestData)
 }

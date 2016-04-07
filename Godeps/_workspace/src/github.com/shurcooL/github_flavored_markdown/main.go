@@ -6,15 +6,13 @@ The functionality should be equivalent to the GitHub Markdown API endpoint speci
 https://developer.github.com/v3/markdown/#render-a-markdown-document-in-raw-mode, except
 the rendering is performed locally.
 
-See example below for how to generate a complete HTML page, including CSS styles.
+See examples for how to generate a complete HTML page, including CSS styles.
 */
 package github_flavored_markdown
 
 import (
 	"bytes"
 	"fmt"
-	"html"
-	"io"
 	"regexp"
 	"sort"
 	"strings"
@@ -22,11 +20,12 @@ import (
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/russross/blackfriday"
-	"github.com/shurcooL/go/highlight_diff"
-	"github.com/shurcooL/go/highlight_go"
+	"github.com/shurcooL/highlight_diff"
+	"github.com/shurcooL/highlight_go"
 	"github.com/shurcooL/sanitized_anchor_name"
 	"github.com/sourcegraph/annotate"
 	"github.com/sourcegraph/syntaxhighlight"
+	"golang.org/x/net/html"
 )
 
 // Markdown renders GitHub Flavored Markdown text.
@@ -52,6 +51,8 @@ func Markdown(text []byte) []byte {
 	p.AllowAttrs("class", "name").Matching(bluemonday.SpaceSeparatedTokens).OnElements("a")
 	p.AllowAttrs("rel").Matching(regexp.MustCompile(`^nofollow$`)).OnElements("a")
 	p.AllowAttrs("aria-hidden").Matching(regexp.MustCompile(`^true$`)).OnElements("a")
+	p.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
+	p.AllowAttrs("checked", "disabled").Matching(regexp.MustCompile(`^$`)).OnElements("input")
 	p.AllowDataURIImages()
 
 	return p.SanitizeBytes(unsanitized)
@@ -71,14 +72,35 @@ func (_ *renderer) Header(out *bytes.Buffer, text func() bool, level int, _ stri
 		return
 	}
 
-	textString := out.String()[marker:]
+	textHtml := out.String()[marker:]
 	out.Truncate(marker)
 
-	anchorName := sanitized_anchor_name.Create(html.UnescapeString(textString))
+	// Extract text content of the header.
+	var textContent string
+	if node, err := html.Parse(strings.NewReader(textHtml)); err == nil {
+		textContent = extractText(node)
+	} else {
+		// Failed to parse HTML (probably can never happen), so just use the whole thing.
+		textContent = html.UnescapeString(textHtml)
+	}
+	anchorName := sanitized_anchor_name.Create(textContent)
 
 	out.WriteString(fmt.Sprintf(`<h%d><a name="%s" class="anchor" href="#%s" rel="nofollow" aria-hidden="true"><span class="octicon octicon-link"></span></a>`, level, anchorName, anchorName))
-	out.WriteString(textString)
+	out.WriteString(textHtml)
 	out.WriteString(fmt.Sprintf("</h%d>\n", level))
+}
+
+// extractText returns the recursive concatenation of the text content of an html node.
+func extractText(n *html.Node) string {
+	var out string
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type == html.TextNode {
+			out += c.Data
+		} else {
+			out += extractText(c)
+		}
+	}
+	return out
 }
 
 // TODO: Clean up and improve this code.
@@ -118,6 +140,17 @@ func (_ *renderer) BlockCode(out *bytes.Buffer, text []byte, lang string) {
 	} else {
 		out.WriteString("</pre></div>\n")
 	}
+}
+
+// Task List support.
+func (r *renderer) ListItem(out *bytes.Buffer, text []byte, flags int) {
+	switch {
+	case bytes.HasPrefix(text, []byte("[ ] ")):
+		text = append([]byte(`<input type="checkbox" disabled="">`), text[3:]...)
+	case bytes.HasPrefix(text, []byte("[x] ")) || bytes.HasPrefix(text, []byte("[X] ")):
+		text = append([]byte(`<input type="checkbox" checked="" disabled="">`), text[3:]...)
+	}
+	r.Html.ListItem(out, text, flags)
 }
 
 var gfmHtmlConfig = syntaxhighlight.HTMLConfig{
@@ -236,7 +269,7 @@ func highlightCode(src []byte, lang string) (highlightedCode []byte, ok bool) {
 
 			sort.Sort(anns)
 
-			out, err := annotate.Annotate(src, anns, func(w io.Writer, b []byte) { template.HTMLEscape(w, b) })
+			out, err := annotate.Annotate(src, anns, template.HTMLEscape)
 			if err != nil {
 				return nil, false
 			}

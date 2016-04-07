@@ -43,11 +43,6 @@
 			"Rev": "788f01e396a99c96c8f56338383926f16841ebae"
 		},
 		{
-			"ImportPath": "github.com/jabley/mustache",
-			"Comment": "0.0.1-32-gb5cc032",
-			"Rev": "b5cc0322c5870d6139e6daae667cf6a462588f72"
-		},
-		{
 			"ImportPath": "github.com/jmoiron/sqlx",
 			"Comment": "sqlx-v1.1",
 			"Rev": "69738bd209812c5a381786011aff17944a384554"
@@ -75,16 +70,16 @@
 			"Rev": "97b2266dfe4bd4ea1b81a463322f04f8b724801e"
 		},
 		{
-			"ImportPath": "github.com/shurcooL/go/github_flavored_markdown",
-			"Rev": "d40256e8c9e3916b04c397ae4154385705f637ab"
+			"ImportPath": "github.com/shurcooL/github_flavored_markdown",
+			"Rev": "b3921bea4a899100a4fd522dd940b819af56e437"
 		},
 		{
-			"ImportPath": "github.com/shurcooL/go/highlight_diff",
-			"Rev": "d40256e8c9e3916b04c397ae4154385705f637ab"
+			"ImportPath": "github.com/shurcooL/highlight_diff",
+			"Rev": "8f0db662adc4a5ba63b4ca15bf66ab08123f7161"
 		},
 		{
-			"ImportPath": "github.com/shurcooL/go/highlight_go",
-			"Rev": "d40256e8c9e3916b04c397ae4154385705f637ab"
+			"ImportPath": "github.com/shurcooL/highlight_go",
+			"Rev": "562bf7c1e73e56cf3c10c2506b1e29fccc63d1c9"
 		},
 		{
 			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",

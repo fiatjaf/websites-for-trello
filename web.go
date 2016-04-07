@@ -1,16 +1,17 @@
 package main
 
 import (
-	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"regexp"
+
 	"github.com/carbocation/interpose"
 	"github.com/carbocation/interpose/adaptors"
 	"github.com/gorilla/mux"
 	"github.com/hoisie/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/cors"
-	"log"
-	"net/http"
-	"regexp"
 
 	_ "github.com/lib/pq"
 )
@@ -18,11 +19,16 @@ import (
 var db *sqlx.DB
 var rds redis.Client
 var settings Settings
+var render *template.Template
+var err error
 
 func main() {
 	settings = LoadSettings()
 
-	db, _ = sqlx.Connect("postgres", settings.DatabaseURL)
+	db, err = sqlx.Connect("postgres", settings.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
 	db = db.Unsafe()
 	db.SetMaxOpenConns(7)
 
@@ -31,6 +37,11 @@ func main() {
 	rds.MaxPoolSize = settings.RedisPoolSize
 
 	CardLinkMatcher = regexp.MustCompile(CARDLINKMATCHEREXPRESSION)
+
+	render = template.Must(template.New("main").Funcs(template.FuncMap{
+		"cdnurl":   cdnurl,
+		"markdown": func(md string) template.HTML { return template.HTML(markdown(md)) },
+	}).ParseGlob("templates/*.html"))
 
 	// middleware
 	middle := interpose.New()
@@ -64,12 +75,7 @@ func main() {
 			} else {
 				countPageViews(requestData)
 				requestData.Card = card
-				fmt.Fprint(w,
-					renderOnTopOf(requestData,
-						"templates/card.html",
-						"templates/base.html",
-					),
-				)
+				render.ExecuteTemplate(w, "card", requestData)
 			}
 		})
 	})

@@ -1,85 +1,90 @@
-{{#Aggregator.Test}}
+{{ define "card" }}
+
+{{ template "head" . }}
+
+{{ with .Aggregator }}
 <header>
   <h1>
-    <a href="/{{ Slug }}/">{{ Name }}</a>
+    <a href="/{{ .Slug }}/">{{ .Name }}</a>
   </h1>
 </header>
-{{/Aggregator.Test}}
+{{ end }}
 
-{{#Card}}
-<article {{#ShowMF2}}class="h-entry"{{/ShowMF2}}>
+<article {{ if .ShowMF2 }}class="h-entry"{{ end }}>
   <header>
-    {{#HasCover}}<noscript><img src="{{ Cover }}" /></noscript><img class=x data-src="{{ Cover }}">{{/HasCover}}
-    {{^IsPage}}
+    {{ if .Card.ValidCover }}<noscript><img src="{{ .Card.Cover }}" /></noscript><img class=x data-src="{{ .Card.Cover }}">{{ end }}
+    {{ if not .Card.IsPage }}
     <h1>
-      <a {{#ShowMF2}}class="p-name"{{/ShowMF2}} href="/{{ Aggregator.Slug }}/{{ Slug }}/">{{ Name }}</a>
+      <a {{ if .ShowMF2 }}class="p-name"{{ end }} href="/{{ .Aggregator.Slug }}/{{ .Card.Slug }}/">{{ .Card.Name }}</a>
     </h1>
     <aside>
-      {{{AuthorHTML}}}
-      <a rel="bookmark" {{#ShowMF2}}class="u-url dt-published"{{/ShowMF2}}href="/c/{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
-    {{/IsPage}}
-    {{#IsPage}}
+      {{ .Card.AuthorHTML }}
+      <a rel="bookmark" {{ if .ShowMF2 }}class="u-url dt-published"{{ end }}href="/c/{{ .Card.Id }}"><time datetime="{{ .Card.IsoDate }}">{{ .Card.PrettyDate }}</time></a>
+    {{ else }}
     <aside>
-    {{/IsPage}}
+    {{ end }}
       <ul>
-        {{#GetLabels}}
-        <li><a rel="tag" href="/tag/{{ SlugOrId }}/" class="{{ Color }}">{{{ NameOrSpaces }}}</a></li>
-        {{/GetLabels}}
+        {{ range .Card.GetLabels }}
+        <li><a rel="tag" href="/tag/{{ .SlugOrId }}/" class="{{ .Color }}">{{ .NameOrSpaces }}</a></li>
+        {{ end }}
       </ul>
     </aside>
   </header>
-  <div {{#ShowMF2}}class="e-content"{{/ShowMF2}}>
-{{{ DescRender }}}
+  <div {{ if .ShowMF2 }}class="e-content"{{ end }}>
 
-{{#ShowMF2}}
+{{ markdown .Card.Desc}}
+
+{{ if .ShowMF2 }}
 <a href="https://www.brid.gy/publish/facebook"></a>
 <a href="https://www.brid.gy/publish/twitter"></a>
-{{/ShowMF2}}
+{{ end }}
   </div>
 </article>
 
-{{#GetChecklists}}
+{{ range .Card.GetChecklists }}
 <section class="checklists">
   <header>
-    <h1>{{ Name }}</h1>
+    <h1>{{ .Name }}</h1>
   </header>
   <ul>
-    {{#CheckItems}}
+    {{ range .CheckItems }}
     <li>
-      <input type="checkbox" disabled {{#Complete}}checked{{/Complete}}>
-      {{{ NameRender }}}
+      <input type="checkbox" disabled {{ if .Complete }}checked{{ end }}>
+      {{ markdown .Name }}}
     </li>
-    {{/CheckItems}}
+    {{ end }}
   <ul>
 </section>
-{{/GetChecklists}}
+{{ end }}
 
-{{#HasAttachments}}
+{{ if .Card.HasAttachments }}
 <section class="attachments">
   <ul>
-    {{#GetAttachments}}
-    <li><a target="_blank" href="{{ Url }}">{{ Name }}</a></li>
-    {{/GetAttachments}}
+    {{ range .Card.GetAttachments }}
+    <li><a target="_blank" href="{{ cdnurl .Url }}">{{ .Name }}</a></li>
+    {{ end }}
   </ul>
 </section>
-{{/HasAttachments}}
+{{ end }}
 
 <section class="comments">
-  {{#Comments}}
-  <article id="{{ Id }}">
+  {{ range .Card.Comments }}
+  <article id="{{ .Id }}">
     <header>
-      <a href="{{ AuthorURL }}"><noscript><img src="//webvatar.com/{{ AuthorURL }}" /></noscript><img class=x data-src="//webvatar.com/{{ AuthorURL }}"></a>
-      <h1><a href="{{ AuthorURL }}">{{ AuthorName }}</a></h1>
+      <a href="{{ .AuthorURL }}"><noscript><img src="//webvatar.com/{{ .AuthorURL }}" /></noscript><img class=x data-src="//webvatar.com/{{ .AuthorURL }}"></a>
+      <h1><a href="{{ .AuthorURL }}">{{ .AuthorName }}</a></h1>
       <aside>
-        <a href="#{{ Id }}"><time datetime="{{ IsoDate }}">{{ PrettyDate }}</time></a>
+        <a href="#{{ .Id }}"><time datetime="{{ .IsoDate }}">{{ .PrettyDate }}</time></a>
       </aside>
     </header>
-    <div>{{{ BodyRender }}}</div>
+    <div>{{ markdown .Body }}</div>
     <footer>
-      <a href="{{ SourceURL }}" target="_blank">{{ SourceDisplay }}</a>
+      <a href="{{ .SourceURL }}" target="_blank">{{ .SourceDisplay }}</a>
     </footer>
   </article>
-  {{/Comments}}
+  {{ end }}
 </section>
 
-{{/Card}}
+{{ template "foot" . }}
+
+{{ end }}

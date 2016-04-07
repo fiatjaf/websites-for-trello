@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"html/template"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/jmoiron/sqlx/types"
-	"github.com/shurcooL/go/github_flavored_markdown"
 )
 
 const CARDLINKMATCHEREXPRESSION = "\\]\\(https?://trello.com/c/([^/]+)(/[\\w-]*)?\\)"
@@ -18,28 +18,7 @@ const URLARRAYSTRINGSEPARATOR = "|,|"
 
 var CardLinkMatcher *regexp.Regexp
 
-func renderMarkdown(md string) string {
-	mdBytes := []byte(md)
-	mdBytes = CardLinkMatcher.ReplaceAllFunc(mdBytes, func(match []byte) []byte {
-		shortLink := append(CardLinkMatcher.FindSubmatch(match)[1], ")"...)
-		return append([]byte("](/c/"), shortLink...)
-	})
-	html := github_flavored_markdown.Markdown(mdBytes)
-	return string(html)
-}
-
 type SearchResults []Card
-
-func (o SearchResults) Some() bool {
-	if len(o) > 0 {
-		return true
-	}
-	return false
-}
-
-func (o SearchResults) Len() int {
-	return len(o)
-}
 
 type Link struct {
 	Text string
@@ -55,14 +34,6 @@ type Board struct {
 type User struct {
 	Id       string `db:"_id" json:"_id"`
 	Username string `db:"id" json:"id"`
-}
-
-func (o Board) DescRender() string {
-	return renderMarkdown(o.Desc)
-}
-
-type Aggregator interface {
-	Test() interface{}
 }
 
 type List struct {
@@ -114,18 +85,7 @@ type Card struct {
 	Color       string // THIS IS JUST FOR DISGUISING LABELS AS CARDS
 }
 
-func (card Card) DescRender() string {
-	return renderMarkdown(card.Desc)
-}
-
-func (card Card) HasExcerpt() bool {
-	if strings.TrimSpace(card.Excerpt) == "" {
-		return false
-	}
-	return true
-}
-
-func (card Card) HasCover() bool {
+func (card Card) ValidCover() bool {
 	if card.Cover != "" {
 		/* cover must be in the attachments array */
 		for _, attachment := range card.GetAttachments() {
@@ -158,6 +118,13 @@ func (card Card) GetChecklists() []Checklist {
 	return visibleChecklists
 }
 
+func (card Card) HasAttachments() bool {
+	if !bytes.Equal(card.Attachments, nil) {
+		return false
+	}
+	return len(card.Attachments) > 4
+}
+
 func (card Card) GetAttachments() []Attachment {
 	var attachments []Attachment
 	if !bytes.Equal(card.Attachments, nil) {
@@ -170,14 +137,6 @@ func (card Card) GetAttachments() []Attachment {
 		}
 	}
 	return attachments
-}
-
-func (card Card) HasAttachments() bool {
-	attachments := card.GetAttachments()
-	if len(attachments) > 0 {
-		return true
-	}
-	return false
 }
 
 func (card Card) GetAuthors() []User {
@@ -194,18 +153,20 @@ func (card Card) GetAuthors() []User {
 	return users
 }
 
-func (card Card) AuthorHTML() string {
+func (card Card) AuthorHTML() template.HTML {
 	users := card.GetAuthors()
+	var v string
 
 	if len(users) == 0 {
-		return ""
+		v = ""
 	} else if len(users) == 1 {
-		return `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a></address>`
+		v = `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a></address>`
 	} else if len(users) == 2 {
-		return `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a> & <a href="https://trello.com/` + users[1].Id + `" "target="_blank">` + users[1].Username + `</a></address>`
+		v = `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a> & <a href="https://trello.com/` + users[1].Id + `" "target="_blank">` + users[1].Username + `</a></address>`
 	} else {
-		return `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a> et al.</address>`
+		v = `<address><a rel="author" target="_blank" href="https://trello.com/` + users[0].Id + `">` + users[0].Username + `</a> et al.</address>`
 	}
+	return template.HTML(v)
 }
 
 func (card Card) GetLabels() []Label {
@@ -239,9 +200,6 @@ type CheckItem struct {
 func (c CheckItem) Complete() bool {
 	return c.State == "complete"
 }
-func (o CheckItem) NameRender() string {
-	return renderMarkdown(o.Name)
-}
 
 type Attachment struct {
 	Name      string
@@ -256,10 +214,6 @@ type Comment struct {
 	Body          string
 	SourceDisplay string `db:"source_display"`
 	SourceURL     string `db:"source_url"`
-}
-
-func (comment Comment) BodyRender() string {
-	return renderMarkdown(comment.Body)
 }
 
 /* mustache helpers */
@@ -303,23 +257,5 @@ func (card Card) IsoDate() string {
 	return date.Format("2006-01-02T15:04:05.999")
 }
 
-func (o Label) Test() interface{} {
-	if o.Slug != "" {
-		return o
-	}
-	return false
-}
-
-func (o List) Test() interface{} {
-	if o.Slug != "" {
-		return o
-	}
-	return false
-}
-
-func (o Card) Test() interface{} {
-	if o.Slug != "" {
-		return o
-	}
-	return false
+type Aggregator interface {
 }

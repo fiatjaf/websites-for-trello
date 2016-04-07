@@ -123,18 +123,12 @@ func error404(w http.ResponseWriter, r *http.Request) {
 	requestData.TypedSearchQuery = true
 	requestData.SearchResults, _ = search(query, requestData.Board.Id)
 
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/search.html",
-			"templates/404.html",
-			"templates/base.html",
-		),
-	)
+	render.ExecuteTemplate(w, "404", requestData)
 }
 
 func opensearch(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
-	fmt.Fprint(w, renderOnTopOf(requestData, "templates/opensearch.xml"))
+	render.ExecuteTemplate(w, "opensearch", requestData)
 }
 
 func favicon(w http.ResponseWriter, r *http.Request) {
@@ -159,12 +153,8 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	requestData.SearchQuery = query
 	requestData.TypedSearchQuery = query != ""
 	requestData.SearchResults, _ = search(query, requestData.Board.Id)
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/search.html",
-			"templates/base.html",
-		),
-	)
+
+	render.ExecuteTemplate(w, "standalonesearch", requestData)
 }
 
 func feed(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +203,7 @@ LIMIT 30
 			Id:          "http://" + r.Host + "/c/" + card.Id,
 			Title:       card.Name,
 			Link:        &feeds.Link{Href: "http://" + r.Host + "/c/" + card.Id},
-			Description: card.DescRender(),
+			Description: markdown(card.Desc),
 			Created:     card.Date(),
 		})
 	}
@@ -240,9 +230,5 @@ func hfeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w,
-		renderOnTopOf(requestData,
-			"templates/h-feed.html",
-		),
-	)
+	render.ExecuteTemplate(w, "h-feed", requestData)
 }

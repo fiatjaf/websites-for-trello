@@ -33,10 +33,10 @@ func clearContextMiddleware(next http.Handler) http.Handler {
 
 type RequestData struct {
 	error
+	Aggregator           Aggregator
 	Request          *http.Request
 	Board            Board
 	Lists            []List
-	Aggregator       Aggregator
 	Cards            []Card
 	Card             Card
 	Page             int
@@ -102,10 +102,6 @@ func (prefs Preferences) HasHeaderImage() bool {
 		return true
 	}
 	return false
-}
-
-func (prefs Preferences) AsideRender() string {
-	return renderMarkdown(prefs.Aside)
 }
 
 func (prefs Preferences) JS() []string {

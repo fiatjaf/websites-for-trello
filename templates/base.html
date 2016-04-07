@@ -1,20 +1,34 @@
+{{ define "head" }}
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  {{#Prefs.Favicon}}
-  <link rel="shortcut icon" href="{{ Prefs.Favicon }}">
-  {{/Prefs.Favicon}}
-  <link type="application/rss+xml" title="{{ Board.Name }}" rel="alternate" href="/feed.xml">
+  {{ with .Prefs.Favicon}}
+  <link rel="shortcut icon" href="{{ . }}">
+  {{ end }}
+  <link type="application/rss+xml" title="{{ .Board.Name }}" rel="alternate" href="/feed.xml">
   <link type="text/html" rel="feed" href="/h-feed.html">
   <link href="//webhooks.websitesfortrello.com/webmention" rel="webmention">
   <link type="application/opensearchdescription+xml" rel="search" href="/opensearch.xml">
-  <title>{{#Card.Test}}{{#IsPage}}{{ Card.PageTitle }}{{/IsPage}}{{^IsPage}}{{ Name }}{{/IsPage}} | {{/Card.Test}}{{^Card.Test}}{{#Aggregator.Test}}{{ Name }} | {{/Aggregator.Test}}{{/Card.Test}}{{ Board.Name }}</title>
-  {{#Board.Desc}}<meta name="description" content="{{ Board.Desc }}">{{/Board.Desc}}
-  {{#Prefs.CSS}}<link rel=stylesheet href="{{ . }}">
-  {{/Prefs.CSS}}
+  <title>
+  {{ if .Card }}
+    {{ if and .Card.IsPage }}
+      {{ if .Card.PageTitle }}
+        {{ .Card.PageTitle }} | 
+      {{ end }}
+    {{ else if .Card.Name }}
+      {{ .Card.Name }} | 
+    {{ end }}
+  {{ else }}
+    {{ if .Aggregator.Name }}
+      {{ .Aggregator.Name }} |
+    {{ end }}
+  {{ end }}
+  {{ .Board.Name }}</title>
+  {{ with .Board.Desc }}<meta name="description" content="{{ . }}">{{ end }}
+  {{ range .Prefs.CSS }}<link rel=stylesheet href="{{ cdnurl . }}">{{ end }}
   <script src="//cdnjs.cloudflare.com/ajax/libs/lazysizes/1.4.0/lazysizes.min.js"></script>
   <script>z=lazySizesConfig; z.lazyClass='x';z.loadingClass='y';z.loadedClass='z';</script>
   <style>.x,.y{width:200px;height:200px;opacity:0}.z{opacity:1;transition:opacity 800ms}</style>
@@ -22,32 +36,35 @@
 
 <body>
   <header role="banner">
-    {{#Prefs.HasHeaderImage}}<img src="{{ Prefs.Header.Image }}">{{/Prefs.HasHeaderImage}}
+    {{ with .Prefs.Header.Image }}<img src="{{ cdnurl . }}">{{ end }}
     <h1>
-      <a href="/" title="{{ Board.Name }}">{{ Board.Name }}</a>
+      <a href="/" title="{{ .Board.Name }}">{{ .Board.Name }}</a>
     </h1>
-    <aside>{{{ Board.DescRender }}}</aside>
+    <aside>{{ markdown .Board.Desc }}</aside>
   </header>
   <nav>
     <ul>
-      {{#NavItems}}
-        <li><a href="{{ Url }}">{{ Text }}</a></li>
-      {{/NavItems}}
+      {{ range .NavItems }}
+        <li><a href="{{ .Url }}">{{ .Text }}</a></li>
+      {{ end }}
     </ul>
   </nav>
   <main>
-{{{ Content }}}
+{{ end }}
+
+{{ define "foot" }}
   </main>
   <aside>
-    <div {{#ShowMF2}}class="h-card"{{/ShowMF2}}>
-      {{{ Prefs.AsideRender }}}
+    <div {{ if .ShowMF2 }}class="h-card"{{ end }}>
+      {{ markdown .Prefs.Aside }}
     </div>
   </aside>
   <footer role="contentinfo">
-    <p>This website is proudly hosted by <strong><a href="http://{{ Settings.Domain }}/">Websites for Trello</a></strong>.</p>
+    <p>This website is proudly hosted by <strong><a href="http://{{ .Settings.Domain }}/">Websites for Trello</a></strong>.</p>
   </footer>
 </body>
 
-{{#Prefs.JS}}<script src="{{ . }}"></script>
-{{/Prefs.JS}}
+{{ range .Prefs.JS }}<script src="{{ cdnurl . }}"></script>
+{{ end }}
 </html>
+{{ end }}
