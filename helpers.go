@@ -26,18 +26,25 @@ func getRequestData(w http.ResponseWriter, r *http.Request) RequestData {
 		// subdomain
 		identifier = strings.Split(r.Host, ".")[0]
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc
-FROM boards
-WHERE subdomain = lower($1)`,
+(
+  SELECT id, name, boards.desc, subdomain
+  FROM boards
+  WHERE subdomain = lower($1)
+) UNION ALL (
+  SELECT boards.id, name, boards.desc, subdomain
+  FROM boards
+  WHERE lower("shortLink") = lower($1)
+) LIMIT 1`,
 			identifier)
 	} else {
 		// domain
 		identifier = r.Host
 		err = db.Get(&board, `
-SELECT boards.id, name, boards.desc, user_id
+SELECT boards.id, name, boards.desc, user_id, subdomain
 FROM boards
 INNER JOIN custom_domains ON custom_domains.board_id = boards.id
-WHERE custom_domains.domain = $1`,
+WHERE custom_domains.domain = $1
+LIMIT 1`,
 			identifier)
 	}
 	if err != nil {
@@ -75,7 +82,7 @@ ORDER BY pos
 
 	// prefs
 	var jsonPrefs types.JsonText
-	err = db.Get(&jsonPrefs, "SELECT preferences($1)", identifier)
+	err = db.Get(&jsonPrefs, "SELECT preferences($1)", board.Subdomain)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"identifier": identifier,

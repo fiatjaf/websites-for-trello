@@ -26,9 +26,10 @@ type Link struct {
 }
 
 type Board struct {
-	Id   string
-	Name string
-	Desc string
+	Id        string
+	Name      string
+	Desc      string
+	Subdomain string
 }
 
 type User struct {

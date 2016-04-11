@@ -28,11 +28,11 @@ func LoadSettings() Settings {
 	domain := os.Getenv("DOMAIN")
 	if os.Getenv("DEBUG") != "" {
 		domain = strings.TrimSuffix(domain, "000") + "003"
-		parts := strings.Split(domain, ":")
-		port = parts[1]
 	}
 	if port == "" {
-		port = "5000"
+		parts := strings.Split(domain, ":")
+		port = parts[1]
+		port = "4500"
 	}
 
 	return Settings{

@@ -33,7 +33,7 @@ func clearContextMiddleware(next http.Handler) http.Handler {
 
 type RequestData struct {
 	error
-	Aggregator           Aggregator
+	Aggregator       Aggregator
 	Request          *http.Request
 	Board            Board
 	Lists            []List
