@@ -1,6 +1,7 @@
 {
 	"ImportPath": "trellocms",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v62",
 	"Deps": [
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
@@ -9,6 +10,10 @@
 		},
 		{
 			"ImportPath": "github.com/carbocation/interpose",
+			"Rev": "50c09d12f8624ab10532f931cb630d0bf5f7c2c7"
+		},
+		{
+			"ImportPath": "github.com/carbocation/interpose/adaptors",
 			"Rev": "50c09d12f8624ab10532f931cb630d0bf5f7c2c7"
 		},
 		{
@@ -32,7 +37,7 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/feeds",
-			"Rev": "625d173520a311f958b5ee7a14e6c625a87a5e79"
+			"Rev": "441264de03a8117ed530ae8e049d8f601a33a099"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
@@ -48,13 +53,28 @@
 			"Rev": "69738bd209812c5a381786011aff17944a384554"
 		},
 		{
+			"ImportPath": "github.com/jmoiron/sqlx/reflectx",
+			"Comment": "sqlx-v1.1",
+			"Rev": "69738bd209812c5a381786011aff17944a384554"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx/types",
+			"Comment": "sqlx-v1.1",
+			"Rev": "69738bd209812c5a381786011aff17944a384554"
+		},
+		{
 			"ImportPath": "github.com/lib/pq",
-			"Comment": "go1.0-cutoff-31-ga33d605",
-			"Rev": "a33d6053e025943d5dc89dfa1f35fe5500618df7"
+			"Comment": "go1.0-cutoff-84-g3cd0097",
+			"Rev": "3cd0097429be7d611bb644ef85b42bfb102ceea4"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "go1.0-cutoff-84-g3cd0097",
+			"Rev": "3cd0097429be7d611bb644ef85b42bfb102ceea4"
 		},
 		{
 			"ImportPath": "github.com/microcosm-cc/bluemonday",
-			"Rev": "fcd0f5074e55df204568c7419509fb59ddcad228"
+			"Rev": "4ac6f27528d0a3f2a59e0b0a6f6b3ff0bb89fe20"
 		},
 		{
 			"ImportPath": "github.com/rs/cors",
@@ -62,12 +82,12 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.2-49-g3a90da1",
-			"Rev": "3a90da10e373e33f9d809d0324741aade90b7299"
+			"Comment": "v1.4-21-g006144a",
+			"Rev": "006144af03eeeff1037240a71865a9fd61f1c25f"
 		},
 		{
 			"ImportPath": "github.com/sergi/go-diff/diffmatchpatch",
-			"Rev": "97b2266dfe4bd4ea1b81a463322f04f8b724801e"
+			"Rev": "ec7fdbb58eb3e300c8595ad5ac74a5aa50019cc7"
 		},
 		{
 			"ImportPath": "github.com/shurcooL/github_flavored_markdown",
@@ -83,19 +103,27 @@
 		},
 		{
 			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
-			"Rev": "8e87604bec3c645a4eeaee97dfec9f25811ff20d"
+			"Rev": "10ef21a441db47d8b13ebcc5fd2310f636973c77"
 		},
 		{
 			"ImportPath": "github.com/sourcegraph/annotate",
-			"Rev": "35fbe2df7c605a08bcd5d1cb66e7b794a247decd"
+			"Rev": "f4cad6c6324d3f584e1743d8b3e0e017a5f3a636"
 		},
 		{
 			"ImportPath": "github.com/sourcegraph/syntaxhighlight",
-			"Rev": "1230936ecfad4640d05b4ef50798dcc7ffef4e40"
+			"Rev": "637a8b8b94eca8bb8cd559b950cc4f42629ec137"
 		},
 		{
 			"ImportPath": "golang.org/x/net/html",
-			"Rev": "8c5df243b6b387aeb4414824098c7630eca62cef"
+			"Rev": "6acef71eb69611914f7a30939ea9f6e194c78172"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html/atom",
+			"Rev": "6acef71eb69611914f7a30939ea9f6e194c78172"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "a80ff226bd294315526e7ae48959d55635143ea7"
 		}
 	]
 }
