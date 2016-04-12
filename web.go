@@ -103,6 +103,7 @@ func main() {
 
 	// > normal pages and index
 	router.HandleFunc("/p/{page:[0-9]+}/", index)
+	router.HandleFunc("/tag/{label-slug}/p/{page:[0-9]+}", label)
 	router.HandleFunc("/tag/{label-slug}/", label)
 	router.HandleFunc("/{list-slug}/p/{page:[0-9]+}/", list)
 	router.HandleFunc("/{list-slug}/{card-slug}/", card)

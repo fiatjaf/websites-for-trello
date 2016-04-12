@@ -259,4 +259,8 @@ func (card Card) IsoDate() string {
 }
 
 type Aggregator interface {
+	Prefix() template.HTML
 }
+
+func (_ Label) Prefix() template.HTML { return "/tag" }
+func (_ List) Prefix() template.HTML  { return "" }

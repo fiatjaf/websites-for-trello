@@ -103,23 +103,6 @@ ORDER BY pos
 		return RequestData{error: err}
 	}
 
-	// pagination
-	page := 1
-	hasPrev := false
-	if val, ok := mux.Vars(r)["page"]; ok {
-		p, err := strconv.Atoi(val)
-		if err != nil || page < 0 {
-			log.WithFields(log.Fields{
-				"page": val,
-				"err":  err,
-			}).Warn("not a page number")
-		}
-		page = p
-	}
-	if page > 1 {
-		hasPrev = true
-	}
-
 	return RequestData{
 		Request:  r,
 		Settings: settings,
@@ -127,8 +110,8 @@ ORDER BY pos
 		Lists:    lists,
 		Prefs:    prefs,
 
-		Page:    page,
-		HasPrev: hasPrev,
+		Page:    1,
+		HasPrev: false,
 		HasNext: false,
 
 		ShowMF2: !strings.Contains(r.UserAgent(), "Mozilla"),
@@ -280,6 +263,24 @@ func countPageViews(requestData RequestData) {
 	now := time.Now().UTC()
 	key := fmt.Sprintf("pageviews:%d:%d:%s", now.Year(), int(now.Month()), requestData.Board.Id)
 	rds.Incr(key)
+}
+
+func parsePage(r *http.Request, requestData *RequestData) {
+	// pagination
+	if val, ok := mux.Vars(r)["page"]; ok {
+		p, err := strconv.Atoi(val)
+		if err != nil || p < 0 {
+			log.WithFields(log.Fields{
+				"page": val,
+				"err":  err,
+			}).Warn("not a page number")
+		} else {
+			requestData.Page = p
+		}
+	}
+	if requestData.Page > 1 {
+		requestData.HasPrev = true
+	}
 }
 
 /* template methods */

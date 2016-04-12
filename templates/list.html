@@ -39,8 +39,8 @@
 <footer>
   <nav>
     <ul>
-      <li><a {{ if .HasPrev }} rel="prev" href="{{ if .Aggregator }}/{{ .Aggregator.Slug }}/p/{{ .PrevPage }}{{ else }}/p/{{ .PrevPage }}/{{ end }}"{{ end }}>⇚</a></li>
-      <li><a {{ if .HasNext }} rel="next" href="{{ if .Aggregator }}/{{ .Aggregator.Slug }}/p/{{ .NextPage }}{{ else }}/p/{{ .NextPage }}/{{ end }}"{{ end }}>⇚</a></li>
+      <li><a {{ if .HasPrev }} rel="prev" href="{{ if .Aggregator }}{{ .Aggregator.Prefix }}/{{ .Aggregator.Slug }}/p/{{ .PrevPage }}{{ else }}/p/{{ .PrevPage }}/{{ end }}"{{ end }}>&#8656;</a></li>
+      <li><a {{ if .HasNext }} rel="next" href="{{ if .Aggregator }}{{ .Aggregator.Prefix }}/{{ .Aggregator.Slug }}/p/{{ .NextPage }}{{ else }}/p/{{ .NextPage }}/{{ end }}"{{ end }}>&#8658;</a></li>
     </ul>
   </nav>
 </footer>

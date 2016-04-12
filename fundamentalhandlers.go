@@ -9,6 +9,7 @@ import (
 
 func index(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
+	parsePage(r, &requestData)
 	countPageViews(requestData)
 	// ~
 
@@ -30,6 +31,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func label(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
+	parsePage(r, &requestData)
 	countPageViews(requestData)
 
 	ppp := requestData.Prefs.PostsPerPage()
@@ -241,6 +243,7 @@ ORDER BY id
 
 func list(w http.ResponseWriter, r *http.Request) {
 	requestData := loadRequestData(r)
+	parsePage(r, &requestData)
 	countPageViews(requestData)
 
 	ppp := requestData.Prefs.PostsPerPage()
