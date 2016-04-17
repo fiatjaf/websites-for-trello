@@ -1,21 +1,24 @@
 import os
 import sys
-import pika
+import pika # type: ignore
 import math
 import time
 import json
 import signal
 import requests
 import datetime
+import analytics # type: ignore
 import traceback
 import handlers as h
-import redis.exceptions as redis_exceptions
-from raygun4py import raygunprovider
+import redis.exceptions as redis_exceptions # type: ignore
+from raygun4py import raygunprovider # type: ignore
 from board_management import board_setup, add_bot, remove_bot
 from initial_fetch import initial_fetch
 from webmention_handling import handle_webmention
-from models import Board
+from models import Board, User
 from app import app, redis
+
+analytics.write_key = os.environ.get('SEGMENT_WRITE_KEY')
 
 class LocalTimeUp(BaseException):
     pass
@@ -104,8 +107,28 @@ def process_message(payload):
 
         try:
             add_bot(payload['user_token'], payload['board_id'])
-            board_setup(payload['board_id'], username=payload['username'])
-            initial_fetch(payload['board_id'], username=payload['username'], user_token=payload['user_token'])
+            board_setup(
+                payload['board_id'],
+                username=payload['username'],
+                is_new=payload.get('is_new')
+            )
+            user, board = initial_fetch(
+                payload['board_id'],
+                username=payload['username'],
+                user_token=payload['user_token']
+            )
+
+            # track user with segment.io
+            analytics.identify(user._id, {
+                'email': user.email,
+                'username': user.id
+            })
+            analytics.track(user._id, 'boardSetup', {
+                'id': board.id,
+                'shortLink': board.shortLink,
+                'subdomain': board.subdomain,
+                'name': board.name
+            })
         except:
             raygun.set_user(payload['username'])
             raygun.send_exception(
@@ -155,16 +178,21 @@ def process_message(payload):
             print(':: MODEL-UPDATES :: payload:'), payload
 
     else:
-        board_id = str(payload['data']['board']['id'])
+        board = Board.query.get(payload['data']['board']['id'])
 
         try:
             handler = getattr(h, payload['type'])
             handler(payload['data'], payload=payload)
+
+            # track event with segment.io
+            user = User.query.filter_by(id=board.user_id)
+            analytics.track(user._id, payload['type'], payload['data'])
+
         except AttributeError:
             return
         except:
             print('verify if this is a webhook for a board that was deleted: (payload: {})'.format(json.dumps(payload)))
-            if not Board.query.get(payload['data']['board']['id']):
+            if not board:
                 print(':: MODEL-UPDATES :: webhook for a board not registered anymore.')
                 print(':: MODEL-UPDATES :: adding this board to the webhook deletion list.')
                 redis.sadd('deleted-board', payload['data']['board']['id'])

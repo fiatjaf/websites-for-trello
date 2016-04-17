@@ -1,15 +1,15 @@
 import os
 import datetime
 import requests
-from mistune import BlockLexer
-from slugify import slugify
-from unidecode import unidecode
+from mistune import BlockLexer # type: ignore
+from slugify import slugify # type: ignore
+from unidecode import unidecode # type: ignore
 
 from app import db
-from sqlalchemy import event
-from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy import event # type: ignore
+from sqlalchemy.sql import func # type: ignore
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY # type: ignore
+from sqlalchemy.ext.mutable import MutableDict # type: ignore
 from utils.mutablelist import MutableList
 
 class User(db.Model):

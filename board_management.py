@@ -26,7 +26,7 @@ def add_bot(user_token, id):
         print(r.text)
         raise Exception('could not add bot to board.')
 
-def board_setup(id, username=None):
+def board_setup(id, username=None, is_new=False):
     print(':: MODEL-UPDATES :: board_setup for ', id)
 
     # > from now on all actions performed by the bot
@@ -89,24 +89,29 @@ def board_setup(id, username=None):
         'aside': aside_text,
         'header': '',
         'domain': '',
-        'favicon': 'http://lorempixel.com/32/32/'
+        'favicon': 'http://websitesfortrello.com/assets/logo.png'
     }
     includes_checklists = {
         'themes': {
-            '[CSS for the __Lebo__ theme](//websitesfortrello.github.io/classless/themes/lebo.css)': 'false',
-            '[CSS for the __Jeen__ theme](//websitesfortrello.github.io/classless/themes/jeen.css)': 'false',
-            '[CSS for the __Wardrobe__ theme](//websitesfortrello.github.io/classless/themes/wardrobe.css)': 'false',
-            '[CSS for the __Ghostwriter__ theme](//websitesfortrello.github.io/classless/themes/ghostwriter.css)': 'false',
-            '[CSS for the __Barbieri__ theme](//websitesfortrello.github.io/classless/themes/barbieri.css)': 'true',
-            '[CSS for the __Tacit__ theme](//websitesfortrello.github.io/classless/themes/tacit.css)': 'false',
-            '[CSS for the __Festively__ theme](//websitesfortrello.github.io/classless/themes/festively.css)': 'false',
-            '[CSS for the __Aluod__ theme](//websitesfortrello.github.io/classless/themes/aluod.css)': 'false',
-            '[CSS for the __dbyll__ theme](//websitesfortrello.github.io/classless/themes/dbyll.css)': 'false',
+            '[CSS for the __Cyprio__ theme](//websitesfortrello.github.io/classless/themes/cyprio/theme.css)': 'false',
+            '[CSS for the __Freelancer__ theme](//websitesfortrello.github.io/classless/themes/freelancer/theme.css)': 'false',
+            '[CSS for the __Subtle__ theme](//websitesfortrello.github.io/classless/themes/subtle/theme.css)': 'true',
+            '[CSS for the __Lebo__ theme](//websitesfortrello.github.io/classless/themes/lebo/theme.css)': 'false',
+            '[CSS for the __Jeen__ theme](//websitesfortrello.github.io/classless/themes/jeen/theme.css)': 'false',
+            '[CSS for the __Wardrobe__ theme](//websitesfortrello.github.io/classless/themes/wardrobe/theme.css)': 'false',
+            '[CSS for the __Ghostwriter__ theme](//websitesfortrello.github.io/classless/themes/ghostwriter/theme.css)': 'false',
+            '[CSS for the __Barbieri__ theme](//websitesfortrello.github.io/classless/themes/barbieri/theme.css)': 'false',
+            '[CSS for the __Tacit__ theme](//websitesfortrello.github.io/classless/themes/tacit/theme.css)': 'false',
+            '[CSS for the __Festively__ theme](//websitesfortrello.github.io/classless/themes/festively/theme.css)': 'false',
+            '[CSS for the __Aluod__ theme](//websitesfortrello.github.io/classless/themes/aluod/theme.css)': 'false',
+            '[CSS for the __dbyll__ theme](//websitesfortrello.github.io/classless/themes/dbyll/theme.css)': 'false',
         },
         'themes-js': {
-            '[Javascript for the __Ghostwriter__ theme](//websitesfortrello.github.io/classless/themes/ghostwriter.js)': 'false',
-            '[Javascript for the __Festively__ theme](//websitesfortrello.github.io/classless/themes/festively.js)': 'false',
-            '[Javascript for the __Aluod__ theme](//websitesfortrello.github.io/classless/themes/aluod.js)': 'false',
+            '[Javascript for the __Subtle__ theme](//websitesfortrello.github.io/classless/themes/subtle/theme.js)': 'true',
+            '[Javascript for the __Freelancer__ theme](//websitesfortrello.github.io/classless/themes/freelancer/theme.js)': 'false',
+            '[Javascript for the __Ghostwriter__ theme](//websitesfortrello.github.io/classless/themes/ghostwriter/theme.js)': 'false',
+            '[Javascript for the __Festively__ theme](//websitesfortrello.github.io/classless/themes/festively/theme.js)': 'false',
+            '[Javascript for the __Aluod__ theme](//websitesfortrello.github.io/classless/themes/aluod/theme.js)': 'false',
         },
         'utils': {
             '[Add __Eager__ -- a service that includes apps for you, take a look at https://eager.io/ (replace with your own code)](//fast.eager.io/<your-code-from-eager.io>.js)': 'false',
@@ -187,16 +192,10 @@ def board_setup(id, username=None):
             trello.checklists.new_checkItem(checkl['id'], '__lists__')
             trello.checklists.new_checkItem(checkl['id'], '[About](/about)')
 
-    cards = trello.lists.get_card(default_lists['#pages'], fields='name', filter='all')
-    for c in cards:
-        if c['name'] in ('/about', '/about/'):
-            # already exist, so ignore, leave it there
-            break
-    else:
-        # didn't find /about, so create it
-        trello.cards.new('/about', default_lists['#pages'], desc='''# About me
-
-Lorem ipsum dolor sit amet, malorum quaestio ius ne, ad vulputate assueverit per. Est ea porro propriae sententiae, sed ea graecis offendit temporibus. Nusquam menandri indoctum eum at, mentitum signiferumque ea pri, cu duo fabellas deseruisse. Ne choro tantas habemus ius, ei cum illum volumus. No nominati laboramus per. Nec no dolore partiendo democritum.''')
+    # create default cards -- only when the board is new
+    if is_new:
+        #create_default_cards(id)
+        pass
 
     # > create webhook
     r = requests.put('https://api.trello.com/1/webhooks', params={

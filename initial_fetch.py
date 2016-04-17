@@ -2,14 +2,15 @@ import sys
 import traceback
 from app import app, db
 from models import User, Board, List, Card, Label, Comment
-from trello import TrelloApi
+from trello import TrelloApi # type: ignore
 from helpers import schedule_welcome_email, extract_card_cover
 import requests
 import time
 import os
 
 def initial_fetch(id, username=None, user_token=None):
-    print ':: MODEL-UPDATES :: initial_fetch for', id
+    user = None
+    print(':: MODEL-UPDATES :: initial_fetch for', id)
 
     # to clear things that do not exist anymore in the trello board
     to_delete = set()
@@ -23,11 +24,11 @@ def initial_fetch(id, username=None, user_token=None):
 
         user = User.query.filter_by(id=u['id']).first()
         if user:
-            print ':: MODEL-UPDATES :: found, updating, user', u['id']
+            print(':: MODEL-UPDATES :: found, updating, user', u['id'])
         else:
-            print ':: MODEL-UPDATES :: not found, creating, user', u['id']
+            print(':: MODEL-UPDATES :: not found, creating, user', u['id'])
             user = User()
-            print ':: MODEL-UPDATES :: scheduling welcome email'
+            print(':: MODEL-UPDATES :: scheduling welcome email')
             schedule_welcome_email(u['id'], u['email'])
         for key, value in u.items(): setattr(user, key, value)
         db.session.add(user)
@@ -39,9 +40,9 @@ def initial_fetch(id, username=None, user_token=None):
 
     board = Board.query.get(id)
     if board:
-        print ':: MODEL-UPDATES :: found, updating, board', b['id']
+        print(':: MODEL-UPDATES :: found, updating, board', b['id'])
     else:
-        print ':: MODEL-UPDATES :: not found, creating, board', b['id']
+        print(':: MODEL-UPDATES :: not found, creating, board', b['id'])
         board = Board()
         board.subdomain = b['shortLink'].lower()
     for key, value in b.items(): setattr(board, key, value)
@@ -57,9 +58,9 @@ def initial_fetch(id, username=None, user_token=None):
 
         label = Label.query.get(l['id'])
         if label:
-            print ':: MODEL-UPDATES :: found, updating, label', l['id']
+            print(':: MODEL-UPDATES :: found, updating, label', l['id'])
         else:
-            print ':: MODEL-UPDATES :: not found, creating, label', l['id']
+            print(':: MODEL-UPDATES :: not found, creating, label', l['id'])
             label = Label()
         for key, value in l.items(): setattr(label, key, value)
         db.session.add(label)
@@ -72,9 +73,9 @@ def initial_fetch(id, username=None, user_token=None):
 
         list = List.query.get(l['id'])
         if list:
-            print ':: MODEL-UPDATES :: found, updating, list', l['id']
+            print(':: MODEL-UPDATES :: found, updating, list', l['id'])
         else:
-            print ':: MODEL-UPDATES :: not found, creating, list', l['id']
+            print(':: MODEL-UPDATES :: not found, creating, list', l['id'])
             list = List()
         for key, value in l.items(): setattr(list, key, value)
         db.session.add(list)
@@ -103,17 +104,17 @@ def initial_fetch(id, username=None, user_token=None):
 
                 card = Card.query.get(c['id'])
                 if card:
-                    print ':: MODEL-UPDATES :: found, updating, card', c['id']
+                    print(':: MODEL-UPDATES :: found, updating, card', c['id'])
                 else:
-                    print ':: MODEL-UPDATES :: not found, creating, card', c['id']
+                    print(':: MODEL-UPDATES :: not found, creating, card', c['id'])
                     card = Card()
                 for key, value in c.items(): setattr(card, key, value)
                 db.session.add(card)
             except requests.exceptions.Timeout:
-                print ':: MODEL-UPDATES :: connect timeout when fetching card', c['id']
+                print(':: MODEL-UPDATES :: connect timeout when fetching card', c['id'])
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 408:
-                    print ':: MODEL-UPDATES :: timeout error (408) when fetching card', c['id']
+                    print(':: MODEL-UPDATES :: timeout error (408) when fetching card', c['id'])
                 else:
                     traceback.print_exc(file=sys.stdout)
                     raise e
@@ -125,9 +126,9 @@ def initial_fetch(id, username=None, user_token=None):
 
             #    comment = Comment.query.get(co['id'])
             #    if comment:
-            #        print ':: MODEL-UPDATES :: found, updating, comment', co['id']
+            #        print(':: MODEL-UPDATES :: found, updating, comment', co['id'])
             #    else:
-            #        print ':: MODEL-UPDATES :: not found, creating, comment', co['id']
+            #        print(':: MODEL-UPDATES :: not found, creating, comment', co['id'])
             #        comment = Comment(
             #            id=co['id'],
             #            card_id=co['data']['card']['id'],
@@ -138,12 +139,14 @@ def initial_fetch(id, username=None, user_token=None):
 
     for cls, id in to_delete:
         entity = cls.query.get(id)
-        print ':: MODEL-UPDATES :: ', entity, 'is not in the trello board anymore. deleting.'
+        print(':: MODEL-UPDATES :: ', entity, 'is not in the trello board anymore. deleting.')
         db.session.delete(entity)
 
     # final commit
-    print ':: MODEL-UPDATES :: COMMITING INITIAL FETCH FOR', id
+    print(':: MODEL-UPDATES :: COMMITING INITIAL FETCH FOR', id)
     db.session.commit()
+
+    return user, board
 
 if __name__ == '__main__':
     with app.app_context():
