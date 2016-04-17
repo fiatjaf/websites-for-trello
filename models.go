@@ -120,7 +120,7 @@ func (card Card) GetChecklists() []Checklist {
 }
 
 func (card Card) HasAttachments() bool {
-	if !bytes.Equal(card.Attachments, nil) {
+	if bytes.Equal(card.Attachments, nil) {
 		return false
 	}
 	return len(card.Attachments) > 4

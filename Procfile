@@ -1,1 +1,1 @@
-web: trellocms
+web: sites
