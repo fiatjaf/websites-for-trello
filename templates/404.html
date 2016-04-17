@@ -4,7 +4,7 @@
 
 <section>
   <p>The requested page couldn't be found.</p>
-  {{ if .SearchResults }}<p>Maybe you are looking for some of the following results:</p>{{ else }}<p>Maybe you should try to search for this content here, since it could have been moved:</p>{{ end }}
+  {{ if .SearchResults }}<p>Maybe you are looking for some of the following results:</p>{{ else }}<p>Try searching:</p>{{ end }}
 </section>
 
 {{ template "search" . }}
