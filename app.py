@@ -6,7 +6,6 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 load_dotenv(join(dirname(__file__), 'lambda.env'))
-print(os.environ)
 
 pool = redis.BlockingConnectionPool(
     max_connections=6,
@@ -31,6 +30,10 @@ else:
 app = Flask(__name__)
 app.config.update(os.environ)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 # app.config['SQLALCHEMY_ECHO'] = os.environ.get('DEBUG')
 
 db.init_app(app)
+
+with app.app_context():
+    db.engine.execute("SET CLIENT_ENCODING TO 'UTF-8'")
