@@ -1,0 +1,17 @@
+{
+  "name": "wft-model-updates",
+  "description": "updates the database for Websites for Trello",
+  "region": "us-east-1",
+  "handler": "main.main",
+  "timeout": "60",
+  "memory": 128,
+  "role": "arn:aws:iam::574768517004:role/lambda_basic_execution",
+  "ignore": [
+    "venv",
+    ".pyc",
+    ".pyo",
+    ".swp",
+    ".swo",
+    ".store"
+  ]
+}

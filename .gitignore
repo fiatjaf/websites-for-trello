@@ -6,3 +6,6 @@ venv
 *.swo
 cron.log
 *.store
+lambda.env
+.lamba_uploader_temp/
+lambda_function.zip

@@ -1,7 +1,12 @@
 import os
 import redis
+from os.path import join, dirname
+from dotenv import load_dotenv
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
+
+load_dotenv(join(dirname(__file__), 'lambda.env'))
+print(os.environ)
 
 pool = redis.BlockingConnectionPool(
     max_connections=6,
