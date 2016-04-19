@@ -167,7 +167,7 @@ def removeMemberFromCard(data, **kw):
     try:
         users.remove(user._id)
     except KeyError:
-        print 'user wasn\'t present, so our job is done.'
+        print('user wasn\'t present, so our job is done.')
 
     card.users = list(users)
     card.users.changed()
@@ -345,7 +345,7 @@ def removeLabelFromCard(data, **kw):
     try:
         labels.remove(label.id)
     except KeyError:
-        print 'label wasn\'t present, so our job is done.'
+        print('label wasn\'t present, so our job is done.')
 
     card.labels = list(labels)
     card.labels.changed()

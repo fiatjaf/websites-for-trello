@@ -16,7 +16,7 @@ pool = redis.BlockingConnectionPool(
 )
 redis = redis.StrictRedis(connection_pool=pool)
 
-db = SQLAlchemy()
+db = SQLAlchemy(session_options={'autocommit': False})
 
 if os.environ.get('DEBUG'):
     os.environ['SITE_URL'] = 'http://' + os.environ['DOMAIN']
@@ -30,10 +30,7 @@ else:
 app = Flask(__name__)
 app.config.update(os.environ)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-# app.config['SQLALCHEMY_ECHO'] = os.environ.get('DEBUG')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = False
 
 db.init_app(app)
-
-with app.app_context():
-    db.engine.execute("SET CLIENT_ENCODING TO 'UTF-8'")

@@ -3,7 +3,7 @@
   "description": "updates the database for Websites for Trello",
   "region": "us-east-1",
   "handler": "main.main",
-  "timeout": "60",
+  "timeout": "180",
   "memory": 128,
   "role": "arn:aws:iam::574768517004:role/lambda_basic_execution",
   "ignore": [

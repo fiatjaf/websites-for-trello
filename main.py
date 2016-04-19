@@ -37,7 +37,7 @@ connection = pika.BlockingConnection(params)
 channel = connection.channel()
 channel.queue_declare(queue='wft', durable=True)
 
-def main():
+def main(*args, **kwargs):
     print(':: MODEL-UPDATES :: waiting for messages.')
 
     # start listening
@@ -70,8 +70,8 @@ def listen():
         if messages:
             process_message_batch(messages)
 
-        if (datetime.datetime.now() - starttime).seconds > 170:
-            # running for more than 170 seconds. stop.
+        if (datetime.datetime.now() - starttime).seconds > 120:
+            # running for more than 120 seconds. stop.
             print(':: MODEL-UPDATES :: end of time.')
             channel.cancel()
             connection.close()
@@ -185,10 +185,11 @@ def process_message(payload):
             handler(payload['data'], payload=payload)
 
             # track event with segment.io
-            user = User.query.filter_by(id=board.user_id)
+            user = User.query.filter_by(id=board.user_id).first()
             analytics.track(user._id, payload['type'], payload['data'])
 
-        except AttributeError:
+        except AttributeError as e:
+            print(':: MODEL-UPDATES :: AttributeError', e)
             return
         except:
             print('verify if this is a webhook for a board that was deleted: (payload: {})'.format(json.dumps(payload)))
