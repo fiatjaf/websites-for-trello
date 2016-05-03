@@ -295,8 +295,8 @@ func markdown(md string) string {
 }
 
 func cdnurl(url string) string {
-	v := strings.Replace(url, "trello-attachments.s3.amazonaws.com", "trello-attachments-alhuressoftware.netdna-ssl.com", 1)
-	v = strings.Replace(v, "websitesfortrello.github.io", "wft-github-alhuressoftware.netdna-ssl.com", 1)
+	v := strings.Replace(url, "trello-attachments.s3.amazonaws.com", "d1dsuxxfc9dqyt.cloudfront.net", 1)
+	v = strings.Replace(v, "websitesfortrello.github.io", "d27d3vb5d5ixst.cloudfront.net", 1)
 	if v != url {
 		v = strings.Replace(v, "http://", "https://", 1)
 	}
