@@ -3,7 +3,7 @@ import traceback
 from app import app, db
 from models import User, Board, List, Card, Label, Comment
 from trello import TrelloApi # type: ignore
-from helpers import schedule_welcome_email, extract_card_cover
+from helpers import extract_card_cover
 import requests
 import time
 import os
@@ -28,8 +28,6 @@ def initial_fetch(id, username=None, user_token=None):
         else:
             print(':: MODEL-UPDATES :: not found, creating, user', u['id'])
             user = User()
-            print(':: MODEL-UPDATES :: scheduling welcome email')
-            schedule_welcome_email(u['id'], u['email'])
         for key, value in u.items(): setattr(user, key, value)
         db.session.add(user)
 
