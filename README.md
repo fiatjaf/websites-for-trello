@@ -1,0 +1,5 @@
+This repository contains the source code for the user-interfacing HTTP API for _Websites for Trello_.
+
+The main duty of this very simple piece of software is to answer and react to API calls done by [wft.website](https://bitbucket.org/websitesfortrello/wft.website), where the user dashboard lives. See the explanation there for what exactlyare the calls made by the JS client.
+
+Basically, this application does 3 different kinds of things: (1) [Trello oAuth](account.coffee) handling and cookie session management; (2) [Paypal subscription](billing.coffee) setup and setting up premium accounts on the **Postgres database**; and (3) [Website setup](board.coffee), which means changing data on the **database**, then dispatching messages to **RabbitMQ** with instructions on how to procede and relevant information (such as user token and board id), these messages are expected to be read and processed in nearly real-time by [wft.model-updates](https://bitbucket.org/websitesfortrello/wft.model-updates), which should be listening.
