@@ -1,0 +1,5 @@
+This repository contains the code for the application that actually serves the websites created on https://websitesfortrello.com/. Besides the **Postgres database**, it doesn't interfaces with anything at all and doesn't support any kind of "write" operation.
+
+All it does it to wait for `GET` requests to come, query the **database** for the data that should be served (based on the subdomain or the custom external domain of the request) and serve HTML in response.
+
+Although this app doesn't interface directly with any of the other _Websites for Trello_ modules -- namely the [API](https://bitbucket.org/websitesfortrello/wft.api), the [dashboard](https://bitbucket.org/websitesfortrello/wft.website), the [webhook handler](https://bitbucket.org/websitesfortrello/wft.recv-webhooks) and the [database updater](https://bitbucket.org/websitesfortrello/wft.model-updates) --, because the other modules are responsible for keeping the database up to date and this app reads from the database, it depends on all these other parts to work properly.
