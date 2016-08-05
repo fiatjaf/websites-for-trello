@@ -148,8 +148,8 @@ func (prefs Preferences) Excerpts() int {
 	if err != nil {
 		return 0
 	}
-	if limit > 300 {
-		return 300
+	if limit > 1000 {
+		return 1000
 	}
 	return limit
 }
