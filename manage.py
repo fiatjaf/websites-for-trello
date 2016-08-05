@@ -1,14 +1,12 @@
-import os
-import redis
 import datetime
 
 from flask.ext.script import Manager
-from flask.ext.migrate import Migrate, MigrateCommand
 
 from app import app, db, redis
 from models import *
 
 manager = Manager(app)
+
 
 @manager.command
 def stats(year=datetime.date.today().year, month=datetime.date.today().month):
@@ -34,10 +32,6 @@ def stats(year=datetime.date.today().year, month=datetime.date.today().month):
             print '%2s/%s %26s %27s %5d %5d' % (month, year, board.subdomain, board.user_id, pvv, whv)
         else:
             print '%2s/%s %54s %5d %5d' % (month, year, id, pvv, whv)
-
-# flask-migrate
-Migrate(app, db)
-manager.add_command('db', MigrateCommand)
 
 if __name__ == "__main__":
     manager.run()
