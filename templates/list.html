@@ -29,7 +29,13 @@
           </aside>
         </header>
         {{ if and $.Prefs.ShowExcerpts .Excerpt }}
-        <div>{{ .Excerpt }} <a href="/c/{{ .Id }}">(read more...)</a></div>
+        <div>
+          {{ if .ReadMore }}
+            {{ .Excerpt }} <a href="/c/{{ .Id }}">(read more...)</a>
+          {{ else }}
+            {{ markdown .Excerpt }}
+          {{ end }}
+        </div>
         {{ end }}
       </article>
     </li>

@@ -74,6 +74,7 @@ type Card struct {
 	Cover       string
 	Desc        string
 	Excerpt     string
+	ReadMore    bool `db:"readmore"`
 	Due         interface{}
 	Comments    []Comment
 	List_id     string
