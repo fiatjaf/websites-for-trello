@@ -62,7 +62,7 @@ module.exports = (setupDoneState, channels) ->
           href: "#/plan"
         , "upgrade your account")
         " for only "
-        (span {className: "code"}, "$8.00 / month")
+        (span {className: "code"}, "$17.00 / month")
         "."
       )
     ) if setupDoneState.ready

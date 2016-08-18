@@ -20,15 +20,11 @@ module.exports = (state, channels) ->
       (p {},
         'Upgrade to gain access to '
         (b {}, 'custom domains')
-        ' and up to '
-        (b {}, '25,000 page views')
         '.'
       )
       (p {},
-        (b {}, '$8 for month')
-        ', unlimited websites (the pageviews count as a sum), unlimited subdomains. If you have any question please use our contact form or message us on '
-        (b {}, 'websitesfortrello@boardthreads.com')
-        '.'
+        (b {}, '$17 / month')
+        ', unlimited websites, unlimited custom domains.'
       )
       (button
         'ev-click': tl.sendClick channels.togglePremium, true, {preventDefault: true}
