@@ -16,7 +16,7 @@ app.post '/premium', userRequired, (r, w) ->
     paypal.authenticate
       RETURNURL: process.env.API_URL + '/account/billing/callback/success'
       CANCELURL: process.env.API_URL + '/account/billing/callback/fail'
-      PAYMENTREQUEST_0_AMT: 8
+      PAYMENTREQUEST_0_AMT: 17
       L_BILLINGAGREEMENTDESCRIPTION0: "Websites for Trello premium account (user ##{r.session.userid})"
       BRANDNAME: 'Websites for Trello'
       BUYEREMAILOPTINENABLE: 0
@@ -61,7 +61,7 @@ app.get '/callback/success', userRequired, (r, w) ->
   trello.token = r.session.token
 
   paypal.createSubscription token, PayerID,
-    AMT: 8
+    AMT: 17
     DESC: "Websites for Trello premium account (user ##{r.session.userid})"
     BILLINGPERIOD: 'Month'
     BILLINGFREQUENCY: 1
