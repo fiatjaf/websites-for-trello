@@ -7,7 +7,6 @@ js:
   output:
     - assets/bundle.js
   formula: >
-    . ../test/base.sh;
     ./node_modules/.bin/browserifyinc -t coffeeify -t envify --extension='.coffee' app.coffee > assets/bundle.js
 
 css:
@@ -17,7 +16,7 @@ css:
   output:
     - assets/bundle.css
   formula: >
-    scss --sourcemap=none scss/main.scss assets/bundle.css
+    ./node_modules/.bin/node-sass --sourcemap=none scss/main.scss assets/bundle.css
 
 html:
   help: turn .md files into .html files
@@ -30,6 +29,7 @@ html:
     cat base.html | py -l "'\n'.join(l).split('<!--app-->')[0]" > index.html;
     cat landing.html >> index.html;
     cat base.html | py -l "'\n'.join(l).split('<!--app-->')[1]" >> index.html;
+    mkdir -p account;
     cp base.html account/index.html
 
 prod:

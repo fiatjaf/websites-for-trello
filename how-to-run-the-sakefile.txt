@@ -1,0 +1,3 @@
+install sake with, pip or pipsi:
+
+pipsi install master-sake
