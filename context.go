@@ -137,8 +137,8 @@ func (prefs Preferences) PostsPerPage() int {
 	if err != nil {
 		return 7
 	}
-	if ppp > 15 {
-		return 15
+	if ppp > 100 {
+		return 100
 	}
 	return ppp
 }
