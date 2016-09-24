@@ -1,30 +1,27 @@
 import os
 import sys
-import pika # type: ignore
-import math
-import time
+import pika
 import json
 import signal
-import requests
 import datetime
-import analytics # type: ignore
 import traceback
 import handlers as h
-import redis.exceptions as redis_exceptions # type: ignore
-from raygun4py import raygunprovider # type: ignore
+import redis.exceptions as redis_exceptions
+from raygun4py import raygunprovider
 from board_management import board_setup, add_bot, remove_bot
 from initial_fetch import initial_fetch
 from webmention_handling import handle_webmention
-from models import Board, User
+from models import Board
 from app import app, redis
 
-analytics.write_key = os.environ.get('SEGMENT_WRITE_KEY')
 
 class LocalTimeUp(BaseException):
     pass
 
+
 class MessageCount(BaseException):
     pass
+
 
 pwd = os.path.dirname(os.path.realpath(__file__))
 raygun = raygunprovider.RaygunSender(os.environ['RAYGUN_API_KEY'])
@@ -37,11 +34,13 @@ connection = pika.BlockingConnection(params)
 channel = connection.channel()
 channel.queue_declare(queue='wft', durable=True)
 
+
 def main(*args, **kwargs):
     print(':: MODEL-UPDATES :: waiting for messages.')
 
     # start listening
     listen()
+
 
 def listen():
     # this is where we actually start listening
@@ -80,6 +79,7 @@ def listen():
             # not running for enough time yet. restart.
             listen()
 
+
 def process_message_batch(messages):
     sorted_messages = sorted(messages, key=lambda m: m[0].get('date'))
 
@@ -98,6 +98,7 @@ def process_message_batch(messages):
 
         # delete message frm rabbitmq
         channel.basic_ack(delivery_tag=method.delivery_tag)
+
 
 def process_message(payload):
     print(':: MODEL-UPDATES :: processing {} {}'.format(payload.get('date'), payload.get('type')))
@@ -118,17 +119,6 @@ def process_message(payload):
                 user_token=payload['user_token']
             )
 
-            # track user with segment.io
-            analytics.identify(user._id, {
-                'email': user.email,
-                'username': user.id
-            })
-            analytics.track(user._id, 'boardSetup', {
-                'id': board.id,
-                'shortLink': board.shortLink,
-                'subdomain': board.subdomain,
-                'name': board.name
-            })
         except:
             raygun.set_user(payload['username'])
             raygun.send_exception(
@@ -151,8 +141,6 @@ def process_message(payload):
             traceback.print_exc(file=sys.stdout)
 
     elif payload['type'] == 'boardDeleted':
-        board_id = str(payload['board_id'])
-
         try:
             remove_bot(payload['board_id'])
         except:
@@ -184,10 +172,6 @@ def process_message(payload):
             handler = getattr(h, payload['type'])
             handler(payload['data'], payload=payload)
 
-            # track event with segment.io
-            user = User.query.filter_by(id=board.user_id).first()
-            analytics.track(user._id, payload['type'], payload['data'])
-
         except AttributeError as e:
             print(':: MODEL-UPDATES :: AttributeError', e)
             return
@@ -215,6 +199,7 @@ def process_message(payload):
             redis.incr('webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
         except redis_exceptions.ResponseError as e:
             print(':: MODEL-UPDATES ::', e, ') -- couldn\'t INCR webhooks:%d:%d:%s' % (today.year, today.month, payload['data']['board']['id']))
+
 
 if __name__ == '__main__':
     main()
