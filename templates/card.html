@@ -67,24 +67,6 @@
 </section>
 {{ end }}
 
-<section class="comments">
-  {{ range .Card.Comments }}
-  <article id="{{ .Id }}">
-    <header>
-      <a href="{{ .AuthorURL }}"><noscript><img src="//webvatar.com/{{ .AuthorURL }}" /></noscript><img class=x data-src="//webvatar.com/{{ .AuthorURL }}"></a>
-      <h1><a href="{{ .AuthorURL }}">{{ .AuthorName }}</a></h1>
-      <aside>
-        <a href="#{{ .Id }}"><time datetime="{{ .IsoDate }}">{{ .PrettyDate }}</time></a>
-      </aside>
-    </header>
-    <div>{{ markdown .Body }}</div>
-    <footer>
-      <a href="{{ .SourceURL }}" target="_blank">{{ .SourceDisplay }}</a>
-    </footer>
-  </article>
-  {{ end }}
-</section>
-
 {{ template "foot" . }}
 
 {{ end }}
