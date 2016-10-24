@@ -212,31 +212,6 @@ ORDER BY sort
 	requestData.Aggregator = list
 	requestData.Card = cards[1]
 
-	// comments
-	if requestData.Prefs.Comments.Display && !requestData.Card.IsPage {
-		var comments []Comment
-		err := db.Select(&comments, `
-SELECT id, author_url, author_name, body, source_display, source_url
-FROM comments
-WHERE card_id = $1
-  AND body IS NOT NULL
-ORDER BY id
-    `, requestData.Card.Id)
-		if err != nil {
-			if err.Error() == "sql: no rows in result set" {
-				log.WithFields(log.Fields{
-					"card": requestData.Card.Id,
-				}).Info("no comments were found")
-			} else {
-				log.WithFields(log.Fields{
-					"card": requestData.Card.Id,
-					"err":  err.Error(),
-				}).Error("unknown error fetching comments.")
-			}
-		}
-		requestData.Card.Comments = comments
-	}
-
 	err = render.ExecuteTemplate(w, "card", requestData)
 	if err != nil {
 		log.Print(err)

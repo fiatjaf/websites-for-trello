@@ -83,11 +83,6 @@ type Preferences struct {
 		Text  string
 		Image string
 	}
-	Comments struct {
-		Display     bool
-		Box         bool
-		Webmentions bool
-	}
 	Aside             string
 	Favicon           string
 	Domain            string

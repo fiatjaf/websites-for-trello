@@ -76,7 +76,6 @@ type Card struct {
 	Excerpt     string
 	ReadMore    bool `db:"readmore"`
 	Due         interface{}
-	Comments    []Comment
 	List_id     string
 	Users       types.JsonText
 	Labels      types.JsonText
@@ -209,34 +208,7 @@ type Attachment struct {
 	EdgeColor string
 }
 
-type Comment struct {
-	Id            string
-	AuthorName    string `db:"author_name"`
-	AuthorURL     string `db:"author_url"`
-	Body          string
-	SourceDisplay string `db:"source_display"`
-	SourceURL     string `db:"source_url"`
-}
-
 /* mustache helpers */
-func (comment Comment) Date() time.Time {
-	unix, err := strconv.ParseInt(comment.Id[:8], 16, 0)
-	if err != nil {
-		return time.Now()
-	}
-	return time.Unix(unix, 0)
-}
-
-func (comment Comment) PrettyDate() string {
-	date := comment.Date()
-	return date.Format("2 Jan 2006")
-}
-
-func (comment Comment) IsoDate() string {
-	date := comment.Date()
-	return date.Format("2006-01-02T15:04:05.999")
-}
-
 func (card Card) Date() time.Time {
 	if card.Due != nil {
 		return card.Due.(time.Time)
