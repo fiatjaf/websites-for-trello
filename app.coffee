@@ -81,9 +81,6 @@ handlers =
         unless location.pathname.match /\/account\//
           humane.log "You are logged in as <b>#{res.body.user}</b>. <b><a href=\"/account\">Click here</a></b> to go to your dashboard.", {timeout: 12000}
         else
-          if State.get('user') != res.body.user
-            ga 'send', 'event', 'user', 'login', res.body.user
-            ga 'set', 'userId', res.body.user
           State.change
             boards: res.body.boards
             activeboards: res.body.activeboards
@@ -104,7 +101,6 @@ handlers =
     self = @
     Promise.resolve().then(->
       if data.name
-        ga 'send', 'event', 'board', 'create', data.name
         # create
         superagent
           .post(process.env.API_URL + '/board/setup')
@@ -112,7 +108,6 @@ handlers =
           .withCredentials()
           .end()
       else if data.id
-        ga 'send', 'event', 'board', 'reuse', data.id
         # reuse
         superagent
           .put(process.env.API_URL + '/board/setup')
@@ -121,7 +116,6 @@ handlers =
           .end()
     ).then((res) ->
       board = res.body
-      ga 'send', 'event', 'board', 'setup-done', board.id
 
       State.change
         setupDone:
@@ -142,14 +136,12 @@ handlers =
             .end()
         ).then(->
           self.refresh State
-          ga 'send', 'event', 'board', 'setup-success', board.id
           humane.success "Success!"
           State.change 'setupDone.ready', true
         ).catch(op.retry.bind op)
     ).catch(console.log.bind console)
 
   initialFetch: (State, data) ->
-    ga 'send', 'event', 'board', 'initial-fetch', data.id
     Promise.resolve().then(->
       superagent
         .post(process.env.API_URL + '/board/' + data.id + '/initial-fetch')
@@ -163,7 +155,6 @@ handlers =
 
   deleteBoard: (State, data) ->
     self = @
-    ga 'send', 'event', 'board', 'delete', data.id
     Promise.resolve().then(->
       superagent
         .del(process.env.API_URL + '/board/' + data.id)
@@ -179,7 +170,6 @@ handlers =
 
   changeSubdomain: (State, data) ->
     self = @
-    ga 'send', 'event', 'board', 'subdomain', data.id
     Promise.resolve().then(->
       superagent
         .put(process.env.API_URL + '/board/' + data.id + '/subdomain')
@@ -195,7 +185,6 @@ handlers =
     ).catch(console.log.bind console)
 
   logout: (State) ->
-    ga 'send', 'event', 'user', 'logout', State.get('user')
     humane.log "Logging out..."
     Promise.resolve().then(->
       superagent
@@ -211,10 +200,6 @@ handlers =
       return
 
     Promise.resolve().then(->
-      if enable == true
-        ga 'send', 'event', 'billing', 'enable', 'premiumn'
-      else if enable == false
-        ga 'send', 'event', 'billing', 'disable', 'premium'
       superagent
         .post(process.env.API_URL + '/account/billing/premium')
         .send(enable: enable)
@@ -229,7 +214,6 @@ handlers =
     ).catch(console.log.bind console)
 
   premiumSuccess: (State) ->
-    ga 'send', 'event', 'billing', 'success', 'premium'
     Promise.resolve().then(->
       humane.success "You are now on the premium plan!"
       router.redirect '#/plan'

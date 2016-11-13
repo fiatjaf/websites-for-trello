@@ -7,13 +7,18 @@
 <link href=bundle.css rel=stylesheet>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/humane-js/3.2.2/themes/flatty.min.css">
 <script type="text/javascript">
-  (function(e,t){var r=e.amplitude||{};var n=t.createElement("script");n.type="text/javascript";
-  n.async=true;n.src="https://d24n15hnbwhuhn.cloudfront.net/libs/amplitude-2.2.1-min.gz.js";
-  var s=t.getElementsByTagName("script")[0];s.parentNode.insertBefore(n,s);r._q=[];function a(e){
-  r[e]=function(){r._q.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var i=["init","logEvent","logRevenue","setUserId","setUserProperties","setOptOut","setVersionName","setDomain","setDeviceId","setGlobalUserProperties"];
-  for(var o=0;o<i.length;o++){a(i[o])}e.amplitude=r})(window,document);
-
-  amplitude.init("ca01085e74391f71e277c5c26c9f85eb");
+var _gauges = _gauges || [];
+(function() {
+  var t   = document.createElement('script');
+  t.type  = 'text/javascript';
+  t.async = true;
+  t.id    = 'gauges-tracker';
+  t.setAttribute('data-site-id', '58288b2bbb922a061d0049d7');
+  t.setAttribute('data-track-path', 'https://track.gaug.es/track.gif');
+  t.src = 'https://d36ee2fcip1434.cloudfront.net/track.js';
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(t, s);
+})();
 </script>
 
 <body>
