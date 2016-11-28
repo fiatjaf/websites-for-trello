@@ -9,8 +9,6 @@
   <link rel="shortcut icon" href="{{ . }}">
   {{ end }}
   <link type="application/rss+xml" title="{{ .Board.Name }}" rel="alternate" href="/feed.xml">
-  <link type="text/html" rel="feed" href="/h-feed.html">
-  <link href="//webhooks.websitesfortrello.com/webmention" rel="webmention">
   <link type="application/opensearchdescription+xml" rel="search" href="/opensearch.xml">
   <title>
   {{ if .Card }}
@@ -55,7 +53,7 @@
 {{ define "foot" }}
   </main>
   <aside>
-    <div {{ if .ShowMF2 }}class="h-card"{{ end }}>
+    <div>
       {{ markdown .Prefs.Aside }}
     </div>
   </aside>

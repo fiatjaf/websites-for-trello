@@ -113,8 +113,6 @@ ORDER BY pos
 		Page:    1,
 		HasPrev: false,
 		HasNext: false,
-
-		ShowMF2: !strings.Contains(r.UserAgent(), "Mozilla"),
 	}
 }
 

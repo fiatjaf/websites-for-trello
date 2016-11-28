@@ -10,16 +10,16 @@
 </header>
 {{ end }}
 
-<article {{ if .ShowMF2 }}class="h-entry"{{ end }}>
+<article>
   <header>
     {{ if .Card.ValidCover }}<noscript><img src="{{ .Card.Cover }}" /></noscript><img class=x data-src="{{ .Card.Cover }}">{{ end }}
     {{ if not .Card.IsPage }}
     <h1>
-      <a {{ if .ShowMF2 }}class="p-name"{{ end }} href="/{{ .Aggregator.Slug }}/{{ .Card.Slug }}/">{{ .Card.Name }}</a>
+      <a href="/{{ .Aggregator.Slug }}/{{ .Card.Slug }}/">{{ .Card.Name }}</a>
     </h1>
     <aside>
       {{ .Card.AuthorHTML }}
-      <a rel="bookmark" {{ if .ShowMF2 }}class="u-url dt-published"{{ end }}href="/c/{{ .Card.Id }}"><time datetime="{{ .Card.IsoDate }}">{{ .Card.PrettyDate }}</time></a>
+      <a rel="bookmark" href="/c/{{ .Card.Id }}"><time datetime="{{ .Card.IsoDate }}">{{ .Card.PrettyDate }}</time></a>
     {{ else }}
     <aside>
     {{ end }}
@@ -30,14 +30,10 @@
       </ul>
     </aside>
   </header>
-  <div {{ if .ShowMF2 }}class="e-content"{{ end }}>
+  <div>
 
 {{ markdown .Card.Desc}}
 
-{{ if .ShowMF2 }}
-<a href="https://www.brid.gy/publish/facebook"></a>
-<a href="https://www.brid.gy/publish/twitter"></a>
-{{ end }}
   </div>
 </article>
 

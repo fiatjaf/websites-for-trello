@@ -215,20 +215,3 @@ LIMIT 30
 
 	fmt.Fprint(w, rss)
 }
-
-func hfeed(w http.ResponseWriter, r *http.Request) {
-	requestData := loadRequestData(r)
-
-	// fetch a lot of links for displaying here
-	// we have to manually modify preferences to ensure this.
-	requestData.Prefs.ExcerptsValue = "0"
-	requestData.Prefs.PostsPerPageValue = "25"
-
-	err := completeWithIndexCards(&requestData)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	render.ExecuteTemplate(w, "h-feed", requestData)
-}

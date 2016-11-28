@@ -47,7 +47,6 @@ type RequestData struct {
 	HasPrev          bool
 	Prefs            Preferences
 	Settings         Settings
-	ShowMF2          bool
 	Content          string
 }
 
